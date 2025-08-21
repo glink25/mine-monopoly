@@ -9,7 +9,9 @@ import Chat from "@src/views/chat_log/chat_log.vue";
 import MusicPlayer from "@src/views/music_player/music_player.vue";
 import DanmakuContainer from "@src/views/danmaku/danmaku_container.vue";
 import { isMobileDevice } from "@src/utils";
+import { TitleBar } from "@fatpaper-monopoly/ui";
 
+const version = window.electronAPI.getVersion();
 const isMobile = isMobileDevice();
 const router = useRoute();
 const isInGame = computed(() => router.name === "game");
@@ -18,14 +20,26 @@ const isMusicPlayerVisiable = computed(() => router.name !== "login");
 </script>
 
 <template>
-	<FullScreenMask v-if="isMobile" />
-	<Chat v-if="canChat" />
-	<DanmakuContainer v-if="canChat" />
-	<Background v-if="!isInGame" />
-	<Loading />
-	<StatusBar />
-	<MusicPlayer v-if="isMusicPlayerVisiable" />
-	<RouterView></RouterView>
+	<TitleBar :bg-color="'#f38b11'">
+		<template #title>
+			<span style="font-size: 12px">FatPaper-Monopoly v{{ version }}</span>
+		</template>
+	</TitleBar>
+	<div class="main-container">
+		<FullScreenMask v-if="isMobile" />
+		<Chat v-if="canChat" />
+		<DanmakuContainer v-if="canChat" />
+		<Background v-if="!isInGame" />
+		<Loading />
+		<StatusBar />
+		<MusicPlayer v-if="isMusicPlayerVisiable" />
+		<RouterView></RouterView>
+	</div>
 </template>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.main-container{
+	flex: 1;
+	position: relative;
+}
+</style>

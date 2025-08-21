@@ -194,7 +194,7 @@ onBeforeUnmount(() => {
 
 <style scoped lang="scss">
 .music-player {
-	position: fixed;
+	position: absolute;
 	left: 0.5rem;
 	top: 0;
 	min-width: 2.2rem;

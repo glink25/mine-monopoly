@@ -4,9 +4,11 @@
 	"version": "1.0.0",
 	"updateMessage": "欢迎来到1.0版本",
 	"type": "module",
+	"main": "dist-electron/main.js",
 	"scripts": {
-		"dev": "vite --host",
-		"build": "vite build",
+		"dev": "vite",
+		"build": "vite build && electron-builder",
+		"electron": "electron .",
 		"preview": "vite preview"
 	},
 	"dependencies": {

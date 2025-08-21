@@ -1,6 +1,6 @@
 @font-face {
 	font-family: "TitleFont";
-	src: url("https://monopoly-static-1304992673.cos.ap-guangzhou.myqcloud.com/TitleFont.ttf");
+	src: url("./TitleFont.ttf");
 	font-weight: normal;
 	font-style: normal;
 }
@@ -14,7 +14,7 @@
 
 @font-face {
 	font-family: "ContentFont";
-	src: url("https://monopoly-static-1304992673.cos.ap-guangzhou.myqcloud.com/ContentFont.woff2") format("woff");
+	src: url("./ContentFont.woff2") format("woff");
 	font-style: normal;
 	font-weight: normal;
 }

@@ -140,7 +140,7 @@ function handleHideContainer() {
 }
 
 .chat_log {
-	position: fixed;
+	position: absolute;
 	bottom: 0;
 	left: 0.5rem;
 	z-index: 10000;

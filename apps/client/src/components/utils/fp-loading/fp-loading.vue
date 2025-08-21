@@ -22,7 +22,7 @@ watch(loading, (newValue) => {
 
 <style lang="scss" scoped>
 .page-loading {
-	position: fixed;
+	position: absolute;
 	top: 0;
 	left: 0;
 	bottom: 0;

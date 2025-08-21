@@ -21,7 +21,7 @@ const canChat = computed(() => router.name === "room" || router.name === "game")
 
 <style lang="scss" scoped>
 .status-bar {
-	position: fixed;
+	position: absolute;
 	top: 0;
 	right: 0;
 	display: flex;
