@@ -13,10 +13,7 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
 /* import specific icons */
 import {
-	faRectangleXmark,
 	faWindowRestore,
-	faWindowMinimize,
-	faWindowMaximize,
 	faHouseChimneyWindow,
 	faHandPointer,
 	faPenToSquare,
@@ -31,15 +28,15 @@ import {
 	faArrowDown,
 	faArrowsSpin,
 	faBezierCurve,
+	faXmark,
+	faExpand,
+	faCompress,
 } from "@fortawesome/free-solid-svg-icons";
 import { eventBus } from "./utils/event-bus";
 import { loadMapDataFromPath } from "@src/utils/file";
 
 library.add(
-	faRectangleXmark,
 	faWindowRestore,
-	faWindowMinimize,
-	faWindowMaximize,
 	faHouseChimneyWindow,
 	faHandPointer,
 	faPenToSquare,
@@ -53,7 +50,10 @@ library.add(
 	faMicrochip,
 	faArrowDown,
 	faArrowsSpin,
-	faBezierCurve
+	faBezierCurve,
+	faXmark,
+	faExpand,
+	faCompress
 );
 
 eventBus.on("renderer-ready", () => {

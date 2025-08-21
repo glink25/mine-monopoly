@@ -49,13 +49,13 @@ const closeWindow = () => {
 		<!-- 窗口控制按钮 -->
 		<div class="window-controls">
 			<button @click="minimizeWindow" class="control-button minimize">
-				<font-awesome-icon :icon="['fas', 'window-minimize']" />
+				<font-awesome-icon style="font-size: .8em;" :icon="['fas', 'window-minimize']" />
 			</button>
 			<button @click="toggleMaximize" class="control-button maximize">
-				<font-awesome-icon :icon="['fas', isMaximized ? 'window-restore' : 'window-maximize']" />
+				<font-awesome-icon style="font-size: .95em;" :icon="['fas', isMaximized ? 'compress' : 'expand']" />
 			</button>
 			<button @click="closeWindow" class="control-button close">
-				<font-awesome-icon :icon="['fas', 'rectangle-xmark']" />
+				<font-awesome-icon style="font-size: 1.2em;" :icon="['fas', 'xmark']" />
 			</button>
 		</div>
 	</div>
