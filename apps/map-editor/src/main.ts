@@ -31,6 +31,8 @@ import {
 	faXmark,
 	faExpand,
 	faCompress,
+	faMinimize,
+	faWindowMinimize,
 } from "@fortawesome/free-solid-svg-icons";
 import { eventBus } from "./utils/event-bus";
 import { loadMapDataFromPath } from "@src/utils/file";
@@ -53,7 +55,8 @@ library.add(
 	faBezierCurve,
 	faXmark,
 	faExpand,
-	faCompress
+	faCompress,
+	faWindowMinimize
 );
 
 eventBus.on("renderer-ready", () => {
