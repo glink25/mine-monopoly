@@ -55,24 +55,27 @@ interface User {
 	color: string;
 	isReady: boolean;
 }
-interface IGamePhase<Context extends GameContext> {
-	new (initEvent: Middleware<Context>): IGamePhase<Context>;
+type GameEvent<Context> = (ctx: Context) => Promise<void>;
+interface IGamePhase<Context extends GameContext> extends GamePhaseInfo {
+	new (initEvent: GameEvent<Context>): IGamePhase<Context>;
+	initEvent: GameEvent<Context>;
+	eventQueue: GameEvent<Context>[];
+	use(tiggerTime: EventTiggerTime, fn: GameEvent<Context>): void;
+	getEventQueue(): GameEvent<Context>[];
+}
+interface GamePhaseInfo {
 	id: string;
 	name: string;
 	description: string;
 	mark?: GamePhaseMark;
 	from: string;
-	initEvent: Middleware<Context>;
-	eventQueue: Middleware<Context>[];
-	use(tiggerTime: EventTiggerTime, fn: Middleware<Context>): void;
-	run(context: Context): Promise<void>;
+	initEventCode: string;
 }
-type Middleware<Context> = (ctx: Context, next: () => Promise<void>) => Promise<void>;
 type GameContext = {
 	cancel?: boolean;
 };
 interface ArrivedEventContext extends GameContext {
-	arrivedPlayer: IPlayer;
+	currentRoundPlayer: IPlayer;
 	arrivedProperty: IProperty;
 }
 interface IPlayer {

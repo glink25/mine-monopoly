@@ -1,13 +1,6 @@
 import { ChanceCardType, MapEventType } from "../../enums/game/game";
 import { IPlayer, PlayerInfo } from "./game-process";
 
-export interface Role {
-	id: string;
-	name: string;
-	file: string | Blob;
-	color: string;
-}
-
 export interface MapItem {
 	id: string;
 	type: MapItemType;
@@ -31,6 +24,13 @@ export interface IProperty {
 	streetId: string;
 }
 
+export interface Role {
+	id: string;
+	name: string;
+	color: string;
+	imageId: string;
+}
+
 export interface Street {
 	id: string;
 	name: string;
@@ -43,7 +43,7 @@ export interface IChanceCard extends ChanceCard {
 	sourceId: string;
 }
 
-export interface ChanceCard{
+export interface ChanceCard {
 	id: string;
 	name: string;
 	description: string;
@@ -51,7 +51,6 @@ export interface ChanceCard{
 	color: string;
 	effectCode: string;
 	type: ChanceCardType;
-
 }
 
 export interface Buff {

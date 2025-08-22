@@ -11,6 +11,7 @@ import ModelManager from "../manager/model-manager.vue";
 import EventManager from "../manager/event-manager.vue";
 import ChanceCardManager from "../manager/chancecard-manager.vue";
 import streetManager from "../manager/street-manager.vue";
+import RoleManager from "../manager/role-manager.vue";
 import { eventBus } from "@src/utils/event-bus";
 
 const editorStore = useEditorStore();
@@ -35,6 +36,7 @@ function handleCameraModeChange() {
 	eventBus.emit("change-camera-mode", editorStore.currentCameraMode);
 }
 
+const roleManagerVisible = ref(false);
 const mapIndexCreatorVisible = ref(false);
 const processManagerVisible = ref(false);
 const streetManagerVisible = ref(false);
@@ -98,7 +100,11 @@ const chanceCardManagerVisible = ref(false);
 		</div>
 
 		<div class="right">
-			<a-space>
+			<a-space wrap>
+				<a-button @click="roleManagerVisible = true">
+					<font-awesome-icon style="margin-right: 5px" :icon="['fas', 'user-ninja']" />
+					<span>角色</span>
+				</a-button>
 				<a-button @click="mapIndexCreatorVisible = true">
 					<font-awesome-icon style="margin-right: 5px" :icon="['fas', 'bezier-curve']" />
 					<span>路径索引</span>
@@ -112,7 +118,7 @@ const chanceCardManagerVisible = ref(false);
 					<span>街道</span>
 				</a-button>
 				<a-button @click="modelManagerVisible = true">
-					<font-awesome-icon style="margin-right: 5px" :icon="['fas', 'boxes-stacked']" />
+					<font-awesome-icon style="margin-right: 5px" :icon="['fas', 'cubes']" />
 					<span>模型</span>
 				</a-button>
 				<a-button @click="eventManagerVisible = true">
@@ -126,7 +132,8 @@ const chanceCardManagerVisible = ref(false);
 			</a-space>
 		</div>
 
-		<map-index-creator v-model="mapIndexCreatorVisible"/>
+		<role-manager v-model="roleManagerVisible" />
+		<map-index-creator v-model="mapIndexCreatorVisible" />
 		<process-manager v-model="processManagerVisible" />
 		<street-manager v-model="streetManagerVisible" />
 		<model-manager v-model="modelManagerVisible" />
@@ -142,5 +149,14 @@ const chanceCardManagerVisible = ref(false);
 	padding: 10px;
 	justify-content: space-between;
 	pointer-events: initial;
+
+	& .right {
+		flex: 1;
+
+		& > div {
+			width: 100%;
+			justify-content: end;
+		}
+	}
 }
 </style>

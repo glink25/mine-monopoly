@@ -1,3 +1,7 @@
+declare enum PlayerMoveType {
+	Walk = 0,
+	Tp = 1
+}
 declare enum ChanceCardType {
 	ToSelf = "ToSelf",
 	ToOtherPlayer = "ToOtherPlayer",
@@ -42,23 +46,30 @@ interface User {
 	color: string;
 	isReady: boolean;
 }
-type Middleware<Context> = (ctx: Context, next: () => Promise<void>) => Promise<void>;
+type GameEvent<Context> = (ctx: Context) => Promise<void>;
 type GameContext = {
 	cancel?: boolean;
 };
 interface GameRoundStartContext extends GameContext {
 }
 interface PlayerRoundStartContext extends GameContext {
+	currentRoundPlayer: IPlayer;
 }
 interface RollDiceContext extends GameContext {
+	currentRoundPlayer: IPlayer;
+	dice: number[];
 }
 interface PlayerMoveContext extends GameContext {
+	currentRoundPlayer: IPlayer;
+	type: PlayerMoveType;
+	targetIndex: number;
 }
 interface ArrivedEventContext extends GameContext {
-	arrivedPlayer: IPlayer;
+	currentRoundPlayer: IPlayer;
 	arrivedProperty: IProperty;
 }
 interface PlayerRoundEndContext extends GameContext {
+	currentRoundPlayer: IPlayer;
 }
 interface GameRoundEndContext extends GameContext {
 }

@@ -8,6 +8,7 @@ import {
 	MapEvent,
 	ChanceCard,
 	IProperty,
+	Role,
 } from "@fatpaper-monopoly/types/interfaces/game/item";
 import { eventBus } from "@src/utils/event-bus";
 import { message } from "ant-design-vue";
@@ -173,6 +174,23 @@ export const useMapDataStore = defineStore("MapData", {
 			this.properties.splice(deleteIndex, 1);
 		},
 
+		// Role
+		addRole(role: Role) {
+			this.roles.push(role);
+		},
+		editRole(role: Role) {
+			const index = this.roles.findIndex((s) => s.id === role.id);
+			if (index < 0) throw Error("找不到目标角色");
+			const old = this.roles[index];
+			useResourceStore().removeImage(old.imageId);
+			Object.assign(this.roles[index], role);
+		},
+		reomveRole(id: string) {
+			const deleteIndex = this.roles.findIndex((s) => s.id === id);
+			if (deleteIndex < 0) throw Error("找不到目标角色");
+			this.roles.splice(deleteIndex, 1);
+		},
+
 		//mapIndex
 		updateMapIndex(indexs: string[]) {
 			console.log("🚀 ~ updateMapIndex ~ indexs:", indexs);
@@ -200,7 +218,6 @@ export const useResourceStore = defineStore("Resources", {
 		},
 		addImage(image: ResourcesType) {
 			this.images.push(image);
-			console.log("🚀 ~ addImage ~ this:", this.images);
 		},
 		removeModel(id: string) {
 			const deleteIndex = this.models.findIndex((m) => m.id === id);
@@ -259,6 +276,11 @@ const alertList: EditorAlert[] = [
 		visible: () => {
 			return useMapDataStore().mapItems.some((m) => m.beLinked && !m.property);
 		},
+	},
+	{
+		type: "error",
+		message: "没有角色",
+		visible: () => useMapDataStore().roles.length === 0,
 	},
 	{
 		type: "error",
