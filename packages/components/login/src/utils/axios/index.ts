@@ -1,9 +1,9 @@
 import axios from "axios";
 import { FPMessage } from "@fatpaper-monopoly/ui";
-import { USER_SERVER_URL } from "@fatpaper-monopoly/config";
+import { FATPAPER_DOMAIN, PROTOCOL, SERVER_PORT } from "@fatpaper-monopoly/config";
 
 const _axios = axios.create({
-	baseURL: USER_SERVER_URL,
+	baseURL: `${PROTOCOL}://${FATPAPER_DOMAIN}:${SERVER_PORT}`,
 });
 
 //请求拦截器
@@ -23,6 +23,7 @@ _axios.interceptors.request.use(
 // 响应拦截器
 _axios.interceptors.response.use(
 	async function (response) {
+		console.log("🚀 ~ response:", response)
 		const msg = response.data.msg;
 		if (msg) {
 			const status = response.data.status;
@@ -49,6 +50,7 @@ _axios.interceptors.response.use(
 		return response.data;
 	},
 	async function (error) {
+		console.log("🚀 ~ error:", error)
 		let message = "";
 		switch (error.response.status) {
 			case 400:

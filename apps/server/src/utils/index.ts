@@ -2,7 +2,7 @@ import { MapItem } from "../interfaces/bace";
 import Vibrant from "node-vibrant";
 import crypto from "crypto";
 import { privateKey } from "./rsakey";
-
+import JSEncrypt from "JSEncrypt";
 
 export function getItemTypesFromMapItems(mapItems: MapItem[]) {
 	const itemTypesIdSet = new Set<string>();
@@ -51,14 +51,14 @@ export function randomColor() {
 
 	let R, G, B;
 
-	function hue2rgb(p: any, q: any, t: any){
+	function hue2rgb(p: any, q: any, t: any) {
 		if (t < 0) t += 1;
 		if (t > 1) t -= 1;
 		if (t < 1 / 6) return p + (q - p) * 6 * t;
 		if (t < 1 / 2) return q;
 		if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
 		return p;
-	};
+	}
 
 	let Q = L < 0.5 ? L * (1 + S) : L + S - L * S;
 	let P = 2 * L - Q;
@@ -71,9 +71,9 @@ export function randomColor() {
 	return hex;
 }
 
-export function getRandomInteger(min: number, max: number){
+export function getRandomInteger(min: number, max: number) {
 	return Math.floor(Math.random() * (max - min + 1)) + min;
-};
+}
 
 export function getRandomString(length: number) {
 	return crypto
@@ -106,15 +106,23 @@ export async function getImageMainColor(filename: string) {
 
 //解密
 //FIXME
-export function decryptPassword(enc: string): string {
-	const buffer = Buffer.from(enc, "base64");
-  const decrypted = crypto.privateDecrypt(
-    {
-      key: privateKey,
-      padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-    },
-    buffer
-  );
-  return decrypted.toString("utf8");
-}
+// export function decryptPassword(enc: string): string {
+// 	const buffer = Buffer.from(enc, "base64");
+// 	console.log("🚀 ~ decryptPassword ~ privateKey:", privateKey);
+// 	const decrypted = crypto.privateDecrypt(
+// 		{
+// 			key: privateKey,
+// 			padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+// 		},
+// 		buffer
+// 	);
+// 	return decrypted.toString("utf8");
+// }
 
+export function decryptPassword(enc: string): string {
+	const decrypt = new JSEncrypt();
+	decrypt.setPrivateKey(privateKey);
+	const decryptedPassword = decrypt.decrypt(enc);
+	if (decryptedPassword === false) throw Error("解密失败");
+	return decryptedPassword;
+}

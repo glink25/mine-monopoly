@@ -1,10 +1,10 @@
 import axios from "axios";
-import { ElMessage } from "element-plus";
-import { __MONOPOLYSERVER__ } from "@G/global.config";
 import router from "@/router";
+import { FATPAPER_DOMAIN, PROTOCOL, SERVER_PORT } from "@fatpaper-monopoly/config";
+import { message } from "ant-design-vue";
 
 export const _axios = axios.create({
-	baseURL: __MONOPOLYSERVER__,
+	baseURL: `${PROTOCOL}://${FATPAPER_DOMAIN}:${SERVER_PORT}`,
 });
 
 _axios.defaults.headers.common["Authorization"] = localStorage.getItem("token");
@@ -34,10 +34,7 @@ _axios.interceptors.response.use(
 			const status = response.data.status;
 			if (status == 200) {
 				//成功请求
-				ElMessage({
-					type: "success",
-					message: msg,
-				});
+				message.success(msg, 1);
 			}
 			// } else if (status == 400) {
 			// 	//普通警告
@@ -67,11 +64,7 @@ _axios.interceptors.response.use(
 		const res = error.response;
 		const duration = 1000;
 		if (res) {
-			ElMessage({
-				type: "error",
-				message: res.data.msg || "解析返回结果错误",
-				duration,
-			});
+			message.error(res.data.msg || "解析返回结果错误");
 		}
 		if (res && res.status === 401) {
 			localStorage.removeItem("token");

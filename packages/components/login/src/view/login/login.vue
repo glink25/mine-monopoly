@@ -115,7 +115,7 @@ async function handleLogin() {
 		const token = await apiLogin(loginForm.useraccount, loginForm.password);
 		if (token) {
 			// window.top && window.top.postMessage(token, "*");
-			emit('success', token);
+			emit("success", token);
 		}
 	} finally {
 		isLoading.value = false;
@@ -217,8 +217,12 @@ const loginMode = ref(true);
 </template>
 
 <style lang="scss" scoped>
-// @import "../../assets/style.scss", "../../assets/ui.scss", "../../assets/font/font.css";
-
+@font-face {
+	font-family: "ContentFont";
+	src: url("../../assets/font/ContentFont.woff2") format("woff");
+	font-style: normal;
+	font-weight: normal;
+}
 .login-page {
 	--color-text: #16a853;
 	--color-primary: #689f38;
@@ -237,9 +241,53 @@ const loginMode = ref(true);
 	flex-direction: column;
 	align-items: center;
 	overflow: hidden;
-	border: solid 0.5rem rgba(255, 255, 255, 0.5);
-	border-radius: 3rem;
-	box-shadow: var(--box-shadow);
+
+	* {
+		font-family: "ContentFont";
+	}
+
+	//Button
+	button {
+		border: 0;
+		font-size: 1.1rem;
+		color: var(--color-text-white);
+		background-color: var(--color-second);
+		text-shadow: var(--text-shadow);
+
+		&:hover {
+			color: var(--color-text-white);
+			cursor: pointer;
+			background-color: var(--color-primary);
+		}
+
+		&:disabled {
+			color: var(--color-text-disable);
+			cursor: not-allowed;
+			background-color: var(--color-bg-disable);
+		}
+
+		&:focus {
+			outline: none;
+		}
+	}
+
+	//Input
+	input {
+		width: auto;
+		outline-style: none;
+		background-color: rgba(255, 255, 255, 0.8);
+		border-radius: 10px;
+		border: 0;
+		padding: 7px 10px;
+		box-sizing: border-box;
+		font-size: 1em;
+
+		&:focus {
+			outline: 0;
+			-webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), #ffb05c;
+			box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), #ffb05c;
+		}
+	}
 
 	@media screen and (max-width: 900px) {
 	}

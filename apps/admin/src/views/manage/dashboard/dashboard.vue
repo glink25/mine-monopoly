@@ -18,14 +18,12 @@ onMounted(() => {
 
 <template>
 	<div class="dashboard">
-		<el-row style="height: 100%">
-			<div class="room-list-container">
-				<div class="room-list-title">当前房间列表({{ roomList.length }})</div>
-				<div class="room-list">
-					<RoomItem :room="room" v-for="room in roomList" :key="room.roomId" />
-				</div>
+		<div class="room-list-container">
+			<div class="room-list-title">当前房间列表({{ roomList.length }})</div>
+			<div class="room-list">
+				<RoomItem :room="room" v-for="room in roomList" :key="room.roomId" />
 			</div>
-		</el-row>
+		</div>
 	</div>
 </template>
 

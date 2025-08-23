@@ -1,9 +1,7 @@
 import {
 	FATPAPER_DOMAIN,
-	USER_SERVER_PORT,
 	ICE_SERVER_PORT,
-	MONOPOLY_SERVER_PORT,
-	PROTOCOL,
+	SERVER_PORT,
 } from "@fatpaper-monopoly/config";
 // import {
 // 	__TC_SECRETID__ as tc_id,
@@ -15,11 +13,11 @@ import {
 //容器内部通信所以不需要https
 export const __USERSERVERHOST__ = `http://${
 	process.env.NODE_ENV == "production" ? "user-server" : "localhost"
-}:${USER_SERVER_PORT}`;
+}:${SERVER_PORT}`;
 
-export const __MONOPOLYSERVERHOST__ = `${FATPAPER_DOMAIN}:${MONOPOLY_SERVER_PORT}`;
+export const __MONOPOLYSERVERHOST__ = `${FATPAPER_DOMAIN}:${SERVER_PORT}`;
 
-export const __APIPORT__ = MONOPOLY_SERVER_PORT;
+export const __APIPORT__ = SERVER_PORT;
 export const __ICE_SERVER_PORT__ = ICE_SERVER_PORT;
 
 export const __TC_ID__ = "";

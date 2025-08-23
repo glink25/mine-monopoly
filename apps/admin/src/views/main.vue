@@ -1,29 +1,34 @@
 <script setup lang="ts">
 import { menus } from "../router/menus";
-import { computed, onBeforeMount } from "vue";
+import { computed, onBeforeMount, ref, watch } from "vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { isAdmin } from "@/utils/api/user";
-import { ElMessage } from "element-plus";
 import { useRouter } from "vue-router";
 import { isMobileDevice } from "../utils/index";
+import { message } from "ant-design-vue";
+import { MenuClickEventHandler, MenuInfo } from "ant-design-vue/es/menu/src/interface";
 
 const router = useRouter();
 const currentRoutePath = computed(() => router.currentRoute.value.path);
 
-const isMobile = isMobileDevice();
+const currentPageIndex = ref<string[]>([currentRoutePath.value]);
 
 onBeforeMount(async () => {
 	const token = localStorage.getItem("token");
 	if (token) {
 		const { isAdmin: _isAdmin } = await isAdmin();
 		if (!_isAdmin) {
-			ElMessage({ message: "该账号不是管理员账号！请重新登录", type: "error" });
+			message.error("该账号不是管理员账号！请重新登录");
 			router.replace("/login");
 		}
 	} else {
 		router.replace("/login");
 	}
 });
+
+function routeTo(path: string) {
+	router.push(path);
+}
 
 function handleLogout() {
 	localStorage.removeItem("token");
@@ -32,35 +37,25 @@ function handleLogout() {
 </script>
 
 <template>
-	<el-container class="main-page">
-		<el-header class="top-bar" height="50px">
-			<h3 style="display: inline-block">FatPaper大富翁总控中心</h3>
-			<el-button type="danger" plain @click="handleLogout">登出</el-button>
-		</el-header>
-
-		<el-container :direction="isMobile ? 'vertical' : 'horizontal'">
-			<el-aside class="menu-container" :style="{ width: isMobile ? '100%' : '240px' }">
-				<el-menu
-					text-color="#4e4e4e"
-					:mode="isMobile ? 'horizontal' : 'vertical'"
-					router
-					:default-active="currentRoutePath"
-				>
-					<el-menu-item v-for="item in menus" :index="item.path">
-						<FontAwesomeIcon class="icon" :icon="item.icon"></FontAwesomeIcon>
-						<span>{{ item.menuName }}</span>
-					</el-menu-item>
-				</el-menu>
-			</el-aside>
-
-			<el-main
-				class="router-view-container"
-				:style="{ maxHeight: isMobile ? 'calc(100vh - 110px)' : 'calc(100vh - 50px)' }"
-			>
-				<router-view></router-view>
-			</el-main>
-		</el-container>
-	</el-container>
+	<a-layout class="main-page">
+		<a-layout-sider class="sider" theme="light" breakpoint="lg" collapsed-width="0">
+			<div class="logo">
+				<span>大富翁控制台</span>
+				<button @click="handleLogout" class="logout">
+					<font-awesome-icon :icon="['fas', 'right-from-bracket']" />
+				</button>
+			</div>
+			<a-menu v-model:selectedKeys="currentPageIndex" theme="light" :style="{ lineHeight: '64px' }">
+				<a-menu-item class="menu-item" @click="routeTo(menu.path)" v-for="menu in menus" :key="menu.path">
+					<font-awesome-icon :icon="['fas', menu.icon]" class="icon" />
+					<span>{{ menu.menuName }}</span>
+				</a-menu-item>
+			</a-menu>
+		</a-layout-sider>
+		<a-layout-content>
+			<router-view></router-view>
+		</a-layout-content>
+	</a-layout>
 </template>
 
 <style lang="scss" scoped>
@@ -68,23 +63,51 @@ function handleLogout() {
 	width: 100%;
 	height: 100%;
 
-	& > .top-bar {
-		background-color: var(--el-color-primary);
-		box-shadow: var(--el-box-shadow-lighter);
-
+	.logo {
+		width: 90%;
+		height: 45px;
+		margin: 10px auto;
+		background-color: #3689ff;
+		border-radius: 10px;
+		box-sizing: border-box;
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		line-height: 50px;
 		color: #ffffff;
+		overflow: hidden;
+		word-break: keep-all;
+
+		span {
+			display: block;
+			font-size: 1.3em;
+			font-weight: bold;
+			flex: 1;
+			text-align: center;
+			margin-bottom: 0.1em;
+		}
+
+		.logout {
+			cursor: pointer;
+			height: 100%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			padding: 0 13px;
+			background-color: #589eff;
+			color: #ffffff;
+
+			&:hover {
+				background-color: #ff4d4f;
+			}
+		}
 	}
-}
 
-.menu-container {
-	box-shadow: var(--el-box-shadow-lighter);
-
-	.icon {
-		width: 1.5rem;
+	.menu-item {
+		span {
+			margin-left: 10px;
+		}
+		.icon {
+		}
 	}
 }
 </style>
