@@ -1,12 +1,7 @@
-declare enum OperateType {
-	GameInitFinished = "GameInitFinished",//前端加载完毕
-	RollDice = "RollDice",//前端掷骰子
-	UseChanceCard = "UseChanceCard",//使用机会卡
-	Animation = "AnimationComplete",//前端动画完成回馈
-	BuyProperty = "BuyProperty",//买房子
-	BuildHouse = "BuildHouse",//升级房子
-	PauseGame = "PauseGame",//房主暂停游戏
-	ResumeGame = "ResumeGame"
+declare enum GameOverRule {
+	OnePlayerGoBroke = 0,//一位玩家破产
+	LeftOnePlayer = 1,//只剩一位玩家
+	Earn100000 = 2
 }
 declare enum PlayerMoveType {
 	Walk = 0,
@@ -22,6 +17,12 @@ declare enum ChanceCardType {
 declare enum MapEventType {
 	ArrivedEvent = "ArrivedEvent",
 	NormalEvents = "NormalEvents"
+}
+declare enum GameLinkItem {
+	Player = "Player",
+	ChanceCard = "ChanceCard",
+	Property = "Property",
+	ArrivedEvent = "ArrivedEvent"
 }
 declare enum GamePhaseMark {
 	GameRoundStart = 0,
@@ -74,6 +75,15 @@ declare enum PlayerEvents {
 	BeforeSetBankrupted = "BeforeSetBankrupted",
 	AfterSetBankrupted = "AfterSetBankrupted"
 }
+declare enum OperateType {
+	GameInitFinished = "GameInitFinished",//前端加载完毕
+	RollDice = "RollDice",//前端掷骰子
+	UseChanceCard = "UseChanceCard",//使用机会卡
+	Animation = "AnimationComplete",//前端动画完成回馈
+	PauseGame = "PauseGame",//房主暂停游戏
+	ResumeGame = "ResumeGame",//房主恢复游戏
+	DialogResult = "DialogResult"
+}
 interface GameMap {
 	id: string;
 	info: GameMapInfo;
@@ -111,6 +121,298 @@ interface IDice {
 	/** 掷骰子 */
 	roll(): void;
 }
+declare const enum SocketMsgType {
+	Heart = "Heart",//心跳信息
+	MsgNotify = "MsgNotify",//纯信息广播
+	GameLog = "GameLog",//游戏过程信息广播
+	UserList = "UserList",//大厅玩家信息广播
+	RoomList = "RoomList",//房间列表广播
+	JoinRoom = "JoinRoom",//加入房间
+	LeaveRoom = "LeaveRoom",//离开房间
+	RoomInfo = "RoomInfo",//房间信息广播
+	RoomChat = "RoomChat",//房间聊天
+	ReadyToggle = "ReadyToggle",//准备状态切换
+	ChangeColor = "ChangeColor",//切换颜色
+	KickOut = "KickOut",//踢出房间
+	ChangeMap = "ChangeMap",//切换地图
+	ChangeRole = "ChangeRole",//切换角色
+	ChangeGameSetting = "ChangeGameSetting",//修改游戏设置信息
+	GameStart = "GameStart",//游戏开始
+	GameInit = "GameInit",//游戏初始化
+	GameInitFinished = "GameInitFinished",//游戏初始化完成
+	GameData = "GameData",//游戏信息广播
+	GainMoney = "GainMoney",//玩家获得金钱
+	CostMoney = "CostMoney",//玩家花费金钱
+	RoundTurn = "RoundTurn",//更新当前回合轮到的玩家
+	RollDiceStart = "RollDiceStart",//开始摇骰子
+	RollDiceResult = "RollDiceResult",//掷骰子
+	UseChanceCard = "UseChanceCard",//使用机会卡
+	RemainingTime = "RemainingTime",//回合剩余时间
+	RoundTimeOut = "RoundTimeOut",//回合超时
+	PlayerWalk = "PlayerWalk",//位置移动方式1：玩家角色走路
+	PlayerTp = "PlayerTp",//位置移动方式2：传送
+	Operation = "Operation",//玩家操作
+	Bankrupt = "Bankrupt",//破产
+	GameOver = "GameOver",//游戏结束
+	PauseGame = "PauseGame",//房主暂停游戏
+	ResumeGame = "ResumeGame",//房主恢复游戏
+	Dialog = "Dialog",//在客户端唤起dialog
+	UI = "UI"
+}
+declare enum SocketMsgSource {
+	Client = "client",
+	Server = "server"
+}
+declare enum ChatMessageType {
+	Emoticon = 0,//表情
+	Text = 1
+}
+interface GameSetting {
+	gameOverRule: GameOverRule;
+	initMoney: number;
+	multiplier: number;
+	multiplierIncreaseRounds: number;
+	roundTime: number;
+	diceNum: number;
+	chanceCardVisible: boolean;
+	overMoney: number;
+	slackOffMode: boolean;
+}
+type ChangeMapMessageType = {
+	from: "server";
+	data: string;
+} | {
+	from: "custom";
+	data: ArrayBuffer;
+};
+interface SocketMessage<T extends SocketMsgType = SocketMsgType, S extends SocketMsgSource = SocketMsgSource> {
+	type: T;
+	source: S;
+	data: SocketMessageDataType[T][S];
+	msg?: {
+		type: "info" | "success" | "warning" | "error";
+		content: string;
+	};
+	extra?: any;
+	roomId?: string;
+}
+type ServerSocketMessage = {
+	[K in SocketMsgType]: SocketMessage<K, SocketMsgSource.Server>;
+}[SocketMsgType];
+type OperationMessage = {
+	[T in OperateType | string]: {
+		operateType: T;
+		data: PlayerOperationResult[T];
+	};
+}[OperateType];
+interface SocketMessageDataType {
+	[SocketMsgType.Heart]: {
+		client: undefined;
+		server: undefined;
+	};
+	[SocketMsgType.MsgNotify]: {
+		client: never;
+		server: undefined;
+	};
+	[SocketMsgType.GameLog]: {
+		client: never;
+		server: GameLog;
+	};
+	[SocketMsgType.UserList]: {
+		client: never;
+		server: User[];
+	};
+	[SocketMsgType.RoomList]: {
+		client: never;
+		server: Room[];
+	};
+	[SocketMsgType.JoinRoom]: {
+		client: User;
+		server: {
+			roomId: string;
+		};
+	};
+	[SocketMsgType.LeaveRoom]: {
+		client: undefined;
+		server: undefined;
+	};
+	[SocketMsgType.RoomInfo]: {
+		client: never;
+		server: RoomInfo;
+	};
+	[SocketMsgType.RoomChat]: {
+		client: string;
+		server: ChatMessage;
+	};
+	[SocketMsgType.ReadyToggle]: {
+		client: undefined;
+		server: undefined;
+	};
+	[SocketMsgType.ChangeColor]: {
+		client: string;
+		server: never;
+	};
+	[SocketMsgType.KickOut]: {
+		client: string;
+		server: undefined;
+	};
+	[SocketMsgType.ChangeMap]: {
+		client: ChangeMapMessageType;
+		server: ChangeMapMessageType;
+	};
+	[SocketMsgType.ChangeRole]: {
+		client: string;
+		server: string;
+	};
+	[SocketMsgType.ChangeGameSetting]: {
+		client: GameSetting;
+		server: never;
+	};
+	[SocketMsgType.GameStart]: {
+		client: undefined;
+		server: undefined;
+	};
+	[SocketMsgType.GameInit]: {
+		client: never;
+		server: GameData;
+	};
+	[SocketMsgType.GameInitFinished]: {
+		client: undefined;
+		server: undefined;
+	};
+	[SocketMsgType.GameData]: {
+		client: never;
+		server: GameData;
+	};
+	[SocketMsgType.GainMoney]: {
+		client: never;
+		server: {
+			player: PlayerInfo;
+			money: number;
+			source: PlayerInfo | undefined;
+		};
+	};
+	[SocketMsgType.CostMoney]: {
+		client: never;
+		server: {
+			player: PlayerInfo;
+			money: number;
+			target: PlayerInfo | undefined;
+		};
+	};
+	[SocketMsgType.RoundTurn]: {
+		client: never;
+		server: undefined;
+	};
+	[SocketMsgType.RollDiceStart]: {
+		client: never;
+		server: string;
+	};
+	[SocketMsgType.RollDiceResult]: {
+		client: never;
+		server: {
+			rollDiceResult: number[];
+			rollDiceCount: number;
+			rollDicePlayerId: string;
+		};
+	};
+	[SocketMsgType.UseChanceCard]: {
+		client: never;
+		server: {
+			error: boolean;
+		};
+	};
+	[SocketMsgType.RemainingTime]: {
+		client: never;
+		server: {
+			eventMsg: string;
+			remainingTime: number;
+		};
+	};
+	[SocketMsgType.RoundTimeOut]: {
+		client: never;
+		server: never;
+	};
+	[SocketMsgType.PlayerWalk]: {
+		client: never;
+		server: {
+			playerId: string;
+			step: number;
+			walkId: string;
+		};
+	};
+	[SocketMsgType.PlayerTp]: {
+		client: never;
+		server: {
+			playerId: string;
+			positionIndex: number;
+			walkId: string;
+		};
+	};
+	[SocketMsgType.Operation]: {
+		client: OperationMessage;
+		server: never;
+	};
+	[SocketMsgType.Bankrupt]: {
+		client: never;
+		server: never;
+	};
+	[SocketMsgType.GameOver]: {
+		client: never;
+		server: undefined;
+	};
+	[SocketMsgType.PauseGame]: {
+		client: undefined;
+		server: undefined;
+	};
+	[SocketMsgType.ResumeGame]: {
+		client: undefined;
+		server: undefined;
+	};
+	[SocketMsgType.Dialog]: {
+		client: undefined;
+		server: {};
+	};
+	[SocketMsgType.UI]: {
+		client: undefined;
+		server: undefined;
+	};
+}
+interface Room {
+	roomId: string;
+	ownerId: string;
+	ownerName: string;
+	userNum: number;
+}
+interface RoomInfo {
+	mapId: string;
+	roomId: string;
+	userList: Array<User>;
+	isStarted: boolean;
+	ownerId: string;
+	ownerName: string;
+	gameSetting: GameSetting;
+}
+interface ChatMessage {
+	id: string;
+	type: ChatMessageType;
+	user: User;
+	content: string;
+	time: number;
+}
+interface GameLog {
+	id: string;
+	time: number;
+	content: string;
+}
+interface GameData {
+	currentPlayerIdInRound: string;
+	currentRound: number;
+	currentMultiplier: number;
+	playersList: PlayerInfo[];
+	propertiesList: PropertyInfo[];
+	isGameOver: boolean;
+}
 type GameContext = {
 	cancel?: boolean;
 } & Record<string, any>;
@@ -125,13 +427,39 @@ interface IGameProcess {
 	gameRuntimeStack: IGameRuntimeStack<GameContext>;
 	roundTimeTimer: IRoundTimeTimer;
 	diceUtil: IDice;
+	handlePlayerRollDice(playerId: string): void;
+	handleArriveEvent(arrivedPlayer: IPlayer): void;
+	handleUseChanceCard(sourcePlayer: IPlayer, chanceCardId: string, targetIdList: string[]): Promise<boolean>;
+	roundTurnNotify(playerId: string): void;
 	emitPlayerOperation<T extends OperateType>(playerId: string, operationType: T, data: PlayerOperationResult[T]): void;
 	oncePlayerOperationAsync<T extends OperateType>(playerId: string, operationType: T): Promise<PlayerOperationResult[T]>;
 	onPlayerOperationAsync<T extends OperateType>(playerId: string, operationType: T): Promise<PlayerOperationResult[T]>;
 	oncePlayerOperation<T extends OperateType>(playerId: string, operationType: T, callback: (res: PlayerOperationResult[T]) => void): void;
 	onPlayerOperation<T extends OperateType>(playerId: string, operationType: T, callback: (res: PlayerOperationResult[T]) => void): void;
 	pushEventToStack(gameEvent: GameEvent<GameContext>): void;
+	createGameLinkItem(type: GameLinkItem, id: string): void;
+	sendToPlayer(id: string, msg: ServerSocketMessage): void;
+	gameInfoBroadcast(): void;
+	gameMsgNotifyBroadcast(type: "success" | "warning" | "error" | "info", msg: string): void;
+	gameLogBroadcast(log: string): void;
+	gameBroadcast(msg: ServerSocketMessage): void;
+	showDialogToPlayer<I extends readonly InputOptionItem<string, any>[]>(playerId: string, option: DialogOption<I>): Promise<DialogResult<I>>;
 }
+type InputOptionItem<K extends string, D> = {
+	key: K;
+	label: string;
+	initData: D;
+};
+interface DialogOption<I extends readonly InputOptionItem<string, any>[]> {
+	title: string;
+	content: string;
+	inputOptions: I;
+}
+type DialogResult<I extends readonly InputOptionItem<string, any>[]> = {
+	[P in I[number] as P["key"]]: P["initData"];
+} & {
+	confirm: boolean;
+};
 interface IGameRuntimeStack<Context extends GameContext> {
 	stack: GameEvent<Context>[];
 	run(context: Context, gameProcess: IGameProcess): Promise<void>;
@@ -213,7 +541,8 @@ interface IProperty {
 	getCost_lv2: () => number;
 	getOwner: () => IPlayer | undefined;
 	getPassCost: () => number;
-	setOwner: (player: IPlayer | undefined) => Promise<void>;
+	buildUp: () => void;
+	setOwner: (player: IPlayer | undefined) => void;
 	setBuildingLevel: (level: number) => void;
 	getPropertyInfo: () => PropertyInfo;
 }
@@ -279,17 +608,21 @@ interface Buff {
 	triggerTimes: number;
 }
 interface PlayerOperationResult {
-	[OperateType.GameInitFinished]: void;
-	[OperateType.RollDice]: void;
+	[OperateType.GameInitFinished]: undefined;
+	[OperateType.RollDice]: undefined;
 	[OperateType.UseChanceCard]: {
 		chanceCardId: string;
 		targetIdList: string[];
 	};
-	[OperateType.Animation]: void;
-	[OperateType.BuyProperty]: boolean;
-	[OperateType.BuildHouse]: boolean;
-	[OperateType.PauseGame]: void;
-	[OperateType.ResumeGame]: void;
+	[OperateType.Animation]: undefined;
+	[OperateType.PauseGame]: undefined;
+	[OperateType.ResumeGame]: undefined;
+	[OperateType.DialogResult]: {
+		id: string;
+		confirm: boolean;
+		data: any;
+	};
+	[key: string]: any;
 }
 type SemVer = `${number}.${number}.${number}`;
 interface GameMapInfo {

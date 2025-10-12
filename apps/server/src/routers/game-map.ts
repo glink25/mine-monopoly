@@ -1,11 +1,17 @@
 import { Router } from "express";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
-import { createGameMap, deleteGameMap, getGameMapById, getGameMapList, setMapUse } from "src/db/api/game-map";
+import {
+	createGameMap,
+	deleteGameMap,
+	getGameMapById,
+	getGameMapList,
+	setMapUse,
+	updateGameMap,
+} from "src/db/api/game-map";
 import { ResInterface } from "src/interfaces/res";
 import { deleteFiles, uploadFile } from "src/utils/file-uploader";
 import { getFileNameInPath, randomString } from "src/utils";
+import { renameFile } from "src/utils/file";
 
 export const gameMapRouter = Router();
 const gameMapMulter = multer({ dest: "public/gameMap" });
@@ -35,21 +41,8 @@ gameMapRouter.post(
 		const gameMapFile = files["game-map"][0];
 
 		const newFileName = randomString(16);
-		const coverImage = renameFile(coverImageFile, [".png", ".jpg", ".jpeg"]);
-		const gameMap = renameFile(gameMapFile, [".fpmap"]);
-		function renameFile(file: Express.Multer.File, type: string[]) {
-			const { originalname, path: _path } = file;
-
-			const fileType = path.parse(originalname).ext;
-			if (!fileType || !type.includes(fileType)) {
-				return;
-			}
-			const filePath = newFileName + fileType;
-
-			fs.renameSync(_path, filePath);
-			const fileName = newFileName + fileType;
-			return { fileName, filePath };
-		}
+		const coverImage = renameFile(newFileName, coverImageFile, [".png", ".jpg", ".jpeg"]);
+		const gameMap = renameFile(newFileName, gameMapFile, [".fpmap"]);
 		if (!coverImage || !gameMap) {
 			const resMsg: ResInterface = {
 				status: 500,
@@ -74,6 +67,84 @@ gameMapRouter.post(
 					targetPath: `monopoly/game-map`,
 				});
 				const map = await createGameMap({
+					name,
+					version,
+					hash,
+					mapUrl: gameMapFileUrl,
+					coverUrl: coverImageFileUrl,
+					inuse: false,
+				});
+				const resContent: ResInterface = {
+					status: 200,
+					msg: "添加地图成功",
+					data: map,
+				};
+				res.status(200).json(resContent);
+			} catch (e: any) {
+				const resContent: ResInterface = {
+					status: 500,
+					msg: e.message || "数据库处理错误",
+				};
+				res.status(500).json(resContent);
+			}
+		} else {
+			const resContent: ResInterface = {
+				status: 400,
+				msg: "请求参数错误",
+			};
+			res.status(400).json(resContent);
+		}
+	}
+);
+
+gameMapRouter.post(
+	"/update",
+	gameMapMulter.fields([
+		{ name: "game-map", maxCount: 1 },
+		{ name: "cover-image", maxCount: 1 },
+	]),
+	async (req, res) => {
+		if (!req.files) {
+			const resContent: ResInterface = {
+				status: 400,
+				msg: "地图文件上传异常",
+			};
+			res.status(400).json(resContent);
+			return;
+		}
+		const files = req.files as FileArray;
+
+		const coverImageFile = files["cover-image"][0];
+		const gameMapFile = files["game-map"][0];
+
+		const newFileName = randomString(16);
+		const coverImage = renameFile(newFileName, coverImageFile, [".png", ".jpg", ".jpeg"]);
+		const gameMap = renameFile(newFileName, gameMapFile, [".fpmap"]);
+		if (!coverImage || !gameMap) {
+			const resMsg: ResInterface = {
+				status: 500,
+				msg: "文件后缀名不合法",
+			};
+			res.status(500).json(resMsg);
+			return;
+		}
+
+		const { id, name, version, hash } = req.body;
+
+		if (id && name && version && hash) {
+			try {
+				const gameMapFileUrl = await uploadFile({
+					filePath: gameMap.filePath,
+					name: gameMap.fileName,
+					targetPath: `monopoly/game-map`,
+				});
+				const coverImageFileUrl = await uploadFile({
+					filePath: coverImage.filePath,
+					name: coverImage.fileName,
+					targetPath: `monopoly/game-map`,
+				});
+				const map = await updateGameMap({
+					id,
 					name,
 					version,
 					hash,

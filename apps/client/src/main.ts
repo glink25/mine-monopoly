@@ -68,6 +68,7 @@ import {
 	faWindowMaximize,
 	faXmark,
 	faGhost,
+	faUpload,
 } from "@fortawesome/free-solid-svg-icons";
 import { chanceCardSource } from "./directives/ChanceCardUse";
 import { useDeviceStatus, useSettig } from "@src/store";
@@ -126,7 +127,8 @@ library.add(
 	faWindowMinimize,
 	faWindowMaximize,
 	faXmark,
-	faGhost
+	faGhost,
+	faUpload,
 );
 const pinia = createPinia();
 

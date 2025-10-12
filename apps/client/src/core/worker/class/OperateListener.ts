@@ -5,8 +5,10 @@ type OperateListenerItem = {
 	fn: Function;
 };
 
+type EventMap = Map<OperateType, OperateListenerItem[]>;
+
 export class OperateListener {
-	private evetnMap: Map<string, Map<OperateType, OperateListenerItem[]>> = new Map();
+	private evetnMap: Map<string, EventMap> = new Map();
 
 	constructor() {}
 
@@ -19,7 +21,7 @@ export class OperateListener {
 		if (!this.evetnMap.has(playerId)) {
 			this.evetnMap.set(playerId, new Map());
 		}
-		const eventTypeMap = this.evetnMap.get(playerId) as Map<OperateType, OperateListenerItem[]>;
+		const eventTypeMap = this.evetnMap.get(playerId) as EventMap;
 		if (!eventTypeMap!.has(eventType)) {
 			eventTypeMap.set(eventType, []);
 		}
@@ -54,13 +56,13 @@ export class OperateListener {
 	public remove<T extends OperateType>(
 		playerId: string,
 		eventType: T,
-		callback: (...args: any[]) => PlayerOperationResult[T]
+		listener: (...args: any[]) => PlayerOperationResult[T]
 	) {
 		const playerEvents = this.evetnMap.get(playerId);
 		if (!playerEvents) return;
 		const eventTypeMap = playerEvents.get(eventType);
 		if (!eventTypeMap) return;
-		const removeIndex = eventTypeMap.findIndex((fobj) => fobj.fn === callback);
+		const removeIndex = eventTypeMap.findIndex((fobj) => fobj.fn === listener);
 		eventTypeMap.splice(removeIndex, 1);
 	}
 
@@ -68,20 +70,20 @@ export class OperateListener {
 		const playerEvents = this.evetnMap.get(playerId);
 		if (!playerEvents) return;
 		if (eventType) {
-			playerEvents.has(eventType) && playerEvents.delete(eventType);
+			playerEvents.has(eventType) || playerEvents.delete(eventType);
 		} else {
-			this.evetnMap.has(playerId) && this.evetnMap.delete(playerId);
+			this.evetnMap.has(playerId) || this.evetnMap.delete(playerId);
 		}
 	}
 
-	public emit<T extends OperateType>(playerId: string, eventType: T, args: PlayerOperationResult[T]): boolean {
+	public emit<T extends OperateType>(playerId: string, eventType: T, args?: PlayerOperationResult[T]): boolean {
 		const playerEvents = this.evetnMap.get(playerId);
 		if (!playerEvents) return false;
 		const eventTypeMap = playerEvents.get(eventType);
 		if (!eventTypeMap) return false;
 		for (let index = 0; index < eventTypeMap.length; index++) {
 			const fobj = eventTypeMap[index];
-			fobj.fn.apply(this, args);
+			fobj.fn.apply(null, [args]);
 			if (fobj.isOnce) {
 				eventTypeMap.splice(index, 1);
 				index--;

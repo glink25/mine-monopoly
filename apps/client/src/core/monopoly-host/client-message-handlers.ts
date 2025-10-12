@@ -60,23 +60,8 @@ export function handleClientSocketMessage(
 		case SocketMsgType.GameStart:
 			handleGameStart(conn, msg, host, clientId);
 			break;
-		case SocketMsgType.GameInitFinished:
-			handleGameInitFinished(conn, msg, host, clientId);
-			break;
-		case SocketMsgType.RollDiceResult:
-			handleRollDiceResult(conn, msg, host, clientId);
-			break;
-		case SocketMsgType.UseChanceCard:
-			handleUseChanceCard(conn, msg, host, clientId);
-			break;
-		case SocketMsgType.Animation:
-			handleAnimationComplete(conn, msg, host, clientId);
-			break;
-		case SocketMsgType.BuyProperty:
-			handleBuyProperty(conn, msg, host, clientId);
-			break;
-		case SocketMsgType.BuildHouse:
-			handleBuildHouse(conn, msg, host, clientId);
+		case SocketMsgType.Operation:
+			handleOperation(conn, msg, host, clientId);
 			break;
 		case SocketMsgType.LeaveRoom:
 			handleLeaveRoom(conn, msg, host, clientId);
@@ -115,22 +100,12 @@ const handleChangeGameSetting: ClientMessageHandler<SocketMsgType.ChangeGameSett
 	host.getRoom().changeGameSetting(msg.data);
 };
 const handleGameStart: ClientMessageHandler<SocketMsgType.GameStart> = (conn, msg, host, clientId) => {
-	console.log("🚀 ~ handleGameStart ~ msg:", msg);
 	host.getRoom().startGame();
 };
-const handleGameInitFinished: ClientMessageHandler<SocketMsgType.GameInitFinished> = (conn, msg, host, clientId) => {
-	host.getRoom().emitOperationToWorker(clientId, OperateType.GameInitFinished);
+const handleOperation: ClientMessageHandler<SocketMsgType.Operation> = (conn, msg, host, clientId) => {
+	const { operateType, data } = msg.data;
+	host.getRoom().emitOperation(clientId, operateType, data);
 };
-const handleRollDiceResult: ClientMessageHandler<SocketMsgType.RollDiceResult> = (conn, msg, host, clientId) => {
-	host.getRoom().emitOperationToWorker(clientId, OperateType.RollDice);
-};
-const handleUseChanceCard: ClientMessageHandler<SocketMsgType.UseChanceCard> = (conn, msg, host, clientId) => {
-	const { chanceCardId, targetId } = msg.data;
-	host.getRoom().emitOperationToWorker(clientId, OperateType.UseChanceCard, chanceCardId, targetId);
-};
-const handleAnimationComplete: ClientMessageHandler<SocketMsgType.Animation> = (conn, msg, host, clientId) => {};
-const handleBuyProperty: ClientMessageHandler<SocketMsgType.BuyProperty> = (conn, msg, host, clientId) => {};
-const handleBuildHouse: ClientMessageHandler<SocketMsgType.BuildHouse> = (conn, msg, host, clientId) => {};
 const handleLeaveRoom: ClientMessageHandler<SocketMsgType.LeaveRoom> = (conn, msg, host, clientId) => {
 	if (host.getRoom().leave(clientId)) {
 		//没人了

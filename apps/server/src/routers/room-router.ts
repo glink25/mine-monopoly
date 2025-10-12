@@ -16,7 +16,7 @@ type RoomMapItem = {
 };
 
 export const roomRouter = Router();
-const heartContinuationTimeMs = 60000; //1分钟的持续时间, 如果一分钟内没有发送心跳, 删除房间;
+const heartContinuationTimeMs = 10000; //1分钟的持续时间, 如果一分钟内没有发送心跳, 删除房间;
 const roomMap = new Map<string, RoomMapItem>();
 
 //删除房间定时器
@@ -28,7 +28,7 @@ setInterval(() => {
 			roomMap.delete(room[0]);
 		}
 	});
-}, heartContinuationTimeMs * 2); //仁慈的, 取消房间时间计时器翻倍
+}, 2000);
 
 roomRouter.get("/join", async (req, res, next) => {
 	const { roomId } = req.query as { roomId: string; hostName: string; hostId: string };
@@ -134,8 +134,9 @@ roomRouter.get("/heart", async (req, res, next) => {
 	const { roomId } = req.query as { roomId: string };
 	const room = roomMap.get(roomId);
 	if (room) {
-		room.deleteTime += heartContinuationTimeMs;
-		room.lastHeartTime = Date.now();
+		const now = Date.now();
+		room.deleteTime = now + heartContinuationTimeMs;
+		room.lastHeartTime = now;
 	}
 	res.status(200).end();
 });

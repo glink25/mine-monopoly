@@ -4,7 +4,6 @@ import roomUserCard from "@src/views/room/components/room-user-card.vue";
 import FpDialog from "@src/components/utils/fp-dialog/fp-dialog.vue";
 import { FPMessage } from "@fatpaper-monopoly/ui";
 import ItemSelector from "@src/components/utils/item-selector/item-selector.vue";
-import { GameSetting, RoleInRoom } from "@src/interfaces/bace";
 import router from "@src/router";
 import { useLoading, useRoomInfo } from "@src/store";
 import { useUserInfo } from "@src/store";
@@ -14,11 +13,13 @@ import { computed, onBeforeMount, onBeforeUnmount, onMounted, reactive, ref, toR
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { copyToClipboard } from "@src/utils";
 import { setRoomPrivate } from "@src/utils/api/room-router";
-import { GameMapInDb } from "@fatpaper-monopoly/types";
+import { GameMapInDb, GameSetting, RoleInRoom } from "@fatpaper-monopoly/types";
 import { PROTOCOL } from "@fatpaper-monopoly/config";
-import { loadGameMap } from "@src/utils/file/game-map";
+import { loadGameMapFromServer } from "@src/utils/file/game-map";
 import RolePreviewer from "./components/role-previewer.vue";
 import { useResourceStore } from "@src/store/game";
+import FpPopover from "@src/components/utils/fp-popover/fp-popover.vue";
+import { arrayBufferToBase64 } from "@fatpaper-monopoly/utils";
 
 let socketClient: MonopolyClient;
 
@@ -37,46 +38,23 @@ const isReady = computed(() => roomInfoStore.userList.find((user) => user.userId
 // 地图相关
 const mapList = ref<GameMapInDb[]>([]);
 const mapSelectorVisible = ref(false);
-const currentMap = ref<GameMapInDb>();
+const currentMap = computed(() => roomInfoStore.mapInfo);
 const tempMapSelectedId = ref<string>(roomInfoStore.mapId || "");
-const coverImageUrl = computed(() => (currentMap.value ? `${PROTOCOL}://${currentMap.value.coverUrl}` : ""));
+const coverImageUrl = computed(() => {
+	if (!currentMap.value) return "";
+	if (currentMap.value.coverUrl.includes("http")) return currentMap.value.coverUrl;
+	else return `${PROTOCOL}://${currentMap.value.coverUrl}`;
+});
 const selectMapButtonText = computed(() => (currentMap.value ? currentMap.value.name : "选择地图"));
 
 function handleChangeMap() {
 	if (socketClient && tempMapSelectedId.value !== currentMap.value?.id) {
-		socketClient.changeGameMap(tempMapSelectedId.value);
+		socketClient.changeGameMap({ from: "server", data: tempMapSelectedId.value });
 	}
 }
 
-watch(
-	() => roomInfoStore.mapId,
-	async (newId, oldId) => {
-		if (newId && newId !== oldId) {
-			useLoading().showLoading("地图更换, 加载中...");
-			const { gameMap, mapInfo } = await loadGameMap(newId);
-			const tempRoleList: RoleInRoom[] = [];
-			const roles = gameMap.roles;
-			const resourceStore = useResourceStore();
-			for (const role of roles) {
-				const imageResource = resourceStore.getRecourceById(role.imageId);
-				if (!imageResource) {
-					useLoading().hideLoading();
-					FPMessage({ type: "error", message: "获取角色资源错误" });
-					throw Error("获取角色资源错误");
-				}
-				tempRoleList.push({ ...role, imageUrl: imageResource.url });
-			}
-			roleList.value = tempRoleList;
-			// 初始随机选择一个角色
-			socketClient && socketClient.changeRole(roles[Math.floor(Math.random() * roles.length)].id);
-			currentMap.value = mapInfo;
-			useLoading().hideLoading();
-		}
-	}
-);
-
 // 角色相关
-const roleList = ref<RoleInRoom[]>([]);
+const roleList = computed(() => roomInfoStore.roleList);
 const roleSelectorVisible = ref(false);
 const tempRoleSelectedId = ref<string>("");
 
@@ -109,14 +87,11 @@ const canStart = computed(
 
 onMounted(async () => {
 	socketClient = useMonopolyClient();
-	const { gameMapList } = await getGameMapList(1, 1000);
-	mapList.value = gameMapList;
-	currentMap.value = mapList.value.find((_item) => _item.id === roomInfoStore.mapId);
 });
 
 async function handleSetPrivate() {
 	isPrivate.value = !isPrivate.value;
-	const res = await setRoomPrivate(roomId.value, isPrivate.value);
+	await setRoomPrivate(roomId.value, isPrivate.value);
 }
 
 async function handleCopyRoomId() {
@@ -144,6 +119,33 @@ function handleGameStart() {
 		socketClient.startGame();
 	}
 }
+
+async function handleSelectMap() {
+	useLoading().showLoading("地图列表加载中...");
+	const { gameMapList } = await getGameMapList(1, 1000);
+	mapList.value = gameMapList;
+	mapSelectorVisible.value = true;
+	useLoading().hideLoading();
+}
+
+async function handleUploadMap() {
+	const file = await new Promise<ArrayBuffer>((resolve) => {
+		const input = document.createElement("input");
+		input.type = "file";
+		input.accept = ".fpmap";
+		input.onchange = async (e) => {
+			const file = (e.target as HTMLInputElement).files?.[0];
+			if (file) {
+				const content = await file.arrayBuffer();
+				resolve(content);
+			}
+		};
+		input.click();
+	});
+	if (!file) return;
+	//传输需要将地图从ArrayBuffer编码为Base64字符串
+	socketClient.changeGameMap({ from: "custom", data: arrayBufferToBase64(file) });
+}
 </script>
 
 <template>
@@ -167,14 +169,21 @@ function handleGameStart() {
 				<div class="map-cover-container">
 					<img class="map-cover" v-if="coverImageUrl" :src="coverImageUrl" />
 				</div>
-				<button
-					class="select-map-button"
-					:class="{ nomap: !Boolean(roomInfoStore.mapId) }"
-					:disabled="!isOwner"
-					@click="mapSelectorVisible = true"
-				>
-					{{ selectMapButtonText }}
-				</button>
+				<div class="select-map-button">
+					<FpPopover v-if="isOwner" placement="top">
+						<template #default>
+							<button :class="{ nomap: !Boolean(roomInfoStore.mapId) }" @click="handleUploadMap">
+								<FontAwesomeIcon style="font-size: 0.9rem" icon="fa-upload" />
+							</button>
+						</template>
+						<template #content>
+							<div class="tips">分享自己的地图(需要房间成员确认)</div>
+						</template>
+					</FpPopover>
+					<button :class="{ nomap: !Boolean(roomInfoStore.mapId) }" :disabled="!isOwner" @click="handleSelectMap">
+						{{ selectMapButtonText }}
+					</button>
+				</div>
 			</div>
 
 			<div class="map-option">
@@ -429,25 +438,41 @@ function handleGameStart() {
 		position: absolute;
 		right: 0;
 		bottom: 0;
-		border: 0;
-		font-size: 0.8rem;
-		padding: 0.6rem 1.2rem;
-		border-radius: 0.6rem;
 		z-index: 1;
+		display: flex;
+		gap: 0.2rem;
 
-		&.nomap:not([disabled]) {
-			background-color: var(--color-second);
-			animation: identifier 1.5s infinite ease-in-out;
+		button {
+			border: 0;
+			font-size: 0.8rem;
+			padding: 0.6rem 1.2rem;
+			border-radius: 0.6rem;
+			&.nomap:not([disabled]) {
+				background-color: var(--color-second);
+				animation: identifier 1.5s infinite ease-in-out;
 
-			&:hover {
-				background-color: var(--color-third);
-			}
-
-			@keyframes identifier {
-				50% {
+				&:hover {
 					background-color: var(--color-third);
 				}
+
+				@keyframes identifier {
+					50% {
+						background-color: var(--color-third);
+					}
+				}
 			}
+		}
+
+		.tips {
+			width: max-content;
+			margin-top: 4rem;
+			font-size: 0.8rem;
+			background-color: rgba(255, 255, 255, 0.7);
+			border-radius: 0.7rem;
+			padding: 0.6rem;
+			color: var(--color-primary);
+			text-shadow: var(--text-shadow);
+			margin-bottom: 0.3rem;
 		}
 	}
 

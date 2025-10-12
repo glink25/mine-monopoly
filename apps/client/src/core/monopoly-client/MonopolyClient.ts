@@ -4,6 +4,7 @@ import { emitHostPeerId, joinRoomApi } from "@src/utils/api/room-router";
 import { PeerClient } from "./PeerClient";
 import { DataConnection } from "peerjs";
 import {
+	RoomMapInfo,
 	ChangeRoleOperate,
 	GameSetting,
 	OperateType,
@@ -14,6 +15,7 @@ import {
 	SocketMsgSource,
 	SocketMsgType,
 	User,
+	ClientSocketMessage,
 } from "@fatpaper-monopoly/types";
 import { MonopolyHost } from "../monopoly-host/MonopolyHost";
 import { handleServerSocketMessage } from "./host-message-handlers";
@@ -21,6 +23,7 @@ import { useRouter } from "vue-router";
 import router from "@src/router";
 import { debounce } from "@src/utils";
 import { useGameData } from "@src/store/game";
+import { arrayBufferToBase64 } from "@fatpaper-monopoly/utils";
 
 type MonopolyClientOptions = {
 	iceServer: {
@@ -122,7 +125,7 @@ export class MonopolyClient {
 				avatar,
 				isReady: false,
 			};
-			this.sendMsg(SocketMsgType.JoinRoom, user);
+			this.sendMsg({ type: SocketMsgType.JoinRoom, source: SocketMsgSource.Client, data: user });
 
 			FPMessage({
 				type: "success",
@@ -134,7 +137,7 @@ export class MonopolyClient {
 			this.intervalList.push(
 				setInterval(() => {
 					this.sendHeartTime = Date.now();
-					this.sendMsg(SocketMsgType.Heart);
+					this.sendMsg({ type: SocketMsgType.Heart, source: SocketMsgSource.Client, data: undefined });
 				}, 3000)
 			);
 
@@ -194,7 +197,7 @@ export class MonopolyClient {
 				type: "error",
 				message: "与主机断开连接, 即将返回主页, 输入id进入房间即可重新连接",
 				onClosed: () => {
-					router.replace("room-router");
+					useRouter().replace("room-router");
 					this.destory();
 				},
 			});
@@ -204,80 +207,89 @@ export class MonopolyClient {
 	);
 
 	public sendRoomChatMessage(message: string, roomId: string) {
-		this.sendMsg(SocketMsgType.RoomChat, message, roomId);
+		this.sendMsg({ type: SocketMsgType.RoomChat, source: SocketMsgSource.Client, data: message });
 	}
 
 	public async leaveRoom() {
 		this.isOnline = false;
-		await this.sendMsg(SocketMsgType.LeaveRoom);
+		await this.sendMsg({ type: SocketMsgType.LeaveRoom, source: SocketMsgSource.Client, data: undefined });
 	}
 
 	public readyToggle() {
-		this.sendMsg(SocketMsgType.ReadyToggle);
+		this.sendMsg({ type: SocketMsgType.ReadyToggle, source: SocketMsgSource.Client, data: undefined });
 	}
 
 	public changeColor(newColor: string) {
-		this.sendMsg(SocketMsgType.ChangeColor, newColor);
+		this.sendMsg({ type: SocketMsgType.ChangeColor, source: SocketMsgSource.Client, data: newColor });
 	}
 
 	public kickOut(playerId: string) {
-		this.sendMsg(SocketMsgType.KickOut, playerId);
+		this.sendMsg({ type: SocketMsgType.KickOut, source: SocketMsgSource.Client, data: playerId });
 	}
 
 	public changeRole(roleId: string) {
-		this.sendMsg(SocketMsgType.ChangeRole, roleId);
+		this.sendMsg({ type: SocketMsgType.ChangeRole, source: SocketMsgSource.Client, data: roleId });
 	}
 
-	public changeGameMap(mapId: string) {
-		this.sendMsg(SocketMsgType.ChangeMap, mapId);
+	public changeGameMap(msg: RoomMapInfo) {
+		this.sendMsg({ type: SocketMsgType.ChangeMap, source: SocketMsgSource.Client, data: msg });
 	}
 
 	public changeGameSetting(gameSetting: GameSetting) {
-		this.sendMsg(SocketMsgType.ChangeGameSetting, gameSetting);
+		this.sendMsg({ type: SocketMsgType.ChangeGameSetting, source: SocketMsgSource.Client, data: gameSetting });
 	}
 
 	public startGame() {
-		this.sendMsg(SocketMsgType.GameStart);
+		this.sendMsg({ type: SocketMsgType.GameStart, source: SocketMsgSource.Client, data: undefined });
 	}
 
 	public gameInitFinished() {
-		this.sendMsg(SocketMsgType.GameInitFinished);
+		this.sendMsg({
+			type: SocketMsgType.Operation,
+			source: SocketMsgSource.Client,
+			data: { operateType: OperateType.GameInitFinished, data: undefined },
+		});
 	}
 
 	public rollDice() {
-		this.sendMsg(SocketMsgType.RollDiceResult);
+		this.sendMsg({
+			type: SocketMsgType.Operation,
+			source: SocketMsgSource.Client,
+			data: { operateType: OperateType.RollDice, data: undefined },
+		});
 		const utilStore = useUtil();
 		utilStore.canRoll = false;
 		utilStore.canUseCard = false;
 	}
 
-	public useChanceCard(cardId: string, target: string | string[]) {
+	public useChanceCard(chanceCardId: string, targetIdList: string[]) {
 		const utilStore = useUtil();
 		utilStore.canRoll = false;
 		utilStore.canUseCard = false;
-		this.sendMsg(SocketMsgType.UseChanceCard, { chanceCardId: cardId, targetId: target });
+		this.sendMsg({
+			type: SocketMsgType.Operation,
+			source: SocketMsgSource.Client,
+			data: {
+				operateType: OperateType.UseChanceCard,
+				data: { chanceCardId, targetIdList },
+			},
+		});
 	}
 
 	public AnimationComplete(animationId: string) {
-		this.sendMsg(SocketMsgType.Animation, { operateType: OperateType.Animation, animationId });
+		this.sendMsg({
+			type: SocketMsgType.Operation,
+			source: SocketMsgSource.Client,
+			data: {
+				operateType: OperateType.Animation,
+				data: animationId,
+			},
+		});
 	}
 
-	public async sendMsg<T extends SocketMsgType>(
-		type: T,
-		data?: SocketMessageDataType[T][SocketMsgSource.Client],
-		roomId: string = useRoomInfo().roomId,
-		extra: any = undefined
-	) {
-		const msgToSend: SocketMessage = {
-			type,
-			source: SocketMsgSource.Client,
-			roomId,
-			data,
-			extra,
-		};
-		// this.conn && this.conn.send(JSON.stringify(msgToSend));
+	public async sendMsg(msg: ClientSocketMessage) {
 		if (this.conn) {
-			await this.conn.send(JSON.stringify(msgToSend));
+			await this.conn.send(JSON.stringify(msg));
 		}
 	}
 

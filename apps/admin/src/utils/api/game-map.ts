@@ -5,6 +5,11 @@ export const createGameMap = async (formData: FormData) => {
 	return res;
 };
 
+export const updateGameMap = async (formData: FormData) => {
+	const res = await _axios.post("/game-map/update", formData);
+	return res;
+};
+
 export const setGameMapUse = async (id: string, use: boolean) => {
 	const res = await _axios.post("/game-map/set-use", { id, use });
 	return res;

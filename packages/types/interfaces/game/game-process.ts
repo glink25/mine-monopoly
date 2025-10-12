@@ -1,6 +1,6 @@
-import { EventTiggerTime, GamePhaseMark, PlayerEvents } from "../../enums/game/game-process";
+import { EventTiggerTime, GamePhaseMark, OperateType, PlayerEvents } from "../../enums/game/game-process";
 import { UserInRoomInfo } from "./item";
-import { ChanceCardType, GameLinkItem, OperateType, PlayerMoveType } from "../../enums/game/game";
+import { ChanceCardType, GameLinkItem, PlayerMoveType } from "../../enums/game/game";
 import { GameMap } from "../game/map";
 import { IDice, IRoundTimeTimer } from "./util";
 import { ServerSocketMessage } from "./socket";
@@ -34,7 +34,8 @@ export interface IGameProcess {
 
 	handlePlayerRollDice(playerId: string): void;
 	handleArriveEvent(arrivedPlayer: IPlayer): void;
-	handleUseChanceCard(sourcePlayer: IPlayer, chanceCardId: string, targetIdList: string[]): void;
+	handleUseChanceCard(sourcePlayer: IPlayer, chanceCardId: string, targetIdList: string[]): Promise<boolean>;
+	roundTurnNotify(playerId: string): void;
 
 	emitPlayerOperation<T extends OperateType>(playerId: string, operationType: T, data: PlayerOperationResult[T]): void;
 	oncePlayerOperationAsync<T extends OperateType>(
@@ -55,11 +56,35 @@ export interface IGameProcess {
 	pushEventToStack(gameEvent: GameEvent<GameContext>): void;
 
 	createGameLinkItem(type: GameLinkItem, id: string): void;
+	sendToPlayer(id: string, msg: ServerSocketMessage): void;
 	gameInfoBroadcast(): void;
 	gameMsgNotifyBroadcast(type: "success" | "warning" | "error" | "info", msg: string): void;
 	gameLogBroadcast(log: string): void;
 	gameBroadcast(msg: ServerSocketMessage): void;
+
+	showDialogToPlayer<I extends readonly InputOptionItem<string, any>[]>(
+		playerId: string,
+		option: DialogOption<I>
+	): Promise<DialogResult<I>>;
 }
+
+export type InputOptionItem<K extends string, D> = {
+	key: K;
+	label: string;
+	initData: D;
+};
+
+export interface DialogOption<I extends readonly InputOptionItem<string, any>[]> {
+	title: string;
+	content: string;
+	confirmText: string;
+	cancelText: string;
+	inputOptions?: I;
+}
+
+export type DialogResult<I extends readonly InputOptionItem<string, any>[]> = {
+	[P in I[number] as P["key"]]: P["initData"];
+} & { confirm: boolean };
 
 export interface IGameRuntimeStack<Context extends GameContext> {
 	stack: GameEvent<Context>[];
@@ -263,14 +288,14 @@ export interface Buff {
 }
 
 export interface PlayerOperationResult {
-	[OperateType.GameInitFinished]: void;
-	[OperateType.RollDice]: void;
+	[OperateType.GameInitFinished]: undefined;
+	[OperateType.RollDice]: undefined;
 	[OperateType.UseChanceCard]: { chanceCardId: string; targetIdList: string[] };
-	[OperateType.Animation]: void;
-	[OperateType.BuyProperty]: boolean;
-	[OperateType.BuildHouse]: boolean;
-	[OperateType.PauseGame]: void;
-	[OperateType.ResumeGame]: void;
+	[OperateType.Animation]: string;
+	[OperateType.PauseGame]: undefined;
+	[OperateType.ResumeGame]: undefined;
+	[OperateType.DialogResult]: { id: string; confirm: boolean; data: any };
+	// [key: string]: any;
 }
 
 export interface PlayerEventsCallback {

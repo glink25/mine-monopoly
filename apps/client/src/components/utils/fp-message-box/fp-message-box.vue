@@ -4,13 +4,13 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
 export interface Props {
 	title?: string;
-	content?: any;
+	content?: string;
 	confirmText?: string;
 	cancelText?: string;
 }
 const props = withDefaults(defineProps<Props>(), {
 	title: "Message Box",
-	content: "test",
+	content: "",
 	confirmText: "确认",
 	cancelText: "取消",
 });
@@ -19,22 +19,17 @@ const ContentContainer = ref<HTMLElement | null>(null);
 const visible = ref(false);
 const isConfirm = ref(true);
 
-function handleCancle(){
+function handleCancle() {
 	isConfirm.value = false;
 	visible.value = false;
-};
-function handleConfirm(){
+}
+function handleConfirm() {
 	visible.value = false;
-};
+}
 
 onMounted(() => {
-	if (typeof props.content !== "string") {
-		const vnode = props.content;
-
-		if (isVNode(vnode) && ContentContainer.value) {
-			render(vnode, ContentContainer.value);
-		}
-	}
+	if (!ContentContainer.value) return;
+	// render(props.content, ContentContainer.value);
 });
 
 defineExpose({
@@ -50,7 +45,7 @@ defineExpose({
 				<span>{{ title }}</span>
 				<!-- <FontAwesomeIcon @click="handleCancle" class="close__btn" icon="close"></FontAwesomeIcon> -->
 			</div>
-			<div ref="ContentContainer" class="fp-message-box__content"></div>
+			<div ref="ContentContainer" class="fp-message-box__content" v-html="props.content"></div>
 			<div class="fp-message-box__footer">
 				<button class="confirm__btn" @click="handleConfirm">{{ confirmText }}</button>
 				<button class="cancle__btn" @click="handleCancle">{{ cancelText }}</button>
@@ -66,7 +61,7 @@ defineExpose({
 	left: 0;
 	width: 100%;
 	height: 100%;
-	z-index: 4000;
+	z-index: 40000;
 	background-color: rgba($color: #000000, $alpha: 0.3);
 
 	& > .fp-message-box {
@@ -88,7 +83,7 @@ defineExpose({
 }
 
 .fp-message-box__title {
-	font-size: 1.4rem;
+	font-size: 1.2rem;
 	height: 2.4rem;
 	line-height: 2.4rem;
 	background-color: var(--color-third);
@@ -106,7 +101,7 @@ defineExpose({
 
 .fp-message-box__content {
 	flex: 1;
-	padding: 1.2rem 0.5rem;
+	padding: 0.5rem;
 }
 
 .fp-message-box__footer {

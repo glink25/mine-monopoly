@@ -352,6 +352,7 @@ export function remToPx(rem: number) {
 }
 
 export function compileTsToJs(code: string, types: string): string {
+	types = types.replaceAll("declare", "");
 	const fullCode = `${types}\n${code}`;
 
 	// 编译选项，可以根据需求进行调整

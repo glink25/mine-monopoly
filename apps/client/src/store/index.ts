@@ -1,5 +1,14 @@
 import { defineStore } from "pinia";
-import { ChatMessage, GameLog, GameOverRule, Room, User, UserInRoomInfo } from "@fatpaper-monopoly/types";
+import {
+	ChatMessage,
+	GameLog,
+	GameMapInDb,
+	GameOverRule,
+	RoleInRoom,
+	Room,
+	User,
+	UserInRoomInfo,
+} from "@fatpaper-monopoly/types";
 import { isFullScreen, isLandscape, setTimeOutAsync } from "@src/utils";
 import { getUserByToken } from "@src/utils/api/user";
 import { useGameData } from "./game";
@@ -59,10 +68,12 @@ export const useRoomInfo = defineStore("roomInfo", {
 	state: () => {
 		return {
 			mapId: "",
+			mapInfo: null as GameMapInDb | null,
 			roomId: "",
 			ownerId: "",
 			ownerName: "",
 			userList: new Array<UserInRoomInfo>(),
+			roleList: new Array<RoleInRoom>(),
 			gameSetting: {
 				gameOverRule: GameOverRule.LeftOnePlayer,
 				initMoney: 20000,

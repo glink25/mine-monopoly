@@ -84,7 +84,7 @@ export class GameRenderer {
 		this.canvas = canvas;
 		this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 		this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-		this.renderer.setPixelRatio(window.devicePixelRatio);
+		this.renderer.setPixelRatio(window.devicePixelRatio * 2);
 
 		this.scene = new THREE.Scene();
 		this.camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 1000);
@@ -187,6 +187,10 @@ export class GameRenderer {
 		//设置OutlinePass
 		this.initOutlinePass();
 
+		this.initEventListener();
+
+		this.focusMe();
+
 		const userInfoStore = useUserInfo();
 
 		//添加光线投射用于选择对象
@@ -247,10 +251,14 @@ export class GameRenderer {
 	}
 
 	private async initMap() {
-		await this.initMapItem();
+		await this.initMapItems();
+		await this.initHouses();
+		await this.initProperties();
 	}
 
-	private async initMapItem() {
+	private async initMapItems() {
+		const textureLoader = new THREE.TextureLoader();
+
 		const itemTypes = this.mapData.mapItemTypes;
 		for (const itemType of itemTypes) {
 			this.mapModules.set(itemType.id, await getModelById(itemType.modelId));
@@ -267,12 +275,66 @@ export class GameRenderer {
 			this.setItemPositionOnMap(mapItemModel, mapItem.x, mapItem.y, mapItem.rotation);
 			this.mapItemsInScene.set(mapItem.id, mapItemModel);
 			this.mapContainer.add(mapItemModel);
+
+			if (mapItem.mapEventId) {
+				console.log("🚀 ~ GameRenderer ~ initMapItem ~ mapItem.mapEventId:", mapItem.mapEventId);
+				const arrivedEvent = useMapData().findMapEventById(mapItem.mapEventId);
+				console.log("🚀 ~ GameRenderer ~ initMapItem ~ arrivedEvent:", arrivedEvent);
+				if (!arrivedEvent) return;
+				const iconUrl = useResourceStore().getRecourceById(arrivedEvent.iconId)?.url;
+				console.log("🚀 ~ GameRenderer ~ initMapItem ~ iconUrl:", iconUrl);
+				if (!iconUrl) return;
+				const texture = await textureLoader.loadAsync(iconUrl);
+				texture.colorSpace = THREE.SRGBColorSpace;
+				const planeGeometry = new THREE.PlaneGeometry(1, 1);
+				const planeMaterial = new THREE.MeshBasicMaterial({
+					map: texture,
+					side: THREE.DoubleSide,
+					transparent: true,
+					depthWrite: false,
+				});
+				const iconPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+				iconPlane.rotateX(-Math.PI / 2);
+				this.arrivedEventIcons.set(arrivedEvent.id, iconPlane);
+				this.mapContainer.add(iconPlane);
+				this.setItemPositionOnMap(iconPlane, mapItem.x, mapItem.y, 0, BLOCK_HEIGHT + 0.01);
+			}
 		}
+	}
+
+	private async initHouses() {
+		const buildingModelIdList = this.mapData.buildingModelIdList;
+		for (const buildingModelId of buildingModelIdList) {
+			this.mapModules.set(buildingModelId, await getModelById(buildingModelId));
+		}
+	}
+
+	private async initProperties() {
+		//加载地皮
+		const gameInfo = useGameData();
+		gameInfo.propertiesList.forEach((property) => {
+			const textSprite = new TextSprite(
+				`${property.name}\n可购买: ${Math.round(property.sellCost)}￥`,
+				64,
+				"#000000",
+				10,
+				82
+			);
+			textSprite.getSprite().scale.set(2.5, 2.5, 2.5);
+			this.housesItems.set(property.id, {
+				group: new THREE.Group(),
+				textSprite: textSprite,
+			});
+			this.updateBuilding(property);
+		});
 	}
 
 	private async initPlayer() {
 		const playersList = useGameData().playersList;
 		await this.loadPlayersModules(playersList);
+		playersList.forEach((p) => {
+			this.updatePlayerPosition(p);
+		});
 	}
 
 	private initChanceCard() {}
@@ -315,6 +377,76 @@ export class GameRenderer {
 	}
 
 	private initOutlinePass() {}
+
+	private initEventListener() {
+		const mapDataStore = useMapData();
+		useEventBus().on("round-trun", () => {
+			this.focusMe();
+		});
+		useEventBus().on("player-walk", async (walkPlayerId: string, step: number, walkId: string) => {
+			//拆散重叠的玩家模型;
+			// this.breakUpPlayersInSameMapItem();
+
+			const playerEntity = this.playerEntities.get(walkPlayerId);
+			if (playerEntity) {
+				const sourcePosition = toRaw(this.playerPosition.get(walkPlayerId)) as number;
+				const mapIndexLength = toRaw(mapDataStore.mapIndex.length);
+				const model = this.playerEntities.get(walkPlayerId)?.model;
+				if (model) {
+					this.currentFocusModule = model;
+					// this.playerInRoundOutlinePass.selectedObjects = [model];
+				}
+				this.isLockingRole = true;
+				gsap.to(playerEntity.model.scale, {
+					x: Math.sign(playerEntity.model.scale.x),
+					y: Math.sign(playerEntity.model.scale.y),
+					z: Math.sign(playerEntity.model.scale.z),
+				});
+				await this.updatePlayerPositionByStep(walkPlayerId, sourcePosition, step, mapIndexLength);
+				this.currentFocusModule = null;
+				this.isLockingRole = false;
+
+				//拆散重叠的玩家模型;
+				this.breakUpPlayersInSameMapItem();
+				useMonopolyClient().AnimationComplete(walkId);
+			}
+		});
+
+		useEventBus().on("player-tp", async (walkPlayerId: string, positionIndex: number, walkId: string) => {
+			const playerEntity = this.getPlayerEntity(walkPlayerId);
+			if (playerEntity) {
+				const model = this.playerEntities.get(walkPlayerId)?.model;
+				if (model) {
+					this.currentFocusModule = model;
+					// this.playerInRoundOutlinePass.selectedObjects = [model];
+				}
+				this.isLockingRole = true;
+				playerEntity.model.scale.set(
+					Math.sign(playerEntity.model.scale.x),
+					Math.sign(playerEntity.model.scale.y),
+					Math.sign(playerEntity.model.scale.z)
+				);
+				await gsap.to(playerEntity.model.scale, {
+					x: -playerEntity.model.scale.x,
+					direction: 0.2,
+					repeat: 1,
+				});
+				const { x, y, z } = this.getMapItemPosition(positionIndex);
+				playerEntity.model.position.set(x, y + BLOCK_HEIGHT, z);
+				await gsap.to(playerEntity.model.scale, {
+					x: -playerEntity.model.scale.x,
+					direction: 0.2,
+					repeat: 1,
+				});
+				this.playerPosition.set(walkPlayerId, positionIndex);
+
+				this.currentFocusModule = null;
+				this.isLockingRole = false;
+				this.breakUpPlayersInSameMapItem();
+				useMonopolyClient().AnimationComplete(walkId);
+			}
+		});
+	}
 
 	private handlePropertyRaycaster(raycaster: THREE.Raycaster, pointer: THREE.Vector2) {
 		// 通过摄像机和鼠标位置更新射线
@@ -381,7 +513,7 @@ export class GameRenderer {
 	}
 
 	private async loadPlayersModules(playerList: Array<PlayerInfo>) {
-		console.log("🚀 ~ GameRenderer ~ loadPlayersModules ~ playerList:", playerList)
+		console.log("🚀 ~ GameRenderer ~ loadPlayersModules ~ playerList:", playerList);
 		for await (const playerInfo of playerList) {
 			try {
 				this.playerPosition.set(playerInfo.id, toRaw(playerInfo.positionIndex));
@@ -400,8 +532,10 @@ export class GameRenderer {
 					0
 				);
 				const nameSprite = textSprite.getSprite();
-				nameSprite.position.set(0, PLAY_MODEL_SIZE + 0.05, 0);
+				nameSprite.renderOrder = 999;
+				nameSprite.position.set(0, PLAY_MODEL_SIZE * 1.5, 0);
 				playerEntity.model.add(nameSprite);
+				playerEntity.model.scale.set(PLAY_MODEL_SIZE, PLAY_MODEL_SIZE, PLAY_MODEL_SIZE);
 				this.scene.add(playerEntity.model);
 			} catch (e) {
 				console.error("🚀 ~ GameRenderer ~ loadPlayersModules ~ e:", e);
@@ -450,97 +584,97 @@ export class GameRenderer {
 	}
 
 	private async updateBuilding(newProperty: PropertyInfo) {
-		// const oldModel = this.housesItems.get(newProperty.id);
-		// if (oldModel) {
-		// 	await gsap.to(oldModel.group.scale, { x: 0, y: 0, z: 0, duration: 0.2 });
-		// 	this.mapContainer.remove(oldModel.group);
-		// }
-		// const mapInfo = useMapData();
-		// const targetMapItem = mapInfo.mapItemsList.find((item) => item.property?.id === newProperty.id);
-		// if (!targetMapItem) return;
-		// const targetMapItemModel = this.mapItems.get(targetMapItem?.id);
-		// if (!targetMapItemModel) return;
-		// const buildModel = this.housesModules.get(`house_lv${newProperty.buildingLevel}`)?.clone();
-		// if (!buildModel) return;
-		// buildModel.position.copy(targetMapItemModel.position);
-		// buildModel.position.y += BLOCK_HEIGHT;
-		// buildModel.scale.copy(targetMapItemModel.scale);
-		// buildModel.userData = { ...newProperty, isProperty: true };
-		// buildModel.traverse((object) => {
-		// 	if (object.userData.name) {
-		// 		const meshName = object.userData.name as string;
-		// 		if (meshName.includes("color-block")) {
-		// 			object.traverse((o) => {
-		// 				//@ts-ignore
-		// 				if (o.isMesh) {
-		// 					// const basicMaterial = (<Mesh>o).material as Material;
-		// 					const basicMaterial = new MeshStandardMaterial();
-		// 					if (newProperty.owner) {
-		// 						basicMaterial.color = new Color(Number(newProperty.owner.color.replace("#", "0x")));
-		// 						// const {r, g, b} = hexToRgbNormalized(newProperty.owner.color);
-		// 						// basicMaterial.onBeforeCompile = function (shader) {
-		// 						//     shader.fragmentShader = shader.fragmentShader.replace(
-		// 						//         '#include <dithering_fragment>',
-		// 						//         `
-		// 						//         #include <dithering_fragment>
-		// 						//         gl_FragColor = vec4(${r} * gl_FragColor.r, ${g} * gl_FragColor.g, ${b} * gl_FragColor.b, gl_FragColor.a);
-		// 						//         `
-		// 						//     )
-		// 						// }
-		// 					} else {
-		// 						basicMaterial.color.set("#cccccc");
-		// 					}
-		// 					(<Mesh>o).material = basicMaterial;
-		// 				}
-		// 			});
-		// 		}
-		// 	}
-		// });
-		// const linkMapItem = mapInfo.mapItemsList.find((item) => {
-		// 	if (!item.linkto) return false;
-		// 	if (item.linkto.id === targetMapItem.id) return true;
-		// });
-		// if (linkMapItem && this.mapItems.has(linkMapItem.id)) {
-		// 	const lookat = new THREE.Vector3();
-		// 	lookat.copy(this.mapItems.get(linkMapItem.id)!.position);
-		// 	lookat.setY(BLOCK_HEIGHT);
-		// 	buildModel.lookAt(lookat);
-		// 	buildModel.rotateY(-Math.PI / 2);
-		// }
-		// buildModel.scale.set(0, 0, 0);
-		// this.mapContainer.add(buildModel);
-		// gsap.to(buildModel.scale, {
-		// 	x: 0.45,
-		// 	y: 0.45,
-		// 	z: 0.45,
-		// 	duration: 0.4,
-		// 	onComplete: () => {
-		// 		const houseItem = this.housesItems.get(newProperty.id);
-		// 		if (houseItem) {
-		// 			const costList = [newProperty.cost_lv0, newProperty.cost_lv1, newProperty.cost_lv2];
-		// 			if (newProperty.owner) {
-		// 				houseItem.textSprite.updateText(
-		// 					`${newProperty.name}\n过路费: ${Math.round(
-		// 						costList[newProperty.buildingLevel] * useGameData().currentMultiplier
-		// 					)}￥`,
-		// 					newProperty.owner.color
-		// 				);
-		// 			} else {
-		// 				houseItem.textSprite.updateText(
-		// 					`${newProperty.name}\n可购买: ${Math.round(newProperty.sellCost)}￥`,
-		// 					"#000000"
-		// 				);
-		// 			}
-		// 			const textSpriteModel = houseItem.textSprite.getSprite();
-		// 			const box = new THREE.Box3().setFromObject(buildModel);
-		// 			// 计算边界框的高度
-		// 			const size = box.getSize(new THREE.Vector3());
-		// 			textSpriteModel.position.y = Math.max(size.y * 2 + 0.5, 1.5);
-		// 			buildModel.add(textSpriteModel);
-		// 			houseItem.group = buildModel;
-		// 		}
-		// 	},
-		// });
+		const oldModel = this.housesItems.get(newProperty.id);
+		if (oldModel) {
+			await gsap.to(oldModel.group.scale, { x: 0, y: 0, z: 0, duration: 0.2 });
+			this.mapContainer.remove(oldModel.group);
+		}
+		const mapInfo = useMapData();
+		const targetMapItem = mapInfo.findMapItemByPropertyId(newProperty.id);
+		if (!targetMapItem) return;
+		const targetMapItemModel = this.mapItemsInScene.get(targetMapItem?.id);
+		if (!targetMapItemModel) return;
+		const buildModel = this.mapModules.get(mapInfo.buildingModelIdList[newProperty.level])?.clone();
+		if (!buildModel) return;
+		buildModel.position.copy(targetMapItemModel.position);
+		buildModel.position.y += BLOCK_HEIGHT;
+		buildModel.scale.copy(targetMapItemModel.scale);
+		buildModel.userData = { ...newProperty, isProperty: true };
+		buildModel.traverse((object) => {
+			if (object.userData.name) {
+				const meshName = object.userData.name as string;
+				if (meshName.includes("color-block")) {
+					object.traverse((o) => {
+						//@ts-ignore
+						if (o.isMesh) {
+							// const basicMaterial = (<Mesh>o).material as Material;
+							const basicMaterial = new THREE.MeshStandardMaterial();
+							if (newProperty.owner) {
+								basicMaterial.color = new THREE.Color(Number(newProperty.owner.color.replace("#", "0x")));
+								// const {r, g, b} = hexToRgbNormalized(newProperty.owner.color);
+								// basicMaterial.onBeforeCompile = function (shader) {
+								//     shader.fragmentShader = shader.fragmentShader.replace(
+								//         '#include <dithering_fragment>',
+								//         `
+								//         #include <dithering_fragment>
+								//         gl_FragColor = vec4(${r} * gl_FragColor.r, ${g} * gl_FragColor.g, ${b} * gl_FragColor.b, gl_FragColor.a);
+								//         `
+								//     )
+								// }
+							} else {
+								basicMaterial.color.set("#cccccc");
+							}
+							(<THREE.Mesh>o).material = basicMaterial;
+						}
+					});
+				}
+			}
+		});
+		const linkMapItem = mapInfo.mapItems.find((item) => {
+			if (!item.linkto) return false;
+			if (item.linkto === targetMapItem.id) return true;
+		});
+		if (linkMapItem && this.mapItemsInScene.has(linkMapItem.id)) {
+			const lookat = new THREE.Vector3();
+			lookat.copy(this.mapItemsInScene.get(linkMapItem.id)!.position);
+			lookat.setY(BLOCK_HEIGHT);
+			buildModel.lookAt(lookat);
+			buildModel.rotateY(-Math.PI / 2);
+		}
+		buildModel.scale.set(0, 0, 0);
+		this.mapContainer.add(buildModel);
+		gsap.to(buildModel.scale, {
+			x: 0.45,
+			y: 0.45,
+			z: 0.45,
+			duration: 0.4,
+			onComplete: () => {
+				const houseItem = this.housesItems.get(newProperty.id);
+				if (houseItem) {
+					const costList = [newProperty.cost_lv0, newProperty.cost_lv1, newProperty.cost_lv2];
+					if (newProperty.owner) {
+						houseItem.textSprite.updateText(
+							`${newProperty.name}\n过路费: ${Math.round(
+								costList[newProperty.level] * useGameData().currentMultiplier
+							)}￥`,
+							newProperty.owner.color
+						);
+					} else {
+						houseItem.textSprite.updateText(
+							`${newProperty.name}\n可购买: ${Math.round(newProperty.sellCost)}￥`,
+							"#000000"
+						);
+					}
+					const textSpriteModel = houseItem.textSprite.getSprite();
+					const box = new THREE.Box3().setFromObject(buildModel);
+					// 计算边界框的高度
+					const size = box.getSize(new THREE.Vector3());
+					textSpriteModel.position.y = Math.max(size.y * 2 + 0.5, 1.5);
+					buildModel.add(textSpriteModel);
+					houseItem.group = buildModel;
+				}
+			},
+		});
 	}
 
 	private async updatePlayerPositionByStep(playerId: string, sourceIndex: number, stepNum: number, total: number) {
@@ -593,12 +727,11 @@ export class GameRenderer {
 		// useMonopolyClient().AnimationComplete();
 	}
 
-	private updatePlayerPosition(player: PlayerInfo) {
-		const { x, y, z } = this.getMapItemPosition(player.positionIndex);
-
-		if (!this.playerEntities.has(player.id)) return;
-		this.playerEntities.get(player.id)!.model.position.set(x, y + BLOCK_HEIGHT, z);
-		// this.playerEntities.get(player.id)!.model.position.set(x, y, z);
+	private updatePlayerPosition(playerInfo: PlayerInfo) {
+		const { x, y, z } = this.getMapItemPosition(playerInfo.positionIndex);
+		const player = this.playerEntities.get(playerInfo.id);
+		if (!player) return;
+		player.model.position.set(x, y + BLOCK_HEIGHT, z);
 	}
 
 	private getMapItemPosition(index: number) {
@@ -743,9 +876,13 @@ export class GameRenderer {
 
 	//让摄像机看自己
 	private focusMe() {
-		this.currentFocusModule = this.playerEntities.get(useUserInfo().userId)?.model || null;
+		this.focusPlayerById(useUserInfo().userId);
+	}
+
+	private focusPlayerById(id: string) {
+		this.currentFocusModule = this.playerEntities.get(id)?.model || null;
 		if (this.currentFocusModule) {
-			this.updateCamera(this.controls, this.currentFocusModule, 7, 30);
+			this.updateCamera(this.controls, this.currentFocusModule, 8, 30);
 			this.controls.update();
 		}
 	}

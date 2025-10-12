@@ -68,7 +68,7 @@ defineExpose({
 
 <style lang="scss" scoped>
 .fp-message {
-	position: fixed;
+	position: absolute;
 	left: 50%;
 	top: 0;
 	transform: translateX(-50%);

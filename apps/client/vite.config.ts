@@ -5,14 +5,15 @@ import { visualizer } from "rollup-plugin-visualizer";
 import viteCompression from "vite-plugin-compression";
 import externalGlobals from "rollup-plugin-external-globals";
 import { manifestGenerator } from "./build/plugins/vite-plugin-manifest";
-// import pkg from "./package.json";
 import electron from "vite-plugin-electron/simple";
+import generateDTS from "./src/plugins/vite-plugin-generate-dts";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => {
 	return {
 		plugins: [
 			vue(),
+			generateDTS(),
 			viteCompression(),
 			// manifestGenerator(pkg.version, pkg.updateMessage),
 			// visualizer({

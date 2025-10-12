@@ -109,7 +109,6 @@ export class MonopolyHost {
 			});
 
 			conn.on("close", () => {
-				console.log("🚀 ~ MonopolyHost ~ conn.on ~ close:");
 				if (clientUserId && isOnline) {
 					isOnline = false;
 					this.room.leave(clientUserId);
@@ -119,7 +118,6 @@ export class MonopolyHost {
 			});
 
 			conn.on("error", (err) => {
-				console.log("🚀 ~ MonopolyHost ~ conn.on ~ error:", err.type);
 				if (clientUserId && isOnline && err.type === "not-open-yet") {
 					isOnline = false;
 					this.room.leave(clientUserId);

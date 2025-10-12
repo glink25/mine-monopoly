@@ -96,3 +96,22 @@ export function randomHEXColor() {
 
 	return `#${Math.round(R).toString(16)}${Math.round(G).toString(16)}${Math.round(B).toString(16)}`;
 }
+
+export function arrayBufferToBase64(buffer: ArrayBuffer) {
+	const bytes = new Uint8Array(buffer);
+	let binary = "";
+	for (let i = 0; i < bytes.byteLength; i++) {
+		binary += String.fromCharCode(bytes[i]);
+	}
+	return btoa(binary);
+}
+
+// 接收方
+export function base64ToArrayBuffer(base64: string) {
+	const binaryString = atob(base64);
+	const bytes = new Uint8Array(binaryString.length);
+	for (let i = 0; i < binaryString.length; i++) {
+		bytes[i] = binaryString.charCodeAt(i);
+	}
+	return bytes.buffer;
+}

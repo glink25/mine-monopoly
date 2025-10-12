@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { createGameMap } from "@/utils/api/game-map";
+import { createGameMap, updateGameMap } from "@/utils/api/game-map";
 import { GameMapInDb } from "@fatpaper-monopoly/types";
 import { FormInstance, message, UploadChangeParam, UploadFile, UploadProps } from "ant-design-vue";
 import { dataToProtoBuffer, loadFromProto, ProtoFileType } from "@fatpaper-monopoly/utils";
@@ -79,7 +79,12 @@ async function onFinish() {
 	formData.append("name", formValue.name);
 	formData.append("version", formValue.version);
 	formData.append("hash", await calculateFileHash(formValue.file.originFileObj));
-	await createGameMap(formData);
+	if (gameMap) {
+		formData.append("id", gameMap.id);
+		await updateGameMap(formData);
+	} else {
+		await createGameMap(formData);
+	}
 	visible.value = false;
 	emits("finish");
 }

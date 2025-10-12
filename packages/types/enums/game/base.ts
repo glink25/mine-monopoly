@@ -11,7 +11,7 @@ export const enum SocketMsgType {
 	ReadyToggle = "ReadyToggle", //准备状态切换
 	ChangeColor = "ChangeColor", //切换颜色
 	KickOut = "KickOut", //踢出房间
-	ChangeMap = "ChangeMap", //切换角色
+	ChangeMap = "ChangeMap", //切换地图
 	ChangeRole = "ChangeRole", //切换角色
 	ChangeGameSetting = "ChangeGameSetting", //修改游戏设置信息
 	GameStart = "GameStart", //游戏开始
@@ -28,13 +28,14 @@ export const enum SocketMsgType {
 	RoundTimeOut = "RoundTimeOut", //回合超时
 	PlayerWalk = "PlayerWalk", //位置移动方式1：玩家角色走路
 	PlayerTp = "PlayerTp", //位置移动方式2：传送
-	Animation = "Animation", //前端动画完成回馈
-	BuyProperty = "BuyProperty", //购买地皮
-	BuildHouse = "BuildHouse", //升级房子
+	Operation = "Operation", //玩家操作
 	Bankrupt = "Bankrupt", //破产
 	GameOver = "GameOver", //游戏结束
 	PauseGame = "PauseGame", //房主暂停游戏
 	ResumeGame = "ResumeGame", //房主恢复游戏
+
+	Dialog = "Dialog", //在客户端唤起dialog
+	UI = "UI", //在客户端增添UI
 }
 
 export enum SocketMsgSource {
@@ -71,4 +72,3 @@ export enum GameLogLinkItem {
 	Property = "Property",
 	ArrivedEvent = "ArrivedEvent",
 }
-

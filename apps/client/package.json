@@ -2,7 +2,6 @@
 	"name": "@fatpaper-monopoly/client",
 	"private": true,
 	"version": "1.0.0",
-	"updateMessage": "欢迎来到1.0版本",
 	"type": "module",
 	"main": "dist-electron/main.js",
 	"scripts": {

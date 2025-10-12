@@ -9,7 +9,6 @@ function componentLoadedInterceptor(promise: Promise<any>) {
 		loadingStore.loading = true;
 		return new Promise((resolve) => {
 			promise.then((e: any) => {
-				console.log("🚀 ~ componentLoadedInterceptor ~ e:", e)
 				loadingStore.loading = false;
 				resolve(e);
 			});

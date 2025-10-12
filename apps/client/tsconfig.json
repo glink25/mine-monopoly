@@ -6,7 +6,7 @@
 		"jsx": "preserve",
 		"resolveJsonModule": true,
 		"isolatedModules": true,
-		"lib": ["ESNext", "DOM"],
+		"lib": ["ESNext", "DOM", "DOM.Iterable"],
 		"noEmit": true,
 		"baseUrl": "./",
 		"paths": {

@@ -1,9 +1,10 @@
-import { MonopolyClient } from "./MonopolyClient";
+import { MonopolyClient, useMonopolyClient } from "./MonopolyClient";
 import {
 	GameEventType,
 	OperateType,
 	PlayerInfo,
 	PropertyInfo,
+	RoleInRoom,
 	ServerSocketMessage,
 	SocketMessage,
 	SocketMsgType,
@@ -26,8 +27,10 @@ import router from "@src/router";
 import useEventBus from "@src/utils/event-bus";
 import { createVNode } from "vue";
 import PropertyInfoVue from "@src/components/common/property-card.vue";
-import { useGameData, useMapData } from "@src/store/game";
+import { useGameData, useMapData, useResourceStore } from "@src/store/game";
 import { GameMap } from "@fatpaper-monopoly/utils/protos/game-map";
+import { loadGameMapFromFile, loadGameMapFromServer } from "@src/utils/file/game-map";
+import { base64ToArrayBuffer } from "@fatpaper-monopoly/utils";
 
 type ServerMessageHandler<T extends SocketMsgType> = (
 	msg: SocketMessage<T, SocketMsgSource.Server>,
@@ -56,6 +59,9 @@ export function handleServerSocketMessage(msg: ServerSocketMessage, client: Mono
 			break;
 		case SocketMsgType.RoomInfo:
 			handleRoomInfoReply(msg, client);
+			break;
+		case SocketMsgType.ChangeMap:
+			handleChangeMap(msg, client);
 			break;
 		case SocketMsgType.RoomChat:
 			handleRoomChatReply(msg, client);
@@ -102,12 +108,12 @@ export function handleServerSocketMessage(msg: ServerSocketMessage, client: Mono
 		case SocketMsgType.PlayerTp:
 			handlePlayerTp(msg, client);
 			break;
-		case SocketMsgType.BuyProperty:
-			handleBuyProperty(msg, client);
-			break;
-		case SocketMsgType.BuildHouse:
-			handleBuildHouse(msg, client);
-			break;
+		// case SocketMsgType.BuyProperty:
+		// 	handleBuyProperty(msg, client);
+		// 	break;
+		// case SocketMsgType.BuildHouse:
+		// 	handleBuildHouse(msg, client);
+		// 	break;
 		case SocketMsgType.GameOver:
 			handleGameOver(msg, client);
 			break;
@@ -116,6 +122,9 @@ export function handleServerSocketMessage(msg: ServerSocketMessage, client: Mono
 			break;
 		case SocketMsgType.ResumeGame:
 			handleGameResume(msg, client);
+			break;
+		case SocketMsgType.Dialog:
+			handleDialog(msg, client);
 			break;
 		default:
 			break;
@@ -165,9 +174,47 @@ const handleKickOutReply: ServerMessageHandler<SocketMsgType.KickOut> = (msg, cl
 
 const handleRoomInfoReply: ServerMessageHandler<SocketMsgType.RoomInfo> = (msg) => {
 	const roomInfoData = msg.data;
-	console.log("🚀 ~ handleRoomInfoReply ~ roomInfoData:", roomInfoData);
 	const roomInfoStore = useRoomInfo();
 	roomInfoData && roomInfoStore.$patch(roomInfoData);
+};
+
+const handleChangeMap: ServerMessageHandler<SocketMsgType.ChangeMap> = async (msg) => {
+	const data = msg.data;
+	console.log("🚀 ~ handleChangeMap ~ data:", data);
+	useLoading().showLoading("地图更换, 加载中...");
+	let gameMap, mapInfo;
+	switch (data.from) {
+		case "server": {
+			const res = await loadGameMapFromServer(data.data);
+			gameMap = res.gameMap;
+			mapInfo = res.mapInfo;
+			break;
+		}
+		case "custom": {
+			const dataArrayBuffer = base64ToArrayBuffer(data.data);
+			const res = await loadGameMapFromFile(dataArrayBuffer);
+			gameMap = res.gameMap;
+			mapInfo = res.mapInfo;
+			break;
+		}
+	}
+	const tempRoleList: RoleInRoom[] = [];
+	const roles = gameMap.roles;
+	const resourceStore = useResourceStore();
+	for (const role of roles) {
+		const imageResource = resourceStore.getRecourceById(role.imageId);
+		if (!imageResource) {
+			useLoading().hideLoading();
+			FPMessage({ type: "error", message: "获取角色资源错误" });
+			throw Error("获取角色资源错误");
+		}
+		tempRoleList.push({ ...role, imageUrl: imageResource.url });
+	}
+	useRoomInfo().roleList = tempRoleList;
+	// 初始随机选择一个角色
+	useMonopolyClient().changeRole(roles[Math.floor(Math.random() * roles.length)].id);
+	useRoomInfo().mapInfo = mapInfo;
+	useLoading().hideLoading();
 };
 
 const handleRoomChatReply: ServerMessageHandler<SocketMsgType.RoomChat> = (msg) => {
@@ -182,7 +229,6 @@ const handleGameStartReply: ServerMessageHandler<SocketMsgType.GameStart> = () =
 };
 
 const handleGameInit: ServerMessageHandler<SocketMsgType.GameInit> = (msg) => {
-	console.log("🚀 ~ handleGameInit ~ handleGameInit:", "handleGameInit");
 	const gameDataStore = useGameData();
 	const gameData = msg.data;
 	if (gameData) {
@@ -254,11 +300,11 @@ const handleRemainingTime: ServerMessageHandler<SocketMsgType.RemainingTime> = (
 	}
 };
 
-const handleRoundTurn: ServerMessageHandler<SocketMsgType.RoundTurn> = () => {
+const handleRoundTurn: ServerMessageHandler<SocketMsgType.RoundTurn> = (msg) => {
 	const utilStore = useUtil();
 	utilStore.canRoll = true;
 	utilStore.canUseCard = true;
-	useEventBus().emit("RoundTurn");
+	useEventBus().emit("round-turn");
 };
 
 const handleRollDiceAnimationPlay: ServerMessageHandler<SocketMsgType.RollDiceStart> = () => {
@@ -293,39 +339,39 @@ const handlePlayerTp: ServerMessageHandler<SocketMsgType.PlayerTp> = (msg) => {
 	useEventBus().emit("player-tp", playerId, positionIndex, walkId);
 };
 
-const handleBuyProperty: ServerMessageHandler<SocketMsgType.BuyProperty> = (msg, client) => {
-	const property = msg.data;
-	const vnode = createVNode(PropertyInfoVue, { property });
-	FPMessageBox({
-		title: "购买地皮",
-		content: vnode,
-		cancelText: "不买",
-		confirmText: "买！",
-	})
-		.then(() => {
-			client.sendMsg(SocketMsgType.BuyProperty, { operateType: OperateType.BuyProperty, res: true });
-		})
-		.catch(() => {
-			client.sendMsg(SocketMsgType.BuyProperty, { operateType: OperateType.BuyProperty, res: false });
-		});
-};
+// const handleBuyProperty: ServerMessageHandler<SocketMsgType.Operation> = (msg, client) => {
+// 	const property = msg.data;
+// 	const vnode = createVNode(PropertyInfoVue, { property });
+// 	FPMessageBox({
+// 		title: "购买地皮",
+// 		content: vnode,
+// 		cancelText: "不买",
+// 		confirmText: "买！",
+// 	})
+// 		.then(() => {
+// 			client.sendMsg(SocketMsgType.Operation, { operateType: OperateType.BuyProperty, data: true });
+// 		})
+// 		.catch(() => {
+// 			client.sendMsg(SocketMsgType.Operation, { operateType: OperateType.BuyProperty, data: false });
+// 		});
+// };
 
-const handleBuildHouse: ServerMessageHandler<SocketMsgType.BuildHouse> = (msg, client) => {
-	const property = msg.data;
-	const vnode = createVNode(PropertyInfoVue, { property });
-	FPMessageBox({
-		title: "升级房子",
-		content: vnode,
-		cancelText: "不升级",
-		confirmText: "升级！",
-	})
-		.then(() => {
-			client.sendMsg(SocketMsgType.BuildHouse, { operateType: OperateType.BuildHouse, res: true });
-		})
-		.catch(() => {
-			client.sendMsg(SocketMsgType.BuildHouse, { operateType: OperateType.BuildHouse, res: false });
-		});
-};
+// const handleBuildHouse: ServerMessageHandler<SocketMsgType.Operation> = (msg, client) => {
+// 	const property = msg.data;
+// 	const vnode = createVNode(PropertyInfoVue, { property });
+// 	FPMessageBox({
+// 		title: "升级房子",
+// 		content: vnode,
+// 		cancelText: "不升级",
+// 		confirmText: "升级！",
+// 	})
+// 		.then(() => {
+// 			client.sendMsg(SocketMsgType.Operation, { operateType: OperateType.BuildHouse, data: true });
+// 		})
+// 		.catch(() => {
+// 			client.sendMsg(SocketMsgType.Operation, { operateType: OperateType.BuildHouse, data: false });
+// 		});
+// };
 
 const handleGameOver: ServerMessageHandler<SocketMsgType.GameOver> = () => {
 	const gameInfoStore = useGameData();
@@ -338,4 +384,26 @@ const handleGamePause: ServerMessageHandler<SocketMsgType.PauseGame> = () => {
 
 const handleGameResume: ServerMessageHandler<SocketMsgType.ResumeGame> = () => {
 	useLoading().hideLoading();
+};
+
+const handleDialog: ServerMessageHandler<SocketMsgType.Dialog> = (msg, client) => {
+	const data = msg.data;
+	FPMessageBox({
+		title: data.option.title,
+		content: data.option.content,
+	})
+		.then(() => {
+			client.sendMsg({
+				type: SocketMsgType.Operation,
+				source: SocketMsgSource.Client,
+				data: { operateType: OperateType.DialogResult, data: { id: data.playerId, confirm: true, data: undefined } },
+			});
+		})
+		.catch(() => {
+			client.sendMsg({
+				type: SocketMsgType.Operation,
+				source: SocketMsgSource.Client,
+				data: { operateType: OperateType.DialogResult, data: { id: data.playerId, confirm: false, data: undefined } },
+			});
+		});
 };

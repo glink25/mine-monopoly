@@ -13,8 +13,7 @@
 	"dependencies": {
 		"@fatpaper-monopoly/utils": "workspace:*",
 		"@fatpaper-monopoly/types": "workspace:*",
-		"@fatpaper-monopoly/ui": "workspace:*",
-		"dts-bundle-generator":"9.5.1"
+		"@fatpaper-monopoly/ui": "workspace:*"
 	},
 	"devDependencies": {
 		"ts-morph": "26.0.0"

@@ -69,6 +69,18 @@ export enum PlayerEvents {
 	AfterSetBankrupted = "AfterSetBankrupted",
 }
 
+export enum OperateType {
+	GameInitFinished = "GameInitFinished", //前端加载完毕
+	RollDice = "RollDice", //前端掷骰子
+	UseChanceCard = "UseChanceCard", //使用机会卡
+	Animation = "AnimationComplete", //前端动画完成回馈
+
+	PauseGame = "PauseGame", //房主暂停游戏
+	ResumeGame = "ResumeGame", //房主恢复游戏
+
+	DialogResult = "DialogResult", //由程序调起的dialog的结果返回
+}
+
 export const PlayerBuffTriggerTimingMap: Record<PlayerEvents, string> = {
 	[PlayerEvents.GetPropertiesList]: "获取地产数据时(不应该出现)",
 	[PlayerEvents.GetCardsList]: "获取机会卡数据时(不应该出现)",

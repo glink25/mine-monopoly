@@ -31,7 +31,7 @@ export const useResourceStore = defineStore("temp-resource", {
 });
 
 export const useMapData = defineStore("map-data", {
-	state: (): Omit<GameMap, 'phases'> => ({
+	state: (): Omit<GameMap, "phases"> => ({
 		id: crypto.randomUUID(),
 		info: {
 			name: "",
@@ -62,6 +62,9 @@ export const useMapData = defineStore("map-data", {
 		},
 		findMapItemById(id: string) {
 			return this.mapItems.find((m) => m.id === id);
+		},
+		findMapItemByPropertyId(id: string) {
+			return this.mapItems.find((item) => item.property?.id === id);
 		},
 
 		// MapItemType

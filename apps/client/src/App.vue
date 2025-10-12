@@ -10,22 +10,23 @@ import MusicPlayer from "@src/views/music_player/music_player.vue";
 import DanmakuContainer from "@src/views/danmaku/danmaku_container.vue";
 import { isMobileDevice } from "@src/utils";
 import { TitleBar } from "@fatpaper-monopoly/ui";
+import { isPC } from "./utils/platform";
 
-const version = window.electronAPI.getVersion();
 const isMobile = isMobileDevice();
 const router = useRoute();
 const isInGame = computed(() => router.name === "game");
 const canChat = computed(() => router.name === "room" || router.name === "game");
 const isMusicPlayerVisiable = computed(() => router.name !== "login");
+const version = isPC() ? window.electronAPI.getVersion() : "none";
 </script>
 
 <template>
-	<TitleBar :bg-color="'#f38b11'">
+	<TitleBar v-if="isPC()" :bg-color="'#f38b11'">
 		<template #title>
 			<span style="font-size: 12px">FatPaper-Monopoly v{{ version }}</span>
 		</template>
 	</TitleBar>
-	<div class="main-container">
+	<div class="main-container" id="fpmessage-container">
 		<!-- <FullScreenMask v-if="isMobile" /> -->
 		<Chat v-if="canChat" />
 		<DanmakuContainer v-if="canChat" />

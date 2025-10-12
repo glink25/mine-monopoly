@@ -3,10 +3,6 @@ declare enum GameOverRule {
 	LeftOnePlayer = 1,//只剩一位玩家
 	Earn100000 = 2
 }
-declare enum PlayerMoveType {
-	Walk = 0,
-	Tp = 1
-}
 declare enum ChanceCardType {
 	ToSelf = "ToSelf",
 	ToOtherPlayer = "ToOtherPlayer",
@@ -484,27 +480,6 @@ interface IGamePhase<Context extends GameContext> extends GamePhaseInfo {
 	eventQueue: GameEvent<Context>[];
 	use(tiggerTime: EventTiggerTime, fn: string): void;
 	getEventQueue(): GameEvent<Context>[];
-}
-interface GameRoundStartContext extends GameContext {
-}
-interface PlayerRoundContext extends GameContext {
-	currentRoundPlayer: IPlayer;
-}
-interface PlayerRoundStartContext extends PlayerRoundContext {
-}
-interface RollDiceContext extends PlayerRoundStartContext {
-	dice: number[];
-}
-interface PlayerMoveContext extends RollDiceContext {
-	type: PlayerMoveType;
-	targetIndex: number;
-}
-interface ArrivedEventContext extends PlayerMoveContext {
-	arrivedProperty: PropertyInfo;
-}
-interface PlayerRoundEndContext extends ArrivedEventContext {
-}
-interface GameRoundEndContext extends GameContext {
 }
 interface IPlayer {
 	extras: Record<string, any>;

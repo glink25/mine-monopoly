@@ -1,8 +1,15 @@
-
 import { ChatMessageType, MonopolyWebSocketMsgType, SocketMsgSource, SocketMsgType } from "../../enums/game/base";
-import { GameOverRule, OperateType } from "../../enums/game/game";
+import { GameOverRule } from "../../enums/game/game";
+import { OperateType } from "../../enums/game/game-process";
 import { GameMapInDb } from "./db";
-import { GameData, PlayerInfo, PropertyInfo } from "./game-process";
+import {
+	DialogOption,
+	GameData,
+	InputOptionItem,
+	PlayerInfo,
+	PlayerOperationResult,
+	PropertyInfo,
+} from "./game-process";
 import { Role, User } from "./item";
 
 export type MonopolyWebSocketMsg = {
@@ -28,6 +35,9 @@ export interface Music {
 	url: string;
 }
 
+type Base64String = string;
+export type RoomMapInfo = { from: "server"; data: string } | { from: "custom"; data: Base64String };
+
 export interface SocketMessage<T extends SocketMsgType = SocketMsgType, S extends SocketMsgSource = SocketMsgSource> {
 	type: T;
 	source: S;
@@ -47,6 +57,13 @@ export type ClientSocketMessage = {
 export type ServerSocketMessage = {
 	[K in SocketMsgType]: SocketMessage<K, SocketMsgSource.Server>;
 }[SocketMsgType];
+
+type OperationMessage = {
+	[T in OperateType]: {
+		operateType: T;
+		data: PlayerOperationResult[T];
+	};
+}[OperateType];
 
 export interface SocketMessageDataType {
 	[SocketMsgType.Heart]: {
@@ -98,8 +115,8 @@ export interface SocketMessageDataType {
 		server: undefined;
 	};
 	[SocketMsgType.ChangeMap]: {
-		client: string;
-		server: string;
+		client: RoomMapInfo;
+		server: RoomMapInfo;
 	};
 	[SocketMsgType.ChangeRole]: {
 		client: string;
@@ -159,7 +176,7 @@ export interface SocketMessageDataType {
 		};
 	};
 	[SocketMsgType.UseChanceCard]: {
-		client: { chanceCardId: string; targetId: string | string[] };
+		client: never;
 		server: { error: boolean };
 	};
 	[SocketMsgType.RemainingTime]: {
@@ -179,17 +196,9 @@ export interface SocketMessageDataType {
 		client: never;
 		server: { playerId: string; positionIndex: number; walkId: string };
 	};
-	[SocketMsgType.Animation]: {
-		client: { operateType: OperateType; animationId: string };
+	[SocketMsgType.Operation]: {
+		client: OperationMessage;
 		server: never;
-	};
-	[SocketMsgType.BuyProperty]: {
-		client: { operateType: OperateType; res: boolean };
-		server: PropertyInfo;
-	};
-	[SocketMsgType.BuildHouse]: {
-		client: { operateType: OperateType; res: boolean };
-		server: PropertyInfo;
 	};
 	[SocketMsgType.Bankrupt]: {
 		client: never;
@@ -207,9 +216,18 @@ export interface SocketMessageDataType {
 		client: undefined;
 		server: undefined;
 	};
+	[SocketMsgType.Dialog]: {
+		client: undefined;
+		server: {
+			playerId: string;
+			option: DialogOption<InputOptionItem<string, any>[]>;
+		};
+	};
+	[SocketMsgType.UI]: {
+		client: undefined;
+		server: undefined;
+	};
 }
-
-
 
 export interface Room {
 	roomId: string;
@@ -219,7 +237,7 @@ export interface Room {
 }
 
 export interface RoomInfo {
-	mapId: string;
+	// mapInfo: RoomMapInfo | undefined;
 	roomId: string;
 	userList: Array<User>;
 	isStarted: boolean;

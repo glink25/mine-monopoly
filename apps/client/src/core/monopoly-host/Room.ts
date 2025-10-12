@@ -14,6 +14,8 @@ import {
 	ServerSocketMessage,
 	SocketMessage,
 	SocketMessageDataType,
+	PlayerOperationResult,
+	RoomMapInfo,
 } from "@fatpaper-monopoly/types";
 import { WorkerCommType } from "@src/enums/worker";
 import { WorkerCommMsg } from "@src/interfaces/worker";
@@ -26,6 +28,8 @@ import GameProcessWorker from "@src/core/worker/GameProcessWorker?worker";
 import { getGameMap } from "@src/utils/file/game-map";
 import { useMapData } from "@src/store/game";
 import { FPMessage } from "@fatpaper-monopoly/ui";
+import { OperateListener } from "../worker/class/OperateListener";
+import { base64ToArrayBuffer } from "@fatpaper-monopoly/utils";
 
 interface UserInRoom extends UserInRoomInfo {
 	socketClient: DataConnection;
@@ -33,17 +37,17 @@ interface UserInRoom extends UserInRoomInfo {
 }
 
 export class Room {
-	private mapId: string;
+	private mapInfo: RoomMapInfo | undefined;
 	private roomId: string;
 	private userList: Map<string, UserInRoom>;
 	private ownerId: string = "";
 	private gameSetting: GameSetting;
 	private gameProcessWorker: Worker | null = null;
 	public isStarted: boolean;
+	private operationListener: OperateListener;
 
 	constructor(roomId: string) {
 		this.roomId = roomId;
-		this.mapId = "";
 		this.ownerId = "";
 		this.isStarted = false;
 		this.userList = new Map();
@@ -58,6 +62,7 @@ export class Room {
 			overMoney: 100000,
 			slackOffMode: false,
 		};
+		this.operationListener = new OperateListener();
 	}
 
 	public getRoomId() {
@@ -115,7 +120,7 @@ export class Room {
 	 */
 	public roomInfoBroadcast() {
 		const roomInfo = this.getRoomInfo();
-		const msg: SocketMessage = {
+		const msg: ServerSocketMessage = {
 			type: SocketMsgType.RoomInfo,
 			source: SocketMsgSource.Server,
 			roomId: this.roomId,
@@ -127,7 +132,7 @@ export class Room {
 	/**
 	 * 将信息广播到房间内的全部用户
 	 */
-	public roomBroadcast(msg: SocketMessage) {
+	public roomBroadcast(msg: ServerSocketMessage) {
 		Array.from(this.userList.values()).forEach((user: UserInRoom) => {
 			user.socketClient.send(JSON.stringify(msg));
 		});
@@ -139,7 +144,7 @@ export class Room {
 	 */
 	private getRoomInfo(): RoomInfo {
 		const roomInfo: RoomInfo = {
-			mapId: this.mapId,
+			// mapInfo: this.mapInfo,
 			roomId: this.roomId,
 			userList: Array.from(this.userList.values()).map((user) => ({
 				userId: user.userId,
@@ -213,8 +218,10 @@ export class Room {
 				},
 				this.roomId
 			);
-			this.roomBroadcast(<SocketMessage>{
+			this.roomBroadcast({
 				type: SocketMsgType.MsgNotify,
+				source: SocketMsgSource.Server,
+				data: undefined,
 				msg: { type: "success", content: `${userInRoom.username}加入了房间` },
 			});
 			this.roomInfoBroadcast();
@@ -245,8 +252,10 @@ export class Room {
 			} else {
 				const user = this.userList.get(userId);
 				if (user)
-					this.roomBroadcast(<SocketMessage>{
+					this.roomBroadcast({
 						type: SocketMsgType.MsgNotify,
+						source: SocketMsgSource.Server,
+						data: undefined,
 						msg: { type: "warning", content: `${user.username}离开了房间` },
 					});
 				this.userList.delete(userId);
@@ -266,8 +275,10 @@ export class Room {
 				data: { userId },
 			});
 		}
-		this.roomBroadcast(<SocketMessage>{
+		this.roomBroadcast({
 			type: SocketMsgType.MsgNotify,
+			source: SocketMsgSource.Server,
+			data: undefined,
 			msg: { type: "error", content: `${user.username}断开了连接` },
 		});
 		this.roomInfoBroadcast();
@@ -284,8 +295,10 @@ export class Room {
 					data: { userId: oldUser.userId },
 				});
 
-				this.roomBroadcast(<SocketMessage>{
+				this.roomBroadcast({
 					type: SocketMsgType.MsgNotify,
+					source: SocketMsgSource.Server,
+					data: undefined,
 					msg: { type: "success", content: `${oldUser.username}重新连接` },
 				});
 			}
@@ -294,17 +307,55 @@ export class Room {
 		}
 	}
 
-	public changeMap(id: string) {
+	public async changeMap(data: RoomMapInfo) {
+		const _this = this;
 		//换地图取消所有玩家准备状态
-		this.userList.forEach((u) => (u.isReady = false));
-		this.mapId = id;
-		this.roomBroadcast({
-			type: SocketMsgType.MsgNotify,
-			source: SocketMsgSource.Server,
-			data: "",
-			msg: { type: "info", content: "地图有变更" },
-		});
-		this.roomInfoBroadcast();
+		if (data.from === "server") {
+			this.mapInfo = data;
+			//如果地图来源为服务器 (安全的)
+			sendChangeMapMessage();
+		} else if ((data.from = "custom")) {
+			//如果地图来源为玩家 (有风险的)
+			//需要其他玩家确定
+			const promiseArr = Array.from(this.userList.values())
+				.filter((user) => user.userId !== this.ownerId)
+				.map((user) => {
+					this.sendToClient(user.socketClient, SocketMsgType.Dialog, {
+						playerId: user.userId,
+						option: {
+							title: "房主要启用非官方地图⚠️",
+							content: `此地图由房主创作，<b style='color: red'>未经过官方验证，可能存在数据异常、游戏不平衡或脚本风险。</b><br>请谨慎游玩，并自行承担使用非官方内容所带来的风险。`,
+							confirmText: "同意",
+							cancelText: "不同意",
+						},
+					});
+					return this.operationListener.onceAsync(user.userId, OperateType.DialogResult);
+				});
+
+			const res = await Promise.all(promiseArr);
+			if (res.some((r) => !r.confirm)) {
+				this.roomBroadcast({
+					type: SocketMsgType.MsgNotify,
+					source: SocketMsgSource.Server,
+					data: undefined,
+					msg: { type: "error", content: "有玩家拒绝使用自定义地图" },
+				});
+			} else {
+				this.mapInfo = data;
+				sendChangeMapMessage();
+			}
+		}
+
+		function sendChangeMapMessage() {
+			_this.userList.forEach((u) => (u.isReady = false));
+			_this.roomBroadcast({
+				type: SocketMsgType.ChangeMap,
+				source: SocketMsgSource.Server,
+				data: data,
+				msg: { type: "info", content: "地图有变更" },
+			});
+			_this.roomInfoBroadcast();
+		}
 	}
 
 	public changeColor(_userId: string, color: string): void {
@@ -329,7 +380,7 @@ export class Room {
 		this.roomBroadcast({
 			type: SocketMsgType.MsgNotify,
 			source: SocketMsgSource.Server,
-			data: "",
+			data: undefined,
 			msg: { type: "info", content: "地图设置有变更" },
 		});
 		this.roomInfoBroadcast();
@@ -340,7 +391,7 @@ export class Room {
 			this.roomBroadcast({
 				type: SocketMsgType.MsgNotify,
 				source: SocketMsgSource.Server,
-				data: "error",
+				data: undefined,
 				msg: { type: "warning", content: "有玩家未准备" },
 			});
 			return;
@@ -349,7 +400,7 @@ export class Room {
 		this.roomBroadcast({
 			type: SocketMsgType.GameStart,
 			source: SocketMsgSource.Server,
-			data: "start",
+			data: undefined,
 		});
 		this.isStarted = true;
 		this.gameProcessWorker = new GameProcessWorker();
@@ -376,7 +427,7 @@ export class Room {
 		});
 
 		const handleWorkerReady = async () => {
-			if (!this.mapId || !this.gameProcessWorker) return;
+			if (!this.mapInfo || !this.gameProcessWorker) return;
 			useLoading().showLoading("正在获取地图信息...");
 			const mapData = JSON.parse(JSON.stringify(useMapData().$state));
 			// console.log("🚀 ~ Room ~ handleWorkerReady ~ mapData:", mapData)
@@ -450,8 +501,9 @@ export class Room {
 		return this.userList.has(userId);
 	}
 
-	public emitOperationToWorker<T extends OperateType>(userId: string, operateType: T, ...data: any) {
-		if (!this.gameProcessWorker) throw Error("在worker还没创建时给worker发信息");
+	public emitOperation<T extends OperateType>(userId: string, operateType: T, data?: PlayerOperationResult[T]) {
+		this.operationListener.emit(userId, operateType, data);
+		if (!this.gameProcessWorker) return;
 		this.gameProcessWorker.postMessage(<WorkerCommMsg>{
 			type: WorkerCommType.EmitOperation,
 			data: {

@@ -18,6 +18,9 @@ export default defineConfig(({ command }) => {
 				dts: true,
 			}),
 		],
+		server: {
+			port: 5174,
+		},
 		resolve: {
 			alias: [
 				{

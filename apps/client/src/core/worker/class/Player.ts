@@ -41,7 +41,7 @@ export class Player implements IPlayer {
 
 	constructor(user: UserInRoomInfo, initMoney: number, initPositionIndex: number, roundPhasesInfo: GamePhaseInfo[]) {
 		this.roundPhases = roundPhasesInfo.map((roundPhaseInfo) => {
-			return new GamePhase(roundPhaseInfo, );
+			return new GamePhase(roundPhaseInfo);
 		});
 		this.user = user;
 		this.money = initMoney;
@@ -152,9 +152,29 @@ export class Player implements IPlayer {
 		return this.positionIndex;
 	}
 
-	public async walk(step: number): Promise<void> {}
+	public async walk(step: number): Promise<void> {
+		this.emit(PlayerEvents.Walk, step);
+		return new Promise((resolve) => {
+			this.addEventListener(
+				PlayerEvents.AnimationFinished,
+				async () => {
+					await this.emit(PlayerEvents.AfterWalk, step);
+					resolve();
+				},
+				1
+			);
+		});
+	}
 
-	public async tp(step: number): Promise<void> {}
+	public async tp(positionIndex: number): Promise<void> {
+		this.emit(PlayerEvents.Tp, positionIndex);
+		return new Promise((resolve) => {
+			this.addEventListener(PlayerEvents.AnimationFinished, async () => {
+				await this.emit(PlayerEvents.AfterTp, positionIndex);
+				resolve();
+			});
+		});
+	}
 
 	public async setBankrupted(isBankrupted: boolean) {
 		this.isBankrupted = isBankrupted;

@@ -2,8 +2,7 @@
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { lightenColor, randomString } from "@src/utils";
 import { computed, ref, reactive, onMounted, watch, nextTick, onBeforeUnmount } from "vue";
-import { UserInRoomInfo } from "@src/interfaces/bace";
-import { ChangeRoleOperate } from "@fatpaper-monopoly/types";
+import { ChangeRoleOperate, UserInRoomInfo } from "@fatpaper-monopoly/types";
 import { useMonopolyClient } from "@src/core/monopoly-client/MonopolyClient";
 import { RolePreviewer } from "@src/views/room/utils/RolePreviewer";
 import { __PROTOCOL__ } from "@src/../global.config";
@@ -22,10 +21,7 @@ const avatarSrc = computed(() => {
 
 const isMe = computed(() => (user.value ? user.value.userId === useUserInfo().userId : false));
 const isRoomOwner = computed(() => (user.value ? user.value.userId === useRoomInfo().ownerId : false));
-const amIRoomOwner = computed(() => {
-	const me = useUserInfo();
-	return me.userId === useRoomInfo().ownerId;
-});
+const amIRoomOwner = computed(() => useRoomInfo().amIRoomOwner);
 
 const canSelectRole = computed(() => useMapData().roles.length > 0);
 const role = computed(() => {
@@ -51,6 +47,7 @@ function handleKickOut() {
 
 function handleRoleSelect() {
 	if (!canSelectRole.value) return;
+	if (!isMe.value) return;
 	emits("role-select");
 }
 
