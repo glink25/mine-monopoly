@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { GameLog } from "@src/interfaces/bace";
 import playerCard from "@src/views/game/components/player-card.vue";
 import propertyInfoCard from "@src/views/game/utils/components/property-info-card.vue";
 import chanceCard from "@src/views/game/components/chance-card.vue";
 import arrivedEventCard from "@src/views/game/utils/components/arrived-event-card.vue";
-import { GameLogLinkItem } from "@fatpaper-monopoly/types";
+import { GameLog, GameLogLinkItem } from "@fatpaper-monopoly/types";
 import { useDeviceStatus } from "@src/store";
 import { App, Component, computed, createApp, h, ref, render, toRaw } from "vue";
 import { MapEvent, ChanceCardInfo, PlayerInfo, PropertyInfo } from "@fatpaper-monopoly/types";
@@ -69,7 +68,7 @@ function handleGameLog(gameLog: GameLog) {
 				case GameLogLinkItem.Player:
 					const player = toRaw(gameInfoStore.getPlayerInfoById(id));
 					if (player) {
-						item = { type, data: player, text: player.user.name, color: player.user.color };
+						item = { type, data: player, text: player.user.username, color: player.user.color };
 					}
 					break;
 
@@ -80,7 +79,7 @@ function handleGameLog(gameLog: GameLog) {
 							type,
 							data: property,
 							text: property.name,
-							color: property.owner ? property.owner.user.color : "var(--color-second)",
+							color: property.owner ? property.owner.color : "var(--color-second)",
 						};
 					}
 					break;
