@@ -87,12 +87,7 @@ onBeforeUnmount(() => {
 			<Dices @click="handleRollDice"></Dices>
 
 			<teleport to="body">
-				<div
-					style="position: fixed; top: 15%; left: 50%; transform: translate(-50%, -50%); z-index: 99999999"
-					class="countdown-timer ui-item"
-				>
-					<CountdownTimer />
-				</div>
+				<CountdownTimer />
 			</teleport>
 		</div>
 

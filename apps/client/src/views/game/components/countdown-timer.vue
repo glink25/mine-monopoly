@@ -38,9 +38,12 @@ const _blockWidth = computed(() => `${(_waitingFor.value.remainingTime / _roundT
 	box-shadow: var(--box-shadow);
 	overflow: hidden;
 	transition: width 0.3s ease-in-out;
-
-	position: relative;
+	position: absolute;
+	top: 15%;
+	left: 50%;
+	transform: translate(-50%, -50%);
 	z-index: var(--z-countdown-timer);
+
 
 	& > .block {
 		position: absolute;
