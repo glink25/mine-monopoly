@@ -1,27 +1,33 @@
 <script setup lang="ts">
-import { ArrivedEvent, PropertyInfo } from "@src/interfaces/game";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { __PROTOCOL__ } from "@src/../global.config";
+import { MapEvent } from "@fatpaper-monopoly/types";
+import { useResourceStore } from "@src/store/game";
 
-const props = defineProps<{ arrivedEvent: ArrivedEvent | null }>();
+const props = defineProps<{ arrivedEvent: MapEvent | null }>();
 
-const arrivedEvent = ref<ArrivedEvent | null>(props.arrivedEvent);
+const arrivedEvent = ref<MapEvent | null>(props.arrivedEvent);
 
-function updateArrivedEvent(newArrivedEvent: ArrivedEvent) {
+function updateArrivedEvent(newArrivedEvent: MapEvent) {
 	arrivedEvent.value = newArrivedEvent;
 }
 
 defineExpose({ updateArrivedEvent });
+
+const iconUrl = computed(() => {
+	if (!props.arrivedEvent) return "";
+	return useResourceStore().getRecourceById(props.arrivedEvent.iconId)?.url || "";
+});
 </script>
 
 <template>
 	<div class="arrived-event-info" v-if="arrivedEvent">
 		<div class="info">
-			<img :src="`${__PROTOCOL__}://${arrivedEvent.iconUrl}`" alt="" />
+			<img :src="iconUrl" alt="" />
 			<span>{{ arrivedEvent.name }}</span>
 		</div>
-		<div class="describe">
-			{{ arrivedEvent.describe }}
+		<div class="description">
+			{{ arrivedEvent.description }}
 		</div>
 	</div>
 </template>
@@ -58,7 +64,7 @@ defineExpose({ updateArrivedEvent });
 		}
 	}
 
-	.describe {
+	.description {
 		color: #2b2b2b;
 		text-shadow: #fff -1px 0 0, #fff 1px 0 0, #fff 0 1px 0, #fff 0 -1px 0;
 	}
