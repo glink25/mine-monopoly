@@ -187,7 +187,7 @@ export class MonopolyClient {
 	}
 
 	public handleHeartReply() {
-		useGameData().ping = Math.round((Date.now() - this.sendHeartTime) / 2);
+		useUtil().ping = Math.round((Date.now() - this.sendHeartTime) / 2);
 		this.handleNoHeart.fn();
 	}
 

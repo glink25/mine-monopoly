@@ -95,6 +95,7 @@ export const useRoomInfo = defineStore("roomInfo", {
 export const useUtil = defineStore("util", {
 	state: () => {
 		return {
+			ping: 0,
 			isRollDiceAnimationPlay: false,
 			rollDiceResult: new Array<number>(),
 			waitingFor: { eventMsg: "", remainingTime: 0 },

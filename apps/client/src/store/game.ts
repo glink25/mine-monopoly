@@ -1,6 +1,9 @@
-import { ResourcesType, GameMap, PlayerInfo, PropertyInfo } from "@fatpaper-monopoly/types";
+import { ResourcesType, GameMap, PlayerInfo, PropertyInfo, GameData } from "@fatpaper-monopoly/types";
 import { defineStore } from "pinia";
 import { useUserInfo } from ".";
+import useEventBus from "@src/utils/event-bus";
+import { isEqual } from "lodash";
+import { compareObjectArrays } from "@src/utils";
 
 export const useResourceStore = defineStore("temp-resource", {
 	state: () => {
@@ -90,9 +93,8 @@ export const useMapData = defineStore("map-data", {
 });
 
 export const useGameData = defineStore("game-data", {
-	state: () => {
+	state: ():GameData => {
 		return {
-			ping: 0,
 			currentPlayerIdInRound: "",
 			currentRound: 0,
 			currentMultiplier: 0,
@@ -116,6 +118,24 @@ export const useGameData = defineStore("game-data", {
 		},
 		getPropertyById(id: string) {
 			return this.$state.propertiesList.find((p) => p.id === id);
+		},
+		updateGameData(newGamedata: GameData) {
+			const eventBus = useEventBus();
+			const oldGameData = JSON.parse(JSON.stringify(this.$state)) as GameData;
+
+			this.$patch(newGamedata);
+			
+			compareObjectArrays(oldGameData.playersList, newGamedata.playersList, "id", (itemId, key, oldValue, newValue) => {
+				eventBus.emit(`player-${key}`, itemId, oldValue, newValue);
+			});
+			compareObjectArrays(
+				oldGameData.propertiesList,
+				newGamedata.propertiesList,
+				"id",
+				(itemId, key, oldValue, newValue) => {
+					eventBus.emit(`property-${key}`, itemId, oldValue, newValue);
+				}
+			);
 		},
 	},
 });

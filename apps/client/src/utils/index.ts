@@ -1,3 +1,4 @@
+import { isEqual } from "lodash";
 import * as THREE from "three";
 import * as ts from "typescript";
 
@@ -299,4 +300,25 @@ export function compileTsToJs(code: string, types: string): string {
 
 	// 返回编译后的 JavaScript 代码
 	return result.outputText;
+}
+
+export function compareObjectArrays<T extends Record<string, any>>(
+	oldArray: T[],
+	newArray: T[],
+	idKey: keyof T,
+	callback: <Key extends keyof T>(itemId: string, key: Key, oldValue: T[Key], newValue: T[Key]) => void
+): void {
+	const oldMap = new Map<string, T>(oldArray.map((item) => [String(item[idKey]), item]));
+
+	newArray.forEach((newItem) => {
+		const itemId = String(newItem[idKey]);
+		const oldItem = oldMap.get(itemId);
+		if (oldItem) {
+			(Object.keys(newItem) as Array<keyof T>).forEach((key) => {
+				if (!isEqual(newItem[key], oldItem[key])) {
+					callback(itemId, key, oldItem[key], newItem[key]);
+				}
+			});
+		}
+	});
 }

@@ -276,12 +276,9 @@ export class GameRenderer {
 			this.mapContainer.add(mapItemModel);
 
 			if (mapItem.mapEventId) {
-				console.log("🚀 ~ GameRenderer ~ initMapItem ~ mapItem.mapEventId:", mapItem.mapEventId);
 				const arrivedEvent = useMapData().findMapEventById(mapItem.mapEventId);
-				console.log("🚀 ~ GameRenderer ~ initMapItem ~ arrivedEvent:", arrivedEvent);
 				if (!arrivedEvent) return;
 				const iconUrl = useResourceStore().getRecourceById(arrivedEvent.iconId)?.url;
-				console.log("🚀 ~ GameRenderer ~ initMapItem ~ iconUrl:", iconUrl);
 				if (!iconUrl) return;
 				const texture = await textureLoader.loadAsync(iconUrl);
 				texture.colorSpace = THREE.SRGBColorSpace;
@@ -410,7 +407,6 @@ export class GameRenderer {
 				useMonopolyClient().AnimationComplete(walkId);
 			}
 		});
-
 		useEventBus().on("player-tp", async (walkPlayerId: string, positionIndex: number, walkId: string) => {
 			const playerEntity = this.getPlayerEntity(walkPlayerId);
 			if (playerEntity) {
@@ -444,6 +440,16 @@ export class GameRenderer {
 				this.breakUpPlayersInSameMapItem();
 				useMonopolyClient().AnimationComplete(walkId);
 			}
+		});
+
+		useEventBus().on("player-money", async (playerId: string, oldMoney: number, newMoney: number) => {
+			this.createPopoverOnPlayerTop(playerId, moneyPopTip, { money: newMoney - oldMoney }, 2000);
+		});
+		useEventBus().on("property-level", async (propertyId: string) => {
+			this.updateBuilding(useGameData().getPropertyById(propertyId)!);
+		});
+		useEventBus().on("property-owner", async (propertyId: string) => {
+			this.updateBuilding(useGameData().getPropertyById(propertyId)!);
 		});
 	}
 

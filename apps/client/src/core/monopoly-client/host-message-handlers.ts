@@ -268,13 +268,7 @@ const handleGameData: ServerMessageHandler<SocketMsgType.GameData> = (msg) => {
 	const gameDataStore = useGameData();
 	const gameData = msg.data;
 	if (gameData) {
-		gameDataStore.$patch({
-			currentPlayerIdInRound: gameData.currentPlayerIdInRound,
-			currentRound: gameData.currentRound,
-			currentMultiplier: gameData.currentMultiplier,
-			playersList: gameData.playersList,
-			propertiesList: gameData.propertiesList,
-		});
+		gameDataStore.updateGameData(gameData);
 		const me = gameData.playersList.find((p) => p.id === useUserInfo().userId);
 		if (me && me.isBankrupted) {
 			const utilStore = useUtil();

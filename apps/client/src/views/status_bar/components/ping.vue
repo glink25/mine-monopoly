@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { useGameData } from "@src/store/game";
+import { useUtil } from "@src/store";
 import { computed } from "vue";
-const gameInfoStore = useGameData();
+const utilStore = useUtil();
 const pingTextColor = computed(() => {
-	const ping = gameInfoStore.ping;
+	const ping = utilStore.ping;
 	let colorName = "success";
 	if (ping > 30) {
 		colorName = "warning";
@@ -17,7 +17,7 @@ const pingTextColor = computed(() => {
 
 <template>
 	<div class="ping-container" :style="{ color: `var(--color-text-${pingTextColor})` }">
-		<FontAwesomeIcon icon="wifi" /> {{ gameInfoStore.ping }}ms
+		<FontAwesomeIcon icon="wifi" /> {{ utilStore.ping }}ms
 	</div>
 </template>
 
