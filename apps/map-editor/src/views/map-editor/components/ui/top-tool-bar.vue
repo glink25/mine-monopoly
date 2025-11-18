@@ -13,7 +13,7 @@ import EventManager from "../manager/event-manager.vue";
 import ChanceCardManager from "../manager/chancecard-manager.vue";
 import StreetManager from "../manager/street-manager.vue";
 import RoleManager from "../manager/role-manager.vue";
-import BuildingModelSeletor from "../manager/components/building-model-seletor.vue";
+import DefaultBuildingManager from "../manager/default-building-manager.vue";
 import customUiManager from "../manager/custom-ui-manager/custom-ui-manager.vue";
 import mapDataViewer from "../common/map-data-viewer.vue";
 import { eventBus } from "@src/utils/event-bus";
@@ -142,12 +142,7 @@ async function seleteMapBackgroundImage() {
 	useMapDataStore().setBackgroundImageId(id);
 }
 
-const buildingModelIdList = computed(() => useMapDataStore().buildingModelIdList);
 const buildingModelVisible = ref(false);
-function handleBuildingModelSeletorSubmit(idList: string[]) {
-	useMapDataStore().buildingModelIdList = idList;
-}
-
 const mapInfoFormVisible = ref(false);
 const roleManagerVisible = ref(false);
 const mapIndexCreatorVisible = ref(false);
@@ -223,12 +218,7 @@ const mapDataViewerVisible = ref(false);
 			</a-space>
 		</div>
 
-		<building-model-seletor
-			@submit="handleBuildingModelSeletorSubmit"
-			v-model:visible="buildingModelVisible"
-			:modelIdList="buildingModelIdList"
-			:title="'默认房屋模型'"
-		/>
+		<default-building-manager v-model="buildingModelVisible" />
 		<map-info-form v-model="mapInfoFormVisible" />
 		<role-manager v-model="roleManagerVisible" />
 		<map-index-creator v-model="mapIndexCreatorVisible" />

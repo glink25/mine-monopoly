@@ -286,10 +286,12 @@ export interface PropertyInfo {
 	level: number;
 	maxLevel: number;
 	costList: number[];
-	buildingModelIdList?: string[];
-	effectCode?: string;
 	streetId: string;
+	buildingModelIdList?: string[];
 	owner?: UserInRoomInfo;
+	custom?: {
+		effectCode: string;
+	};
 }
 
 export interface ChanceCardClientInfo extends Omit<ChanceCardInstanceInfo, "effectCode"> {}

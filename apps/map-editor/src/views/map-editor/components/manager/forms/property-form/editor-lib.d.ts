@@ -3,10 +3,6 @@ declare enum GameOverRule {
 	LeftOnePlayer = 1,//只剩一位玩家
 	Earn100000 = 2
 }
-declare enum PlayerMoveType {
-	Walk = 0,
-	Tp = 1
-}
 declare enum TargetSelectType {
 	ToSelf = "ToSelf",
 	ToOtherPlayer = "ToOtherPlayer",
@@ -523,21 +519,6 @@ interface IGamePhase<Context extends GameContext> extends GamePhaseInfo {
 	use(tiggerTime: EventTiggerTime, fn: GameEventFunction<Context>, key?: string): void;
 	getEventQueue(): GameEvent<Context>[];
 }
-interface PlayerRoundContext extends GameContext {
-	currentRoundPlayer: IPlayer;
-}
-interface PlayerRoundStartContext extends PlayerRoundContext {
-}
-interface RollDiceContext extends PlayerRoundStartContext {
-	dice: number[];
-}
-interface PlayerMoveContext extends RollDiceContext {
-	type: PlayerMoveType;
-	targetIndex: number;
-}
-interface ArrivedEventContext extends PlayerMoveContext {
-	arrivedProperty: PropertyInfo;
-}
 interface IPlayer {
 	extras: Record<string, any>;
 	roundPhases: IGamePhase<GameContext>[];
@@ -615,10 +596,12 @@ interface PropertyInfo {
 	level: number;
 	maxLevel: number;
 	costList: number[];
-	buildingModelIdList?: string[];
-	effectCode?: string;
 	streetId: string;
+	buildingModelIdList?: string[];
 	owner?: UserInRoomInfo;
+	custom?: {
+		effectCode: string;
+	};
 }
 interface ChanceCardClientInfo extends Omit<ChanceCardInstanceInfo, "effectCode"> {
 }
@@ -730,4 +713,3 @@ interface CustomUI {
 	};
 	initCode: string;
 }
-declare let arrivedEventPhase: IGamePhase<ArrivedEventContext>;
