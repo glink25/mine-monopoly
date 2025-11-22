@@ -4,6 +4,7 @@ export * from "./interfaces/game/game-process";
 export * from "./interfaces/game/db";
 export * from "./interfaces/game/util";
 export * from "./interfaces/game/socket";
+export * from "./interfaces/game/action-system";
 export * from "./enums/game/game-process";
 export * from "./enums/game/game";
 export * from "./enums/game/base";

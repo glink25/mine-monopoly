@@ -5,44 +5,6 @@ declare enum TargetSelectType {
 	ToProperty = "ToProperty",
 	ToMapItem = "ToMapItem"
 }
-declare enum PlayerEvents {
-	GetPropertiesList = "GetPropertiesList",
-	GetCardsList = "GetCardsList",
-	GetMoney = "GetMoney",
-	GetStop = "GetStop",
-	GetIsBankrupted = "GetIsBankrupted",
-	AnimationFinished = "AnimationFinished",
-	Walk = "Walk",
-	Tp = "Tp",
-	BeforeSetPropertiesList = "BeforeSetPropertiesList",
-	AfterSetPropertiesList = "AfterSetPropertiesList",
-	BeforeGainProperty = "BeforeGainProperty",
-	AfterGainProperty = "AfterGainProperty",
-	BeforeRound = "BeforeRound",
-	AfterRound = "AfterRound",
-	BeforeLoseProperty = "BeforeLoseProperty",
-	AfterLoseProperty = "AfterLoseProperty",
-	BeforeSetCardsList = "BeforeSetCardsList",
-	AfterSetCardsList = "AfterSetCardsList",
-	BeforeGainCard = "BeforeGainCard",
-	AfterGainCard = "AfterGainCard",
-	BeforeLoseCard = "BeforeLoseCard",
-	AfterLoseCard = "AfterLoseCard",
-	BeforeSetMoney = "BeforeSetMoney",
-	AfterSetMoney = "AfterSetMoney",
-	BeforeGain = "BeforeGain",
-	AfterGain = "AfterGain",
-	BeforeCost = "BeforeCost",
-	AfterCost = "AfterCost",
-	BeforeStop = "BeforeStop",
-	AfterStop = "AfterStop",
-	BeforeTp = "BeforeTp",
-	AfterTp = "AfterTp",
-	BeforeWalk = "BeforeWalk",
-	AfterWalk = "AfterWalk",
-	BeforeSetBankrupted = "BeforeSetBankrupted",
-	AfterSetBankrupted = "AfterSetBankrupted"
-}
 interface GameData {
 	extra: {
 		[key: string]: any;
@@ -98,9 +60,8 @@ interface ChanceCardInfo {
 interface Buff {
 	id: string;
 	name: string;
-	describe: string;
+	description: string;
 	source: string;
-	type: PlayerEvents;
 	triggerTiming: string;
 	triggerTimes: number;
 }

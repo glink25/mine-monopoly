@@ -1,18 +1,19 @@
 <script setup lang="ts">
-import {Buff, PlayerBuffTriggerTimingMap} from "@fatpaper-monopoly/types";
-
-const props = defineProps<{ buff: Buff }>();
+import { Buff } from "@fatpaper-monopoly/types";
+defineProps<{ buff: Buff }>();
 </script>
 
 <template>
 	<div class="buff-item">
 		<div class="top-bar">
 			<div class="name">{{ buff.name }}</div>
-			<div class="trigger-timming">{{ PlayerBuffTriggerTimingMap[buff.type] }} 触发</div>
+			<div class="trigger-timming">{{ buff.triggerTiming }} 触发</div>
 		</div>
-		<div class="describe">{{ buff.describe }}</div>
+		<div class="describe">{{ buff.description }}</div>
 		<div class="foot-bar">
-			<div class="trigger-times">剩余生效次数: {{ buff.triggerTimes === Infinity ? "无限" : buff.triggerTimes }}</div>
+			<div class="trigger-times">
+				{{ buff.triggerTimes === Infinity ? "永久生效" : `剩余生效次数: ${buff.triggerTimes}` }}
+			</div>
 			<div class="source">来源: {{ buff.source }}</div>
 		</div>
 	</div>

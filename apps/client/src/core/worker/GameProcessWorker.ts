@@ -23,7 +23,6 @@ import {
 	MapEvent,
 	MapItem,
 	OperateType,
-	PlayerEvents,
 	PlayerOperationResult,
 	PlayerRoundContext,
 	ServerSocketMessage,
@@ -203,31 +202,34 @@ export class GameProcess implements IGameProcess {
 			player.setPositionIndex(0);
 			this.players.set(player.getId(), player);
 
-			player.addEventListener(PlayerEvents.Walk, async (step: number) => {
+			player.commandBus.setHandler("player.walk", async (payload) => {
+				const { steps } = payload;
 				const walkId = randomString(16);
 				const msg: ServerSocketMessage = {
 					type: SocketMsgType.PlayerWalk,
 					source: SocketMsgSource.Server,
-					data: { playerId: player.getId(), step, walkId },
+					data: { playerId: player.getId(), step: steps, walkId },
 				};
 				const sourceIndex = player.getPositionIndex();
 				const total = this.mapData.mapIndex.length;
-				const newIndex = (((sourceIndex + step) % total) + total) % total;
+				const newIndex = (((sourceIndex + steps) % total) + total) % total;
 				let passedStart = false;
-				if (step > 0) {
-					passedStart = sourceIndex + step >= total;
-				} else if (step < 0) {
-					passedStart = sourceIndex + step < 0;
+				if (steps > 0) {
+					passedStart = sourceIndex + steps >= total;
+				} else if (steps < 0) {
+					passedStart = sourceIndex + steps < 0;
 				}
 				player.setPositionIndex(newIndex);
 				this.gameInfoBroadcast();
 				this.gameBroadcast(msg);
 
 				//在计划的动画完成事件后取消监听, 防止客户端因特殊情况没有发送动画完成的指令造成永久等待
-				const animationDuration = 600 * (Math.abs(step) + 3);
+				const animationDuration = 600 * (Math.abs(steps) + 3);
 				let animationTimer = setTimeout(() => {
 					operationListener.emit(player.getId(), OperateType.Animation);
 				}, animationDuration);
+
+				//等待客户端完成动画发回指令
 				await new Promise((resolve) => {
 					listenAnimationCallback("");
 					function listenAnimationCallback(resAnimationId: string) {
@@ -239,11 +241,11 @@ export class GameProcess implements IGameProcess {
 					}
 				});
 				clearTimeout(animationTimer);
-				player.emit(PlayerEvents.AnimationFinished);
-				return step;
+				return payload;
 			});
 
-			player.addEventListener(PlayerEvents.Tp, async (positionIndex: number) => {
+			player.commandBus.setHandler("player.tp", async (payload) => {
+				const { positionIndex } = payload;
 				const walkId = randomString(16);
 				const msg: ServerSocketMessage = {
 					type: SocketMsgType.PlayerTp,
@@ -259,7 +261,8 @@ export class GameProcess implements IGameProcess {
 				let animationTimer = setTimeout(() => {
 					operationListener.emit(player.getId(), OperateType.Animation, walkId);
 				}, animationDuration);
-				//TODO
+
+				//等待客户端完成动画发回指令
 				await new Promise((resolve) => {
 					listenAnimationCallback("");
 					function listenAnimationCallback(resAnimationId: string) {
@@ -271,8 +274,7 @@ export class GameProcess implements IGameProcess {
 					}
 				});
 				clearTimeout(animationTimer);
-				player.emit(PlayerEvents.AnimationFinished);
-				return positionIndex;
+				return payload;
 			});
 		});
 	}
@@ -378,7 +380,7 @@ export class GameProcess implements IGameProcess {
 			data: undefined,
 		};
 		if (player.getMoney() > property.getSellCost()) {
-			property.buildUp();
+			property.levelUp();
 			this.gameInfoBroadcast();
 			this.gameMsgNotifyBroadcast(
 				"info",
@@ -591,8 +593,7 @@ export class GameProcess implements IGameProcess {
 					//地产是别人的
 					const ownerPlayer = this.getPlayerById(owner.getId());
 					if (!ownerPlayer) return;
-					const passCost = property.getPassCost() * this.currentMultiplier;
-					this.handlePayToSomeOne(arrivedPlayer, ownerPlayer, passCost);
+					const passCost = property.arrived(arrivedPlayer);
 					this.messageNotify([arrivedPlayer.getId()], {
 						type: "error",
 						content: `你到达了${owner.getName()}的地皮: ${property.getName()}，支付了${passCost}￥过路费`,
@@ -657,11 +658,6 @@ export class GameProcess implements IGameProcess {
 			}
 		}
 		this.gameInfoBroadcast();
-	}
-
-	private async handlePayToSomeOne(source: IPlayer, target: IPlayer, money: number) {
-		target.gain(money, source);
-		source.cost(money, target);
 	}
 
 	private getPlayerById(id: string) {

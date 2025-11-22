@@ -33,44 +33,6 @@ declare enum EventTiggerTime {
 	Before = "BEFORE",
 	After = "AFTER"
 }
-declare enum PlayerEvents {
-	GetPropertiesList = "GetPropertiesList",
-	GetCardsList = "GetCardsList",
-	GetMoney = "GetMoney",
-	GetStop = "GetStop",
-	GetIsBankrupted = "GetIsBankrupted",
-	AnimationFinished = "AnimationFinished",
-	Walk = "Walk",
-	Tp = "Tp",
-	BeforeSetPropertiesList = "BeforeSetPropertiesList",
-	AfterSetPropertiesList = "AfterSetPropertiesList",
-	BeforeGainProperty = "BeforeGainProperty",
-	AfterGainProperty = "AfterGainProperty",
-	BeforeRound = "BeforeRound",
-	AfterRound = "AfterRound",
-	BeforeLoseProperty = "BeforeLoseProperty",
-	AfterLoseProperty = "AfterLoseProperty",
-	BeforeSetCardsList = "BeforeSetCardsList",
-	AfterSetCardsList = "AfterSetCardsList",
-	BeforeGainCard = "BeforeGainCard",
-	AfterGainCard = "AfterGainCard",
-	BeforeLoseCard = "BeforeLoseCard",
-	AfterLoseCard = "AfterLoseCard",
-	BeforeSetMoney = "BeforeSetMoney",
-	AfterSetMoney = "AfterSetMoney",
-	BeforeGain = "BeforeGain",
-	AfterGain = "AfterGain",
-	BeforeCost = "BeforeCost",
-	AfterCost = "AfterCost",
-	BeforeStop = "BeforeStop",
-	AfterStop = "AfterStop",
-	BeforeTp = "BeforeTp",
-	AfterTp = "AfterTp",
-	BeforeWalk = "BeforeWalk",
-	AfterWalk = "AfterWalk",
-	BeforeSetBankrupted = "BeforeSetBankrupted",
-	AfterSetBankrupted = "AfterSetBankrupted"
-}
 declare enum OperateType {
 	GameInitFinished = "GameInitFinished",//前端加载完毕
 	RollDice = "RollDice",//前端掷骰子
@@ -80,6 +42,124 @@ declare enum OperateType {
 	ResumeGame = "ResumeGame",//房主恢复游戏
 	ConfirmDialogResult = "ConfirmDialogResult",//由服务端主机调起的dialog的结果返回
 	SelectDialogResult = "SelectDialogResult"
+}
+interface PlayerCommandMap extends ICommandMap {
+	"player.property.gain": {
+		payload: {
+			property: IProperty;
+		};
+		result: {
+			property: IProperty;
+		};
+	};
+	"player.property.lose": {
+		payload: {
+			property: IProperty;
+		};
+		result: {
+			property: IProperty;
+		};
+	};
+	"player.card.gain": {
+		payload: {
+			card: IChanceCard;
+		};
+		result: {
+			card: IChanceCard;
+		};
+	};
+	"player.card.lose": {
+		payload: {
+			cardId: string;
+		};
+		result: {
+			cardId: string;
+		};
+	};
+	"player.money.gain": {
+		payload: {
+			money: number;
+			source?: IPlayer;
+		};
+		result: {
+			money: number;
+			source?: IPlayer;
+		};
+	};
+	"player.money.lose": {
+		payload: {
+			money: number;
+			target?: IPlayer;
+		};
+		result: {
+			money: number;
+			target?: IPlayer;
+		};
+	};
+	"player.stop": {
+		payload: {
+			stop: number;
+		};
+		result: {
+			stop: number;
+		};
+	};
+	"player.walk": {
+		payload: {
+			steps: number;
+		};
+		result: {
+			steps: number;
+		};
+	};
+	"player.tp": {
+		payload: {
+			positionIndex: number;
+		};
+		result: {
+			positionIndex: number;
+		};
+	};
+	"player.bankrupted.set": {
+		payload: {
+			bankrupted: boolean;
+		};
+		result: {
+			bankrupted: boolean;
+		};
+	};
+}
+type ICommand<C extends ICommandMap, K extends keyof C> = {
+	type: K;
+	payload: C[K]["payload"];
+};
+interface ICommandContext<C extends ICommandMap, K extends keyof C> {
+	cancel(): void;
+	setResult(result: C[K]["result"]): void;
+}
+interface ICommandMap {
+	[commandType: string]: {
+		payload: any;
+		result: any;
+	};
+}
+type ModifierTiming = "before" | "after";
+interface ModifierDescriptor<C extends ICommandMap> {
+	id: string;
+	timing: ModifierTiming;
+	commandType: keyof C;
+	remainingTriggers: number;
+	priority?: number;
+	meta?: {
+		name: string;
+		timingName: string;
+		description: string;
+		source: string;
+	};
+}
+interface IModifier<C extends ICommandMap> {
+	descriptor: ModifierDescriptor<C>;
+	fn<K extends keyof C>(command: ICommand<C, K>, context: ICommandContext<C, K>): Promise<C[K]["result"]> | C[K]["result"];
 }
 interface GameMap {
 	id: string;
@@ -100,25 +180,6 @@ interface GameMap {
 	};
 	buildingModelIdList: string[];
 	customUIs: CustomUI[];
-}
-interface IRoundTimeTimer {
-	start(callback: Function | null, timeS?: number): Promise<void>;
-	nextTick(): void;
-	pause(): void;
-	resume(): void;
-	stop(): void;
-	setTimeOutFunction(newFunction: Function | null): Promise<void>;
-	setIntervalFunction(countDownCallback: (remainingTime: number) => void): void;
-	clearInterval(): void;
-	destroy(): void;
-}
-interface IDice {
-	/** 获取骰子点数总和 */
-	getResultNumber(): number;
-	/** 获取所有骰子的结果数组 */
-	getResultArray(): number[];
-	/** 掷骰子 */
-	roll(): void;
 }
 declare const enum SocketMsgType {
 	Heart = "Heart",//心跳信息
@@ -415,6 +476,25 @@ interface GameLog {
 	time: number;
 	content: string;
 }
+interface IRoundTimeTimer {
+	start(callback: Function | null, timeS?: number): Promise<void>;
+	nextTick(): void;
+	pause(): void;
+	resume(): void;
+	stop(): void;
+	setTimeOutFunction(newFunction: Function | null): Promise<void>;
+	setIntervalFunction(countDownCallback: (remainingTime: number) => void): void;
+	clearInterval(): void;
+	destroy(): void;
+}
+interface IDice {
+	/** 获取骰子点数总和 */
+	getResultNumber(): number;
+	/** 获取所有骰子的结果数组 */
+	getResultArray(): number[];
+	/** 掷骰子 */
+	roll(): void;
+}
 interface GameData {
 	extra: {
 		[key: string]: any;
@@ -536,8 +616,8 @@ interface IPlayer {
 	loseCard: (cardId: string) => void;
 	setMoney: (money: number) => void;
 	getMoney: () => number;
-	cost: (money: number, target?: IPlayer) => boolean;
-	gain: (money: number, source?: IPlayer) => number;
+	cost: (money: number, target?: IPlayer) => void;
+	gain: (money: number, source?: IPlayer) => void;
 	setStop: (stop: number) => void;
 	getStop: () => number;
 	setPositionIndex: (newIndex: number) => void;
@@ -546,7 +626,7 @@ interface IPlayer {
 	getIsBankrupted: () => boolean;
 	walk: (step: number) => Promise<void>;
 	tp: (positionIndex: number) => Promise<void>;
-	updateBuff(buffId: string, newBuff: Buff): void;
+	registerModifier(modifier: IModifier<PlayerCommandMap>): void;
 	getPlayerInfo: () => PlayerInfo;
 	getRoundPhases: () => IGamePhase<GameContext>[];
 }
@@ -558,10 +638,11 @@ interface IProperty {
 	getSellCost: () => number;
 	getCostList: () => number[];
 	getOwner: () => IPlayer | undefined;
-	getPassCost: () => number;
-	buildUp: () => void;
+	arrived: (player: IPlayer) => void;
+	levelUp: () => void;
+	levelDown: () => void;
 	setOwner: (player: IPlayer | undefined) => void;
-	setBuildingLevel: (level: number) => void;
+	setLevel: (level: number) => void;
 	getPropertyInfo: () => PropertyInfo;
 }
 interface IChanceCard {
@@ -596,10 +677,12 @@ interface PropertyInfo {
 	level: number;
 	maxLevel: number;
 	costList: number[];
-	buildingModelIdList?: string[];
-	effectCode?: string;
 	streetId: string;
+	buildingModelIdList?: string[];
 	owner?: UserInRoomInfo;
+	custom?: {
+		effectCode: string;
+	};
 }
 interface ChanceCardClientInfo extends Omit<ChanceCardInstanceInfo, "effectCode"> {
 }
@@ -618,9 +701,8 @@ interface ChanceCardInfo {
 interface Buff {
 	id: string;
 	name: string;
-	describe: string;
+	description: string;
 	source: string;
-	type: PlayerEvents;
 	triggerTiming: string;
 	triggerTimes: number;
 }

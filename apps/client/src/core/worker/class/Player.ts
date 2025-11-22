@@ -3,12 +3,13 @@ import {
 	GameContext,
 	GamePhaseInfo,
 	IChanceCard,
+	ICommandBus,
 	IGamePhase,
+	IModifier,
+	IModifierManager,
 	IPlayer,
 	IProperty,
-	PlayerBuffTriggerTimingMap,
-	PlayerEvents,
-	PlayerEventsCallback,
+	PlayerCommandMap,
 	PlayerInfo,
 	Role,
 	UserInRoomInfo,
@@ -16,30 +17,24 @@ import {
 import { GamePhase } from "./GamePhase";
 import { compileTsToJs, randomString } from "@src/utils";
 import GameProcessTypes from "../editor-lib.d.ts?raw";
-
-type CallbackMapValue<E extends PlayerEvents> = {
-	id: string;
-	fn: PlayerEventsCallback[E]; // 根据 PlayerEvents 类型映射到具体的回调函数类型
-	triggerTimes: number;
-	buff?: Buff;
-};
+import { CommandBus } from "./action-system/CommandBus";
+import { ModifierManager } from "./action-system/ModifiersManager";
 
 export class Player implements IPlayer {
 	public extras: Record<string, any> = {};
 	public roundPhases: IGamePhase<GameContext>[] = [];
+	public modifierManager: IModifierManager<PlayerCommandMap>;
+	public commandBus: ICommandBus<PlayerCommandMap>;
 
 	private user: UserInRoomInfo;
 	private money: number;
 	private properties: IProperty[] = [];
 	private chanceCards: IChanceCard[] = [];
-	private buff: Buff[] = [];
 	private positionIndex: number; //所在棋盘格子的下标
 	private isStop: number; //是否停止回合
 	private isBankrupted: boolean = false; //是否破产
 	private isOffline: boolean; //是否断线
 	private stop: number = 0;
-
-	private callBackMap: Map<PlayerEvents, CallbackMapValue<PlayerEvents>[]> = new Map();
 
 	constructor(
 		user: UserInRoomInfo,
@@ -57,12 +52,77 @@ export class Player implements IPlayer {
 		this.isStop = 0;
 		this.isOffline = false;
 
+		this.modifierManager = new ModifierManager();
+		this.commandBus = new CommandBus<PlayerCommandMap>(this.modifierManager);
+		this.initCommandBus();
+
 		const codeCompiled = compileTsToJs(role.initCode, GameProcessTypes);
 		const roleInitFunction = new Function("player", codeCompiled)();
 		roleInitFunction(this);
 	}
 
-	//玩家信息相关
+	private initCommandBus() {
+		this.commandBus.setHandler("player.property.gain", (payload) => {
+			const { property } = payload;
+			const owner = property.getOwner();
+			if (owner && owner.getId() === this.getId()) this.properties.push(property);
+			return payload;
+		});
+
+		this.commandBus.setHandler("player.property.lose", (payload) => {
+			const { property } = payload;
+			const index = this.properties.findIndex((p) => p.getId() === property.getId());
+			if (index != -1) {
+				this.properties.splice(index, 1);
+			}
+			return payload;
+		});
+
+		this.commandBus.setHandler("player.card.gain", (payload) => {
+			const { card } = payload;
+			if (this.chanceCards.length >= 4) return payload;
+			this.chanceCards.push(card);
+			return payload;
+		});
+
+		this.commandBus.setHandler("player.card.lose", (payload) => {
+			const { cardId } = payload;
+			let card = this.chanceCards.find((card) => card.getId() === cardId);
+			if (!card) throw Error("玩家没有这张机会卡");
+			const index = this.chanceCards.findIndex((_card) => _card.getId() === card.getId());
+			if (index != -1) {
+				this.chanceCards.splice(index, 1);
+			}
+			return payload;
+		});
+
+		this.commandBus.setHandler("player.money.gain", (payload) => {
+			const { money } = payload;
+			this.money += money;
+			return payload;
+		});
+
+		this.commandBus.setHandler("player.money.lose", (payload) => {
+			const { money } = payload;
+			this.money -= money > 0 ? money : 0;
+			if (this.money <= 0) this.setBankrupted(true);
+			return payload;
+		});
+
+		this.commandBus.setHandler("player.stop", (payload) => {
+			const { stop } = payload;
+			this.stop = stop;
+			return payload;
+		});
+
+		this.commandBus.setHandler("player.bankrupted.set", (payload) => {
+			const { bankrupted } = payload;
+			this.isBankrupted = bankrupted;
+			return payload;
+		});
+	}
+
+	//getter 和 setter
 	public getUser() {
 		return this.user;
 	}
@@ -83,27 +143,6 @@ export class Player implements IPlayer {
 		this.isOffline = isOffline;
 	}
 
-	//地产相关
-	public getPropertiesList() {
-		return this.properties;
-	}
-	public setPropertiesList(newPropertiesList: IProperty[]) {
-		this.properties = newPropertiesList;
-	}
-
-	public gainProperty(property: IProperty) {
-		const owner = property.getOwner();
-		if (owner && owner.getId() === this.getId()) this.properties.push(property);
-	}
-
-	public loseProperty(lostProperty: IProperty) {
-		const index = this.properties.findIndex((property) => property.getId() === lostProperty.getId());
-		if (index != -1) {
-			this.properties.splice(index, 1);
-		}
-	}
-
-	//机会卡相关
 	public getCardsList() {
 		return this.chanceCards;
 	}
@@ -112,21 +151,13 @@ export class Player implements IPlayer {
 		this.chanceCards = newChanceCardList;
 	}
 
-	public async gainCard(gainCard: IChanceCard) {
-		if (this.chanceCards.length >= 4) return;
-		this.chanceCards.push(gainCard);
+	public getPropertiesList() {
+		return this.properties;
+	}
+	public setPropertiesList(newPropertiesList: IProperty[]) {
+		this.properties = newPropertiesList;
 	}
 
-	public async loseCard(cardId: string) {
-		let card = this.chanceCards.find((card) => card.getId() === cardId);
-		if (!card) return;
-		const index = this.chanceCards.findIndex((_card) => _card.getId() === card.getId());
-		if (index != -1) {
-			this.chanceCards.splice(index, 1);
-		}
-	}
-
-	//钱相关
 	public getMoney() {
 		return this.money;
 	}
@@ -136,18 +167,6 @@ export class Player implements IPlayer {
 		if (this.money <= 0) this.setBankrupted(true);
 	}
 
-	public cost(money: number, target?: IPlayer) {
-		this.money -= money > 0 ? money : 0;
-		if (this.money <= 0) this.setBankrupted(true);
-		return this.money > 0;
-	}
-
-	public gain(money: number, source?: IPlayer) {
-		this.money += money;
-		return this.money;
-	}
-
-	//游戏相关
 	public async setStop(stop: number) {
 		this.isStop = stop;
 	}
@@ -164,36 +183,40 @@ export class Player implements IPlayer {
 		return this.positionIndex;
 	}
 
-	public async walk(step: number): Promise<void> {
-		this.emit(PlayerEvents.Walk, step);
-		return new Promise((resolve) => {
-			this.addEventListener(
-				PlayerEvents.AnimationFinished,
-				async () => {
-					await this.emit(PlayerEvents.AfterWalk, step);
-					resolve();
-				},
-				1
-			);
-		});
-	}
-
-	public async tp(positionIndex: number): Promise<void> {
-		this.emit(PlayerEvents.Tp, positionIndex);
-		return new Promise((resolve) => {
-			this.addEventListener(PlayerEvents.AnimationFinished, async () => {
-				await this.emit(PlayerEvents.AfterTp, positionIndex);
-				resolve();
-			});
-		});
-	}
-
-	public async setBankrupted(isBankrupted: boolean) {
+	public setBankrupted(isBankrupted: boolean) {
 		this.isBankrupted = isBankrupted;
 	}
 
 	public getIsBankrupted() {
 		return this.isBankrupted;
+	}
+
+	public getBuff() {
+		return this.modifierManager
+			.getModifiersList()
+			.filter((m) => m.descriptor.meta !== undefined)
+			.map((m) => {
+				const descriptor = m.descriptor;
+				const meta = descriptor.meta!;
+				const buff: Buff = {
+					id: descriptor.id,
+					name: meta.name,
+					description: meta.description,
+					source: meta.source,
+					triggerTiming: meta.timingName,
+					triggerTimes: descriptor.remainingTriggers,
+				};
+				return buff;
+			});
+	}
+
+	public getCardById(id: string) {
+		const index = this.chanceCards.findIndex((card) => card.getId() === id);
+		return this.chanceCards[index] || undefined;
+	}
+
+	public getRoundPhases() {
+		return this.roundPhases;
 	}
 
 	public getPlayerInfo(): PlayerInfo {
@@ -213,99 +236,44 @@ export class Player implements IPlayer {
 		return playerInfo;
 	}
 
-	public getBuff() {
-		return [];
+	//游戏Action
+	public gainProperty(property: IProperty) {
+		this.commandBus.execute({ type: "player.property.gain", payload: { property } });
 	}
 
-	public getCardById(id: string) {
-		const index = this.chanceCards.findIndex((card) => card.getId() === id);
-		return this.chanceCards[index] || undefined;
+	public loseProperty(property: IProperty) {
+		this.commandBus.execute({ type: "player.property.lose", payload: { property } });
 	}
 
-	public getRoundPhases() {
-		return this.roundPhases;
+	public async gainCard(card: IChanceCard) {
+		this.commandBus.execute({ type: "player.card.gain", payload: { card } });
 	}
 
-	public updateBuff(buffId: string, newBuff: Buff) {}
-
-	public addEventListener<K extends PlayerEvents>(
-		eventName: K,
-		fn: PlayerEventsCallback[K],
-		triggerTimes: number = Infinity,
-		buff?: {
-			id?: string;
-			name: string;
-			describe: string;
-			source: string;
-		}
-	) {
-		if (!this.callBackMap.has(eventName)) {
-			this.callBackMap.set(eventName, []);
-		}
-		const fnArr = this.callBackMap.get(eventName);
-		fnArr &&
-			fnArr.unshift({
-				id: randomString(16),
-				fn,
-				triggerTimes,
-				buff: buff
-					? {
-							id: buff.id || randomString(16),
-							...buff,
-							type: eventName,
-							triggerTimes,
-							triggerTiming: PlayerBuffTriggerTimingMap[eventName],
-					  }
-					: undefined,
-			});
+	public async loseCard(cardId: string) {
+		this.commandBus.execute({ type: "player.card.lose", payload: { cardId } });
 	}
 
-	public removeListener(eventName: PlayerEvents, id: string) {
-		const fnArr = this.callBackMap.get(eventName);
-		if (fnArr) {
-			const removeIndex = fnArr.findIndex((fobj) => fobj.id === id);
-			fnArr.splice(removeIndex, 1);
-		}
+	public gain(money: number, source?: IPlayer) {
+		this.commandBus.execute({ type: "player.money.gain", payload: { money, source } });
 	}
 
-	public removeAllListeners(eventName?: PlayerEvents) {
-		if (eventName) {
-			if (this.callBackMap.has(eventName)) this.callBackMap.delete(eventName);
-		} else {
-			this.callBackMap.clear();
-		}
+	public cost(money: number, target?: IPlayer) {
+		this.commandBus.execute({ type: "player.money.lose", payload: { money, target } });
 	}
 
-	public async emit<K extends keyof PlayerEventsCallback>(
-		eventName: K,
-		...args: Parameters<PlayerEventsCallback[K]>
-	): Promise<ReturnType<PlayerEventsCallback[K]>> {
-		const fnArr = this.callBackMap.get(eventName);
-		let res: ReturnType<PlayerEventsCallback[K]> = undefined as unknown as ReturnType<PlayerEventsCallback[K]>;
-		if (fnArr) {
-			for (let index = 0; index < fnArr.length; index++) {
-				const item = fnArr[index];
+	public bankrupted(isBankrupted: boolean) {
+		this.commandBus.execute({ type: "player.bankrupted.set", payload: { bankrupted: isBankrupted } });
+	}
 
-				item.triggerTimes--;
-				if (item.triggerTimes >= 0) {
-					const params = res !== undefined ? [res, ...args] : args;
-					console.log("🚀 ~ Player ~ params:", params);
-					res = await (
-						item.fn as (...args: Parameters<PlayerEventsCallback[K]>) => ReturnType<PlayerEventsCallback[K]>
-					)(...(params as Parameters<PlayerEventsCallback[K]>)); // 强制类型转换
-					if (item.triggerTimes === 0) {
-						fnArr.splice(index, 1);
-						index--; // 防止跳过下一个元素
-					}
-				} else {
-					fnArr.splice(index, 1);
-					index--; // 防止跳过下一个元素
-				}
-				if (item.buff) {
-					item.buff.triggerTimes = item.triggerTimes;
-				}
-			}
-		}
-		return res;
+	public async walk(steps: number): Promise<void> {
+		this.commandBus.execute({ type: "player.walk", payload: { steps } });
+	}
+
+	public async tp(positionIndex: number): Promise<void> {
+		this.commandBus.execute({ type: "player.tp", payload: { positionIndex } });
+	}
+
+	public registerModifier(modifier: IModifier<PlayerCommandMap>) {
+		this.modifierManager.add(modifier);
 	}
 }

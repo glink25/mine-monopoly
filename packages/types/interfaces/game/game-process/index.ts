@@ -1,9 +1,10 @@
-import { EventTiggerTime, GamePhaseMark, OperateType, PlayerEvents } from "../../enums/game/game-process";
-import { UserInRoomInfo } from "./item";
-import { TargetSelectType, GameLinkItem, PlayerMoveType } from "../../enums/game/game";
-import { GameMap } from "../game/map";
-import { IDice, IRoundTimeTimer } from "./util";
-import { ServerSocketMessage } from "./socket";
+import { GameLinkItem, TargetSelectType, PlayerMoveType } from "../../../../types/enums/game/game";
+import { OperateType, GamePhaseMark, EventTiggerTime } from "../../../../types/enums/game/game-process";
+import { IModifier, PlayerCommandMap } from "../action-system";
+import { UserInRoomInfo } from "../item";
+import { GameMap } from "../map";
+import { ServerSocketMessage } from "../socket";
+import { IRoundTimeTimer, IDice } from "../util";
 
 // 客户端
 export interface GameData {
@@ -209,8 +210,8 @@ export interface IPlayer {
 	//钱相关
 	setMoney: (money: number) => void;
 	getMoney: () => number;
-	cost: (money: number, target?: IPlayer) => boolean;
-	gain: (money: number, source?: IPlayer) => number;
+	cost: (money: number, target?: IPlayer) => void;
+	gain: (money: number, source?: IPlayer) => void;
 
 	//游戏相关
 	setStop: (stop: number) => void;
@@ -222,7 +223,8 @@ export interface IPlayer {
 	walk: (step: number) => Promise<void>;
 	tp: (positionIndex: number) => Promise<void>;
 
-	updateBuff(buffId: string, newBuff: Buff): void;
+	//注册修饰器
+	registerModifier(modifier: IModifier<PlayerCommandMap>): void;
 
 	getPlayerInfo: () => PlayerInfo;
 	getRoundPhases: () => IGamePhase<GameContext>[];
@@ -237,12 +239,13 @@ export interface IProperty {
 	getSellCost: () => number;
 	getCostList: () => number[];
 	getOwner: () => IPlayer | undefined;
-	getPassCost: () => number;
+	arrived: (player: IPlayer) => void;
 
 	//设置房产信息
-	buildUp: () => void;
+	levelUp: () => void;
+	levelDown: () => void;
 	setOwner: (player: IPlayer | undefined) => void;
-	setBuildingLevel: (level: number) => void;
+	setLevel: (level: number) => void;
 
 	getPropertyInfo: () => PropertyInfo;
 }
@@ -313,10 +316,9 @@ export interface ChanceCardInfo {
 export interface Buff {
 	id: string;
 	name: string;
-	describe: string;
+	description: string;
 	source: string;
-	type: PlayerEvents;
-	triggerTiming: string; //TODO
+	triggerTiming: string;
 	triggerTimes: number;
 }
 
@@ -330,73 +332,4 @@ export interface PlayerOperationResult {
 	[OperateType.ConfirmDialogResult]: { id: string; confirm: boolean; data: any };
 	[OperateType.SelectDialogResult]: SelectDialogResult<TargetSelectType>;
 	// [key: string]: any;
-}
-
-export interface PlayerEventsCallback {
-	[PlayerEvents.GetPropertiesList]: () => IProperty[];
-	[PlayerEvents.GetCardsList]: () => IChanceCard[];
-	[PlayerEvents.GetMoney]: () => number;
-	[PlayerEvents.GetStop]: () => number;
-	[PlayerEvents.GetIsBankrupted]: () => boolean;
-	[PlayerEvents.AnimationFinished]: (value: void | PromiseLike<void>) => void;
-	[PlayerEvents.Walk]: (walkValue: number) => Promise<number>;
-	[PlayerEvents.Tp]: (tpValue: number) => Promise<number>;
-
-	[PlayerEvents.BeforeSetPropertiesList]: (newPropertiesList: IProperty[]) => IProperty[] | undefined;
-	[PlayerEvents.AfterSetPropertiesList]: (newPropertiesList: IProperty[]) => undefined;
-
-	[PlayerEvents.BeforeRound]: (player: IPlayer) => Promise<IPlayer | undefined | void> | IPlayer | undefined | void;
-	[PlayerEvents.AfterRound]: (player: IPlayer) => Promise<IPlayer | undefined | void> | void;
-
-	[PlayerEvents.BeforeGainProperty]: (
-		newProperty: IProperty
-	) => Promise<IProperty | undefined | void> | IProperty | undefined | void;
-	[PlayerEvents.AfterGainProperty]: (newProperty: IProperty) => Promise<IProperty | undefined | void> | void;
-
-	[PlayerEvents.BeforeLoseProperty]: (
-		lostProperty: IProperty
-	) => Promise<IProperty | undefined | void> | IProperty | undefined | void;
-	[PlayerEvents.AfterLoseProperty]: (lostProperty: IProperty) => Promise<IProperty | undefined | void> | void;
-
-	[PlayerEvents.BeforeSetCardsList]: (
-		newCardList: IChanceCard[]
-	) => Promise<IChanceCard[] | undefined | void> | IChanceCard[] | undefined | void;
-	[PlayerEvents.AfterSetCardsList]: (newCardList: IChanceCard[]) => Promise<IChanceCard[] | undefined | void> | void;
-
-	[PlayerEvents.BeforeGainCard]: (
-		gainCard: IChanceCard
-	) => Promise<IChanceCard | undefined | void> | IChanceCard | undefined | void;
-	[PlayerEvents.AfterGainCard]: (gainCard: IChanceCard) => Promise<IChanceCard | undefined | void> | void;
-
-	[PlayerEvents.BeforeLoseCard]: (
-		lostCard: IChanceCard
-	) => Promise<IChanceCard | undefined | void> | IChanceCard | undefined | void;
-	[PlayerEvents.AfterLoseCard]: (lostCard: IChanceCard) => Promise<IChanceCard | undefined | void> | void;
-
-	[PlayerEvents.BeforeSetMoney]: (moneyValue: number) => Promise<number | undefined | void> | number | undefined | void;
-	[PlayerEvents.AfterSetMoney]: (moneyValue: number) => Promise<number | undefined | void> | void;
-
-	[PlayerEvents.BeforeGain]: (
-		gainMoney: number,
-		source?: IPlayer
-	) => Promise<number | undefined | void> | number | undefined | void;
-	[PlayerEvents.AfterGain]: (gainMoney: number, source?: IPlayer) => Promise<number | undefined | void> | void;
-
-	[PlayerEvents.BeforeCost]: (
-		costMoney: number,
-		target?: IPlayer
-	) => Promise<number | undefined | void> | number | undefined | void;
-	[PlayerEvents.AfterCost]: (costMoney: number, target?: IPlayer) => Promise<number | undefined | void> | void;
-
-	[PlayerEvents.BeforeStop]: (stopValue: number) => Promise<number | undefined | void> | number | undefined | void;
-	[PlayerEvents.AfterStop]: (stopValue: number) => Promise<number | undefined | void> | void;
-
-	[PlayerEvents.BeforeTp]: (tpValue: number) => Promise<number | undefined | void> | number | undefined | void;
-	[PlayerEvents.AfterTp]: (tpValue: number) => Promise<number | undefined | void> | void;
-
-	[PlayerEvents.BeforeWalk]: (walkValue: number) => Promise<number | undefined | void> | number | undefined | void;
-	[PlayerEvents.AfterWalk]: (walkValue: number) => Promise<number | undefined | void> | void;
-
-	[PlayerEvents.BeforeSetBankrupted]: (isBankrupted: boolean) => Promise<boolean> | boolean;
-	[PlayerEvents.AfterSetBankrupted]: (isBankrupted: boolean) => Promise<boolean | undefined | void> | void;
 }
