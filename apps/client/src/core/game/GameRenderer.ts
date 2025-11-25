@@ -276,7 +276,7 @@ export class GameRenderer {
 			this.mapContainer.add(mapItemModel);
 
 			if (mapItem.mapEventId) {
-				const arrivedEvent = useMapData().findMapEventById(mapItem.mapEventId);
+				const arrivedEvent = useMapData().getMapEventById(mapItem.mapEventId);
 				if (!arrivedEvent) return;
 				const iconUrl = useResourceStore().getRecourceById(arrivedEvent.iconId)?.url;
 				if (!iconUrl) return;
@@ -522,7 +522,7 @@ export class GameRenderer {
 		for await (const playerInfo of playerList) {
 			try {
 				this.playerPosition.set(playerInfo.id, toRaw(playerInfo.positionIndex));
-				const role = useMapData().findRoleById(playerInfo.user.roleId);
+				const role = useMapData().getRoleById(playerInfo.user.roleId);
 				if (!role) throw Error("初始化玩家模型时: 找不到角色信息");
 				const modelResource = useResourceStore().getRecourceById(role.imageId);
 				if (!modelResource) throw Error("初始化玩家模型时: 找不到模型文件");
@@ -595,7 +595,7 @@ export class GameRenderer {
 			this.mapContainer.remove(oldModel.group);
 		}
 		const mapInfo = useMapData();
-		const targetMapItem = mapInfo.findMapItemByPropertyId(newProperty.id);
+		const targetMapItem = mapInfo.getMapItemByPropertyId(newProperty.id);
 		if (!targetMapItem) return;
 		const targetMapItemModel = this.mapItemsInScene.get(targetMapItem?.id);
 		if (!targetMapItemModel) return;

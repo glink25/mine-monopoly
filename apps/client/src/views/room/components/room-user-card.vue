@@ -26,7 +26,7 @@ const amIRoomOwner = computed(() => useRoomInfo().amIRoomOwner);
 const canSelectRole = computed(() => useMapData().roles.length > 0);
 const role = computed(() => {
 	if (!user.value) return undefined;
-	return useMapData().findRoleById(user.value?.roleId);
+	return useMapData().getRoleById(user.value?.roleId);
 });
 const roleImageUrl = computed(() => {
 	if (!role.value) return undefined;

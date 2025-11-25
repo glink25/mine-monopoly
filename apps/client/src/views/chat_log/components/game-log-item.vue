@@ -52,14 +52,14 @@ function handleGameLog(gameLog: GameLog) {
 
 			switch (type) {
 				case GameLogLinkItem.ArrivedEvent:
-					const arrivedEvent = toRaw(mapInfoStroe.getMapEventByMapItemId(id));
+					const arrivedEvent = toRaw(mapInfoStroe.getMapEventById(id));
 					if (arrivedEvent) {
 						item = { type, data: arrivedEvent, text: arrivedEvent.name, color: "var(--color-second)" };
 					}
 					break;
 
 				case GameLogLinkItem.ChanceCard:
-					const chanceCard = toRaw(mapInfoStroe.findChanceCardById(id));
+					const chanceCard = toRaw(mapInfoStroe.getChanceCardById(id));
 					if (chanceCard) {
 						item = { type, data: chanceCard, text: chanceCard.name, color: chanceCard.color };
 					}

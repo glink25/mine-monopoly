@@ -56,39 +56,39 @@ export const useMapData = defineStore("map-data", {
 	}),
 	actions: {
 		getMapEventByMapItemId(mapItemId: string) {
-			const mapEventId = this.findMapItemById(mapItemId)?.mapEventId;
+			const mapEventId = this.getMapItemById(mapItemId)?.mapEventId;
 			if (!mapEventId) throw Error("查找MapEvent的Id失败");
-			return this.findMapEventById(mapEventId);
+			return this.getMapEventById(mapEventId);
 		},
 
 		// MapItem
-		findMapItemByIndex(index: number) {
-			return this.findMapItemById(this.mapIndex[index]);
+		getMapItemByIndex(index: number) {
+			return this.getMapItemById(this.mapIndex[index]);
 		},
-		findMapItemById(id: string) {
+		getMapItemById(id: string) {
 			return this.mapItems.find((m) => m.id === id);
 		},
-		findMapItemByPropertyId(id: string) {
+		getMapItemByPropertyId(id: string) {
 			return this.mapItems.find((item) => item.property?.id === id);
 		},
 
 		// MapItemType
-		findMapItemTypeById(id: string) {
+		getMapItemTypeById(id: string) {
 			return this.mapItemTypes.find((m) => m.id === id);
 		},
 
 		// MapEvent
-		findMapEventById(id: string) {
+		getMapEventById(id: string) {
 			return this.mapEvents.find((e) => e.id === id);
 		},
 
 		// ChanceCard
-		findChanceCardById(id: string) {
+		getChanceCardById(id: string) {
 			return this.chanceCards.find((c) => c.id === id);
 		},
 
 		// Role
-		findRoleById(id: string) {
+		getRoleById(id: string) {
 			return this.roles.find((r) => r.id === id);
 		},
 	},
