@@ -770,7 +770,7 @@ export class GameRenderer {
 					const { x: playerScreenX } = getScreenPosition(playerModule, this.camera);
 
 					currentAnimation = gsap.timeline();
-					const duration = 0.6;
+					const duration = 0.5;
 
 					// --- 1. 方向翻转 ---
 					if (playerBody) {
@@ -808,6 +808,18 @@ export class GameRenderer {
 						);
 
 						currentAnimation.to(
+							nextMapItem.scale,
+							{
+								x: 0.45,
+								y: 0.45,
+								z: 0.45,
+								duration: duration * 0.2,
+								ease: "power2.in",
+							},
+							duration * 0.5
+						);
+
+						currentAnimation.to(
 							playerBody.scale,
 							{
 								y: 1.05,
@@ -818,9 +830,33 @@ export class GameRenderer {
 						);
 
 						currentAnimation.to(
+							nextMapItem.scale,
+							{
+								x: 0.55,
+								y: 0.55,
+								z: 0.55,
+								duration: duration * 0.5,
+								ease: "power2.out",
+							},
+							duration * 0.5
+						);
+
+						currentAnimation.to(
 							playerBody.scale,
 							{
 								y: 1,
+								duration: duration * 0.2,
+								ease: "sine.out",
+							},
+							duration * 0.9
+						);
+
+						currentAnimation.to(
+							nextMapItem.scale,
+							{
+								x: 0.5,
+								y: 0.5,
+								z: 0.5,
 								duration: duration * 0.2,
 								ease: "sine.out",
 							},
