@@ -442,33 +442,39 @@ export class GameRenderer {
 				useMonopolyClient().AnimationComplete(walkId);
 			}
 		});
-		useEventBus().on("player-tp", async (walkPlayerId: string, positionIndex: number, walkId: string) => {
-			const playerEntity = this.getPlayerEntity(walkPlayerId);
+		useEventBus().on("player-tp", async (tpPlayerId: string, positionIndex: number, walkId: string) => {
+			const playerEntity = this.getPlayerEntity(tpPlayerId);
+
 			if (playerEntity) {
-				const model = this.playerEntities.get(walkPlayerId)?.model;
-				if (model) {
-					this.currentFocusModule = model;
-					// this.playerInRoundOutlinePass.selectedObjects = [model];
-				}
+				const model = playerEntity.model;
+				const body = playerEntity.bodyMesh; // 获取 bodyMesh
+
+				this.currentFocusModule = model;
 				this.isLockingRole = true;
-				playerEntity.model.scale.set(
-					Math.sign(playerEntity.model.scale.x),
-					Math.sign(playerEntity.model.scale.y),
-					Math.sign(playerEntity.model.scale.z)
-				);
-				await gsap.to(playerEntity.model.scale, {
-					x: -playerEntity.model.scale.x,
-					direction: 0.2,
-					repeat: 1,
+
+				if (!body) return;
+				// 1. 记录原始朝向
+				const originalDir = Math.sign(body.scale.x) || 1;
+
+				// 2. 消失动画
+				await gsap.to(body.scale, {
+					x: 0,
+					duration: 0.5,
+					ease: "back.in(1.7)",
 				});
+
+				// 3. 执行位移 (瞬间)
 				const { x, y, z } = this.getMapItemPosition(positionIndex);
-				playerEntity.model.position.set(x, y + BLOCK_HEIGHT, z);
-				await gsap.to(playerEntity.model.scale, {
-					x: -playerEntity.model.scale.x,
-					direction: 0.2,
-					repeat: 1,
+				model.position.set(x, y + BLOCK_HEIGHT, z);
+				this.playerPosition.set(tpPlayerId, positionIndex);
+
+				// 4. 出现动画
+				await gsap.to(body.scale, {
+					x: originalDir,
+					duration: 0.5,
+					delay: 0.1,
+					ease: "back.out(1.7)",
 				});
-				this.playerPosition.set(walkPlayerId, positionIndex);
 
 				this.currentFocusModule = null;
 				this.isLockingRole = false;
