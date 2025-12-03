@@ -19,6 +19,150 @@ declare enum GameLinkItem {
 	Property = "Property",
 	ArrivedEvent = "ArrivedEvent"
 }
+interface IRoundTimeTimer {
+	start(callback: Function | null, timeS?: number): Promise<void>;
+	nextTick(): void;
+	pause(): void;
+	resume(): void;
+	stop(): void;
+	setTimeOutFunction(newFunction: Function | null): Promise<void>;
+	setIntervalFunction(countDownCallback: (remainingTime: number) => void): void;
+	clearInterval(): void;
+	destroy(): void;
+}
+interface IDice extends DiceInfo {
+	addDiceprophecy(prophecy: number): void;
+	roll(): number;
+	getInfo(): DiceInfo;
+}
+interface DiceInfo {
+	min: number;
+	max: number;
+	diceProphecyQueue: number[];
+}
+type ComponentType = "number-input" | "select";
+interface SelectOption {
+	label: string;
+	value: string | number;
+}
+interface FormSchema {
+	id: string;
+	key: string;
+	type: ComponentType;
+	label: string;
+	placeholder?: string;
+	defaultValue?: number | string;
+	options?: SelectOption[];
+}
+interface GameData {
+	extra: {
+		[key: string]: any;
+	};
+	currentPlayerIdInRound: string;
+	currentRound: number;
+	currentMultiplier: number;
+	playersList: PlayerInfo[];
+	propertiesList: PropertyInfo[];
+	isGameOver: boolean;
+}
+interface PlayerInfo {
+	id: string;
+	user: UserInRoomInfo;
+	dices: DiceInfo[];
+	money: number;
+	properties: PropertyInfo[];
+	chanceCards: ChanceCardClientInfo[];
+	buff: Buff[];
+	positionIndex: number;
+	stop: number;
+	isBankrupted: boolean;
+	isOffline: boolean;
+}
+interface PropertyInfo {
+	id: string;
+	name: string;
+	sellCost: number;
+	buildCost: number;
+	level: number;
+	maxLevel: number;
+	costList: number[];
+	streetId: string;
+	buildingModelIdList?: string[];
+	owner?: UserInRoomInfo;
+	custom?: PropertyCustom;
+}
+interface PropertyCustom {
+	effectCode: string;
+	description: string;
+}
+interface ChanceCardClientInfo extends Omit<ChanceCardInstanceInfo, "effectCode"> {
+}
+interface ChanceCardInstanceInfo extends ChanceCardInfo {
+	sourceId: string;
+}
+interface ChanceCardInfo {
+	id: string;
+	name: string;
+	description: string;
+	iconId: string;
+	color: string;
+	effectCode: string;
+	type: TargetSelectType;
+}
+interface Buff {
+	id: string;
+	name: string;
+	description: string;
+	source: string;
+	triggerTiming: string;
+	triggerTimes: number;
+}
+interface DialogOption {
+	title: string;
+	content: string;
+	confirmText?: string;
+	cancelText?: string;
+}
+interface TargetSelectDialogOption<I extends TargetSelectType> extends DialogOption {
+	type: I;
+}
+interface TargetSelectDialogResult<I extends TargetSelectType> {
+	target: TargetSelectResult[I];
+}
+interface TargetSelectResult {
+	[TargetSelectType.ToMapItem]: string[];
+	[TargetSelectType.ToPlayer]: string[];
+	[TargetSelectType.ToOtherPlayer]: string[];
+	[TargetSelectType.ToSelf]: string[];
+	[TargetSelectType.ToProperty]: string[];
+}
+interface ConfirmDialogOption<I extends readonly InputOptionItem<string, any>[]> extends DialogOption {
+	inputOptions?: I;
+}
+type InputOptionItem<K extends string, D> = {
+	key: K;
+	label: string;
+	initData: D;
+};
+type ConfirmDialogResult<I extends readonly InputOptionItem<string, any>[]> = {
+	[P in I[number] as P["key"]]: P["initData"];
+} & {
+	confirm: boolean;
+};
+interface ItemSelectDialogOption<T = SelectorItem> extends Omit<DialogOption, "content"> {
+	itemList: Array<T>;
+	keyName?: keyof T;
+	multiple?: boolean;
+	column?: number;
+	selectedKey?: string | string[];
+}
+interface SelectorItem {
+	id: string;
+	display: string;
+}
+interface ItemSelectDialogResult {
+	selected: string | string[];
+}
 declare enum GamePhaseMark {
 	GameRoundStart = 0,
 	PlayerRoundStart = 1,
@@ -40,7 +184,8 @@ declare enum OperateType {
 	PauseGame = "PauseGame",//房主暂停游戏
 	ResumeGame = "ResumeGame",//房主恢复游戏
 	ConfirmDialogResult = "ConfirmDialogResult",//由服务端主机调起的dialog的结果返回
-	SelectDialogResult = "SelectDialogResult"
+	TargetSelectDialogResult = "TargetSelectDialogResult",//由服务端主机调起的dialog的结果返回
+	ItemSelectDialogResult = "ItemSelectDialogResult"
 }
 type ICommand<C extends ICommandMap, K extends keyof C> = {
 	type: K;
@@ -101,41 +246,6 @@ interface PropertyCommandMap extends ICommandMap {
 			toll?: number;
 		};
 	};
-}
-interface IRoundTimeTimer {
-	start(callback: Function | null, timeS?: number): Promise<void>;
-	nextTick(): void;
-	pause(): void;
-	resume(): void;
-	stop(): void;
-	setTimeOutFunction(newFunction: Function | null): Promise<void>;
-	setIntervalFunction(countDownCallback: (remainingTime: number) => void): void;
-	clearInterval(): void;
-	destroy(): void;
-}
-interface IDice extends DiceInfo {
-	addDiceprophecy(prophecy: number): void;
-	roll(): number;
-	getInfo(): DiceInfo;
-}
-interface DiceInfo {
-	min: number;
-	max: number;
-	diceProphecyQueue: number[];
-}
-type ComponentType = "number-input" | "select";
-interface SelectOption {
-	label: string;
-	value: string | number;
-}
-interface FormSchema {
-	id: string;
-	key: string;
-	type: ComponentType;
-	label: string;
-	placeholder?: string;
-	defaultValue?: number | string;
-	options?: SelectOption[];
 }
 interface PlayerCommandMap extends ICommandMap {
 	"player.property.gain": {
@@ -308,6 +418,7 @@ declare const enum SocketMsgType {
 	ResumeGame = "ResumeGame",//房主恢复游戏
 	ConfirmDialog = "ConfirmDialog",//在客户端唤起确认dialog
 	TargetSelectDialog = "TargetSelectDialog",//在客户端唤起目标选择dialog
+	ItemSelectDialog = "ItemSelectDialog",//在客户端唤起自定义选择dialog
 	UI = "UI"
 }
 declare enum SocketMsgSource {
@@ -520,7 +631,14 @@ interface SocketMessageDataType {
 		client: undefined;
 		server: {
 			playerId: string;
-			option: SelectDialogOption<TargetSelectType>;
+			option: TargetSelectDialogOption<TargetSelectType>;
+		};
+	};
+	[SocketMsgType.ItemSelectDialog]: {
+		client: undefined;
+		server: {
+			playerId: string;
+			option: ItemSelectDialogOption;
 		};
 	};
 	[SocketMsgType.UI]: {
@@ -554,20 +672,24 @@ interface GameLog {
 	time: number;
 	content: string;
 }
-interface GameData {
-	extra: {
-		[key: string]: any;
+interface PlayerOperationResult {
+	[OperateType.GameInitFinished]: undefined;
+	[OperateType.RollDice]: undefined;
+	[OperateType.UseChanceCard]: {
+		chanceCardId: string;
+		targetIdList: string[];
 	};
-	currentPlayerIdInRound: string;
-	currentRound: number;
-	currentMultiplier: number;
-	playersList: PlayerInfo[];
-	propertiesList: PropertyInfo[];
-	isGameOver: boolean;
+	[OperateType.Animation]: string;
+	[OperateType.PauseGame]: undefined;
+	[OperateType.ResumeGame]: undefined;
+	[OperateType.ConfirmDialogResult]: {
+		id: string;
+		confirm: boolean;
+		data: any;
+	};
+	[OperateType.TargetSelectDialogResult]: TargetSelectDialogResult<TargetSelectType>;
+	[OperateType.ItemSelectDialogResult]: ItemSelectDialogResult;
 }
-type GameContext = {
-	cancel?: boolean;
-} & Record<string, any>;
 interface GameSetting {
 	[key: string]: {
 		label: string;
@@ -608,86 +730,9 @@ interface IGameProcess {
 	gameLogBroadcast(log: string): void;
 	gameBroadcast(msg: ServerSocketMessage): void;
 	showConfirmDialog<I extends InputOptionItem<string, any>[]>(playerId: string, option: ConfirmDialogOption<I>): Promise<ConfirmDialogResult<I>>;
-	showTargetSelectDialog<I extends TargetSelectType>(playerId: string, option: SelectDialogOption<I>): Promise<SelectDialogResult<I>>;
+	showTargetSelectDialog<I extends TargetSelectType>(playerId: string, option: TargetSelectDialogOption<I>): Promise<TargetSelectDialogResult<I>>;
+	showItemSelectDialog(playerId: string, option: ItemSelectDialogOption): Promise<ItemSelectDialogResult>;
 	checkGameOver(): Promise<void>;
-}
-interface DialogOption {
-	title: string;
-	content: string;
-	confirmText?: string;
-	cancelText?: string;
-}
-interface SelectDialogOption<I extends TargetSelectType> extends DialogOption {
-	type: I;
-}
-interface SelectDialogResult<I extends TargetSelectType> {
-	target: TargetSelectResult[I];
-}
-interface TargetSelectResult {
-	[TargetSelectType.ToMapItem]: string[];
-	[TargetSelectType.ToPlayer]: string[];
-	[TargetSelectType.ToOtherPlayer]: string[];
-	[TargetSelectType.ToSelf]: string[];
-	[TargetSelectType.ToProperty]: string[];
-}
-interface ConfirmDialogOption<I extends readonly InputOptionItem<string, any>[]> extends DialogOption {
-	inputOptions?: I;
-}
-type InputOptionItem<K extends string, D> = {
-	key: K;
-	label: string;
-	initData: D;
-};
-type ConfirmDialogResult<I extends readonly InputOptionItem<string, any>[]> = {
-	[P in I[number] as P["key"]]: P["initData"];
-} & {
-	confirm: boolean;
-};
-interface IGameRuntimeStack<Context extends GameContext> {
-	stack: GameEvent<Context>[];
-	run(context: Context, gameProcess: IGameProcess): Promise<void>;
-	isEmpty(): boolean;
-	push(...gameEvents: GameEvent<Context>[]): void;
-	pop(): GameEvent<Context> | undefined;
-}
-type GameEventFunction<Context extends GameContext> = (ctx: Context, gameProcess: IGameProcess) => Promise<void> | void;
-type GameEvent<Context extends GameContext> = {
-	fn: GameEventFunction<Context>;
-	key?: string;
-};
-interface GamePhaseInfo {
-	id: string;
-	name: string;
-	description: string;
-	mark?: GamePhaseMark;
-	from: string;
-	initEventCode: string;
-}
-interface IGamePhase<Context extends GameContext> extends GamePhaseInfo {
-	eventQueue: GameEvent<Context>[];
-	use(tiggerTime: EventTiggerTime, fn: GameEventFunction<Context>, key?: string): void;
-	getEventQueue(): GameEvent<Context>[];
-}
-interface GameRoundStartContext extends GameContext {
-}
-interface PlayerRoundContext extends GameContext {
-	currentRoundPlayer: IPlayer;
-}
-interface PlayerRoundStartContext extends PlayerRoundContext {
-}
-interface RollDiceContext extends PlayerRoundStartContext {
-	dice: number[];
-}
-interface PlayerMoveContext extends RollDiceContext {
-	type: PlayerMoveType;
-	targetIndex: number;
-}
-interface ArrivedEventContext extends PlayerMoveContext {
-	arrivedProperty: PropertyInfo;
-}
-interface PlayerRoundEndContext extends ArrivedEventContext {
-}
-interface GameRoundEndContext extends GameContext {
 }
 interface IPlayer {
 	id: string;
@@ -760,75 +805,145 @@ interface IChanceCard {
 	use: (sourcePlayer: IPlayer, target: IPlayer | IProperty | IPlayer[] | IProperty[], gameProcess: IGameProcess) => Promise<void>;
 	getChanceCardInfo: () => ChanceCardClientInfo;
 }
-interface PlayerInfo {
-	id: string;
-	user: UserInRoomInfo;
-	dices: DiceInfo[];
-	money: number;
-	properties: PropertyInfo[];
-	chanceCards: ChanceCardClientInfo[];
-	buff: Buff[];
-	positionIndex: number;
-	stop: number;
-	isBankrupted: boolean;
-	isOffline: boolean;
+type GameContext = {
+	cancel?: boolean;
+} & Record<string, any>;
+interface IGameRuntimeStack<Context extends GameContext> {
+	stack: GameEvent<Context>[];
+	run(context: Context, gameProcess: IGameProcess): Promise<void>;
+	isEmpty(): boolean;
+	push(...gameEvents: GameEvent<Context>[]): void;
+	pop(): GameEvent<Context> | undefined;
 }
-interface PropertyInfo {
-	id: string;
-	name: string;
-	sellCost: number;
-	buildCost: number;
-	level: number;
-	maxLevel: number;
-	costList: number[];
-	streetId: string;
-	buildingModelIdList?: string[];
-	owner?: UserInRoomInfo;
-	custom?: PropertyCustom;
-}
-interface PropertyCustom {
-	effectCode: string;
-	description: string;
-}
-interface ChanceCardClientInfo extends Omit<ChanceCardInstanceInfo, "effectCode"> {
-}
-interface ChanceCardInstanceInfo extends ChanceCardInfo {
-	sourceId: string;
-}
-interface ChanceCardInfo {
+type GameEventFunction<Context extends GameContext> = (ctx: Context, gameProcess: IGameProcess) => Promise<void> | void;
+type GameEvent<Context extends GameContext> = {
+	fn: GameEventFunction<Context>;
+	key?: string;
+};
+interface GamePhaseInfo {
 	id: string;
 	name: string;
 	description: string;
-	iconId: string;
-	color: string;
-	effectCode: string;
-	type: TargetSelectType;
+	mark?: GamePhaseMark;
+	from: string;
+	initEventCode: string;
 }
-interface Buff {
-	id: string;
-	name: string;
-	description: string;
-	source: string;
-	triggerTiming: string;
-	triggerTimes: number;
+interface IGamePhase<Context extends GameContext> extends GamePhaseInfo {
+	eventQueue: GameEvent<Context>[];
+	use(tiggerTime: EventTiggerTime, fn: GameEventFunction<Context>, key?: string): void;
+	getEventQueue(): GameEvent<Context>[];
 }
-interface PlayerOperationResult {
-	[OperateType.GameInitFinished]: undefined;
-	[OperateType.RollDice]: undefined;
-	[OperateType.UseChanceCard]: {
-		chanceCardId: string;
-		targetIdList: string[];
-	};
-	[OperateType.Animation]: string;
-	[OperateType.PauseGame]: undefined;
-	[OperateType.ResumeGame]: undefined;
-	[OperateType.ConfirmDialogResult]: {
-		id: string;
-		confirm: boolean;
-		data: any;
-	};
-	[OperateType.SelectDialogResult]: SelectDialogResult<TargetSelectType>;
+interface GameRoundStartContext extends GameContext {
 }
+interface PlayerRoundContext extends GameContext {
+	currentRoundPlayer: IPlayer;
+}
+interface PlayerRoundStartContext extends PlayerRoundContext {
+}
+interface RollDiceContext extends PlayerRoundStartContext {
+	dice: number[];
+}
+interface PlayerMoveContext extends RollDiceContext {
+	type: PlayerMoveType;
+	targetIndex: number;
+}
+interface ArrivedEventContext extends PlayerMoveContext {
+	arrivedProperty: PropertyInfo;
+}
+interface PlayerRoundEndContext extends ArrivedEventContext {
+}
+interface GameRoundEndContext extends GameContext {
+}
+interface VNode<HostNode = any, HostElement = any> {
+	__v_isVNode: true;
+	type: VNodeTypes;
+	props: (VNodeProps & Record<string, any>) | null;
+	key: string | number | symbol | null;
+	ref: VNodeRef | null;
+	children: VNodeNormalizedChildren;
+	component: ComponentInternalInstance | null;
+	el: HostNode | null;
+	shapeFlag: number;
+	patchFlag: number;
+	appContext: AppContext | null;
+}
+type VNodeRef = string | object | Function;
+type VNodeNormalizedChildren = string | VNodeArrayChildren | RawSlots | null;
+type VNodeArrayChildren = Array<VNodeArrayChildren | VNodeChildAtom>;
+type VNodeChildAtom = VNode | string | number | boolean | null | undefined | void;
+type VNodeChild = VNodeChildAtom | VNodeArrayChildren;
+type VNodeTypes = string | VNode | Component | typeof Text | typeof Comment;
+type Component = ConcreteComponent | FunctionalComponent;
+interface ConcreteComponent<Props = Record<string, any>, RawBindings = any> {
+	name?: string;
+	props?: string[] | Record<string, any>;
+	components?: Record<string, Component>;
+	setup?: (props: Props, ctx: SetupContext) => RawBindings | RenderFunction | void;
+	render?: RenderFunction;
+	[key: string]: any;
+}
+type FunctionalComponent<P = Record<string, any>, E extends EmitsOptions = Record<string, any>> = {
+	(props: P, ctx: SetupContext<E>): VNodeChild;
+	props?: Record<string, any>;
+	emits?: E | string[];
+	displayName?: string;
+};
+type RenderFunction = () => VNodeChild;
+interface SetupContext<E = Record<string, any>> {
+	attrs: Record<string, any>;
+	slots: Slots;
+	emit: (event: string, ...args: any[]) => void;
+	expose: (exposed?: Record<string, any>) => void;
+}
+type Slot = (...args: any[]) => VNode[];
+type InternalSlots = {
+	[name: string]: Slot | undefined;
+};
+type Slots = InternalSlots & {
+	[key: string]: Slot | undefined;
+};
+type RawSlots = {
+	[name: string]: unknown;
+	$stable?: boolean;
+};
+type EmitsOptions = Record<string, any> | string[];
+interface AppContext {
+	app: any;
+	config: any;
+	mixins: any[];
+	components: Record<string, Component>;
+	directives: Record<string, any>;
+	provides: Record<string | symbol, any>;
+}
+interface ComponentInternalInstance {
+	uid: number;
+	type: ConcreteComponent;
+	parent: ComponentInternalInstance | null;
+	root: ComponentInternalInstance;
+	appContext: AppContext;
+	[key: string]: any;
+}
+interface VNodeProps {
+	key?: string | number | symbol;
+	ref?: VNodeRef;
+	ref_for?: boolean;
+	ref_key?: string;
+	class?: any;
+	style?: string | Record<string, string | number>;
+	[event: `on${string}`]: Function | undefined;
+}
+type RawProps = VNodeProps & Record<string, any>;
+type RawChildren = string | number | boolean | VNode | VNodeArrayChildren | (() => any);
+/**
+ * h 函数 - 元素节点 (Element)
+ */
+declare function h(type: string, children?: RawChildren): VNode;
+declare function h(type: string, props: RawProps | null, children?: RawChildren | RawSlots): VNode;
+/**
+ * h 函数 - 组件节点 (Component)
+ */
+declare function h(type: Component, children?: RawChildren | RawSlots): VNode;
+declare function h(type: Component, props: (RawProps & Record<string, any>) | null, children?: RawChildren | RawSlots): VNode;
 type SemVer = `${number}.${number}.${number}`;
 interface GameMapInfo {
 	name: string;

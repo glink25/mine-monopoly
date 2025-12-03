@@ -1,2 +1,2 @@
 //@need-to-parse
-export type { GameData } from "@fatpaper-monopoly/types";
+export type { GameData, h } from "@fatpaper-monopoly/types";

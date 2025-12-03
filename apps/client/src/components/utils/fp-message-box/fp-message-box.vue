@@ -1,115 +1,114 @@
 <script setup lang="ts">
-import { ref, onMounted, VNode, render, isVNode } from "vue";
+import { ref, VNode, isVNode } from "vue";
+import FpDialog from "../fp-dialog/fp-dialog.vue";
 
 export interface Props {
 	title?: string;
-	content?: string;
+	content?: string | VNode;
 	confirmText?: string;
 	cancelText?: string;
-}
-const props = defineProps<Props>();
-
-const emits = defineEmits(["confirm", "close"]);
-
-const ContentContainer = ref<HTMLElement | null>(null);
-
-function handleCancle() {
-	emits("close");
-}
-function handleConfirm() {
-	emits("confirm");
+	showCancel?: boolean;
 }
 
-onMounted(() => {
-	console.log("🚀 ~ props.content:", props.content);
-	console.log("🚀 ~ isVNode(props.content):", isVNode(props.content));
-	if (!ContentContainer.value) return;
-	if (isVNode(props.content)) {
-		render(props.content, ContentContainer.value);
-	}
+const props = withDefaults(defineProps<Props>(), {
+	title: "提示",
+	confirmText: "确认",
+	cancelText: "",
 });
+
+const emits = defineEmits(["confirm", "cancel", "close"]);
+
+const visible = ref(false);
+
+const open = () => {
+	visible.value = true;
+};
+
+defineExpose({ open });
+
+const handleConfirm = () => {
+	emits("confirm");
+	visible.value = false;
+};
+
+const handleCancel = () => {
+	emits("cancel");
+	visible.value = false;
+};
+
+const handleDialogClose = () => {
+	emits("close");
+};
 </script>
 
 <template>
-	<div class="fp-message-box__overlay">
-		<div class="fp-message-box">
-			<div class="fp-message-box__title">
-				<span>{{ title }}</span>
-			</div>
-			<div ref="ContentContainer" class="fp-message-box__content">
-				<div v-if="!isVNode(content)" v-html="content"></div>
-			</div>
-			<div class="fp-message-box__footer">
-				<button class="confirm__btn" @click="handleConfirm">{{ confirmText }}</button>
-				<button v-if="props.cancelText" class="cancle__btn" @click="handleCancle">{{ cancelText }}</button>
-			</div>
+	<FpDialog
+		v-model:visible="visible"
+		:title="title"
+		:hidden-footer="true"
+		:append-to-body="true"
+		style="min-width: 26rem; max-width: 90vw"
+		@cancel="handleDialogClose"
+	>
+		<div class="message-content">
+			<component v-if="isVNode(content)" :is="content" />
+			<div v-else v-html="content"></div>
 		</div>
-	</div>
+
+		<div class="message-footer">
+			<button v-if="cancelText" class="btn-cancel" @click="handleCancel">
+				{{ cancelText }}
+			</button>
+
+			<button class="btn-confirm" @click="handleConfirm">
+				{{ confirmText }}
+			</button>
+		</div>
+	</FpDialog>
 </template>
 
 <style lang="scss" scoped>
-.fp-message-box__overlay {
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	z-index: var(--z-dialog);
-	background-color: rgba($color: #000000, $alpha: 0.3);
-	user-select: none;
-	pointer-events: auto;
-
-	& > .fp-message-box {
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		transform: translate(-50%, -50%);
-		min-width: 26rem;
-		min-height: 16rem;
-		background-color: var(--color-bg-light);
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-		border-radius: 0.6rem;
-		box-shadow: var(--box-shadow);
-		overflow: hidden;
-		z-index: calc(var(--z-dialog) + 1);
-		pointer-events: initial;
-	}
+.message-content {
+	padding: 10px 0 20px 0;
+	font-size: 1rem;
+	color: var(--color-text-regular, #333);
+	line-height: 1.5;
 }
 
-.fp-message-box__title {
-	font-size: 1.2rem;
-	height: 2.4rem;
-	line-height: 2.4rem;
-	background-color: var(--color-third);
-	color: var(--color-text-white);
-	padding: 0 0.5rem;
+.message-footer {
 	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	text-shadow: var(--text-shadow);
+	justify-content: flex-end;
+	gap: 12px;
+	margin-top: 10px;
 
-	& > .close__btn {
+	button {
+		padding: 0.5em 1.2em;
+		border-radius: 6px;
+		font-size: 1rem;
 		cursor: pointer;
-	}
-}
+		border: none;
+		transition: filter 0.2s;
 
-.fp-message-box__content {
-	flex: 1;
-	padding: 0.5rem;
-}
+		&.btn-confirm {
+			background-color: var(--color-second);
+			color: white;
 
-.fp-message-box__footer {
-	width: 100%;
-	padding: 0.5rem;
-	box-sizing: border-box;
+			&:hover {
+				filter: brightness(0.9);
+			}
+		}
 
-	& > button {
-		float: right;
-		padding: 0.5rem 1rem;
-		border-radius: 0.3rem;
-		margin-left: 0.6rem;
+		&.btn-cancel {
+			border: 1px solid #b0b1b3;
+			background-color: #f5f7fa;
+			color: var(--color-third);
+			border-color: var(--color-third);
+			text-shadow: none;
+
+			&:hover {
+				filter: brightness(0.95);
+			}
+		}
 	}
 }
 </style>

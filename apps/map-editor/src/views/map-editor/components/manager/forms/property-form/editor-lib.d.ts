@@ -15,6 +15,150 @@ declare enum GameLinkItem {
 	Property = "Property",
 	ArrivedEvent = "ArrivedEvent"
 }
+interface IRoundTimeTimer {
+	start(callback: Function | null, timeS?: number): Promise<void>;
+	nextTick(): void;
+	pause(): void;
+	resume(): void;
+	stop(): void;
+	setTimeOutFunction(newFunction: Function | null): Promise<void>;
+	setIntervalFunction(countDownCallback: (remainingTime: number) => void): void;
+	clearInterval(): void;
+	destroy(): void;
+}
+interface IDice extends DiceInfo {
+	addDiceprophecy(prophecy: number): void;
+	roll(): number;
+	getInfo(): DiceInfo;
+}
+interface DiceInfo {
+	min: number;
+	max: number;
+	diceProphecyQueue: number[];
+}
+type ComponentType = "number-input" | "select";
+interface SelectOption {
+	label: string;
+	value: string | number;
+}
+interface FormSchema {
+	id: string;
+	key: string;
+	type: ComponentType;
+	label: string;
+	placeholder?: string;
+	defaultValue?: number | string;
+	options?: SelectOption[];
+}
+interface GameData {
+	extra: {
+		[key: string]: any;
+	};
+	currentPlayerIdInRound: string;
+	currentRound: number;
+	currentMultiplier: number;
+	playersList: PlayerInfo[];
+	propertiesList: PropertyInfo[];
+	isGameOver: boolean;
+}
+interface PlayerInfo {
+	id: string;
+	user: UserInRoomInfo;
+	dices: DiceInfo[];
+	money: number;
+	properties: PropertyInfo[];
+	chanceCards: ChanceCardClientInfo[];
+	buff: Buff[];
+	positionIndex: number;
+	stop: number;
+	isBankrupted: boolean;
+	isOffline: boolean;
+}
+interface PropertyInfo {
+	id: string;
+	name: string;
+	sellCost: number;
+	buildCost: number;
+	level: number;
+	maxLevel: number;
+	costList: number[];
+	streetId: string;
+	buildingModelIdList?: string[];
+	owner?: UserInRoomInfo;
+	custom?: PropertyCustom;
+}
+interface PropertyCustom {
+	effectCode: string;
+	description: string;
+}
+interface ChanceCardClientInfo extends Omit<ChanceCardInstanceInfo, "effectCode"> {
+}
+interface ChanceCardInstanceInfo extends ChanceCardInfo {
+	sourceId: string;
+}
+interface ChanceCardInfo {
+	id: string;
+	name: string;
+	description: string;
+	iconId: string;
+	color: string;
+	effectCode: string;
+	type: TargetSelectType;
+}
+interface Buff {
+	id: string;
+	name: string;
+	description: string;
+	source: string;
+	triggerTiming: string;
+	triggerTimes: number;
+}
+interface DialogOption {
+	title: string;
+	content: string;
+	confirmText?: string;
+	cancelText?: string;
+}
+interface TargetSelectDialogOption<I extends TargetSelectType> extends DialogOption {
+	type: I;
+}
+interface TargetSelectDialogResult<I extends TargetSelectType> {
+	target: TargetSelectResult[I];
+}
+interface TargetSelectResult {
+	[TargetSelectType.ToMapItem]: string[];
+	[TargetSelectType.ToPlayer]: string[];
+	[TargetSelectType.ToOtherPlayer]: string[];
+	[TargetSelectType.ToSelf]: string[];
+	[TargetSelectType.ToProperty]: string[];
+}
+interface ConfirmDialogOption<I extends readonly InputOptionItem<string, any>[]> extends DialogOption {
+	inputOptions?: I;
+}
+type InputOptionItem<K extends string, D> = {
+	key: K;
+	label: string;
+	initData: D;
+};
+type ConfirmDialogResult<I extends readonly InputOptionItem<string, any>[]> = {
+	[P in I[number] as P["key"]]: P["initData"];
+} & {
+	confirm: boolean;
+};
+interface ItemSelectDialogOption<T = SelectorItem> extends Omit<DialogOption, "content"> {
+	itemList: Array<T>;
+	keyName?: keyof T;
+	multiple?: boolean;
+	column?: number;
+	selectedKey?: string | string[];
+}
+interface SelectorItem {
+	id: string;
+	display: string;
+}
+interface ItemSelectDialogResult {
+	selected: string | string[];
+}
 declare enum GamePhaseMark {
 	GameRoundStart = 0,
 	PlayerRoundStart = 1,
@@ -36,7 +180,8 @@ declare enum OperateType {
 	PauseGame = "PauseGame",//房主暂停游戏
 	ResumeGame = "ResumeGame",//房主恢复游戏
 	ConfirmDialogResult = "ConfirmDialogResult",//由服务端主机调起的dialog的结果返回
-	SelectDialogResult = "SelectDialogResult"
+	TargetSelectDialogResult = "TargetSelectDialogResult",//由服务端主机调起的dialog的结果返回
+	ItemSelectDialogResult = "ItemSelectDialogResult"
 }
 type ICommand<C extends ICommandMap, K extends keyof C> = {
 	type: K;
@@ -97,41 +242,6 @@ interface PropertyCommandMap extends ICommandMap {
 			toll?: number;
 		};
 	};
-}
-interface IRoundTimeTimer {
-	start(callback: Function | null, timeS?: number): Promise<void>;
-	nextTick(): void;
-	pause(): void;
-	resume(): void;
-	stop(): void;
-	setTimeOutFunction(newFunction: Function | null): Promise<void>;
-	setIntervalFunction(countDownCallback: (remainingTime: number) => void): void;
-	clearInterval(): void;
-	destroy(): void;
-}
-interface IDice extends DiceInfo {
-	addDiceprophecy(prophecy: number): void;
-	roll(): number;
-	getInfo(): DiceInfo;
-}
-interface DiceInfo {
-	min: number;
-	max: number;
-	diceProphecyQueue: number[];
-}
-type ComponentType = "number-input" | "select";
-interface SelectOption {
-	label: string;
-	value: string | number;
-}
-interface FormSchema {
-	id: string;
-	key: string;
-	type: ComponentType;
-	label: string;
-	placeholder?: string;
-	defaultValue?: number | string;
-	options?: SelectOption[];
 }
 interface PlayerCommandMap extends ICommandMap {
 	"player.property.gain": {
@@ -304,6 +414,7 @@ declare const enum SocketMsgType {
 	ResumeGame = "ResumeGame",//房主恢复游戏
 	ConfirmDialog = "ConfirmDialog",//在客户端唤起确认dialog
 	TargetSelectDialog = "TargetSelectDialog",//在客户端唤起目标选择dialog
+	ItemSelectDialog = "ItemSelectDialog",//在客户端唤起自定义选择dialog
 	UI = "UI"
 }
 declare enum SocketMsgSource {
@@ -516,7 +627,14 @@ interface SocketMessageDataType {
 		client: undefined;
 		server: {
 			playerId: string;
-			option: SelectDialogOption<TargetSelectType>;
+			option: TargetSelectDialogOption<TargetSelectType>;
+		};
+	};
+	[SocketMsgType.ItemSelectDialog]: {
+		client: undefined;
+		server: {
+			playerId: string;
+			option: ItemSelectDialogOption;
 		};
 	};
 	[SocketMsgType.UI]: {
@@ -550,20 +668,24 @@ interface GameLog {
 	time: number;
 	content: string;
 }
-interface GameData {
-	extra: {
-		[key: string]: any;
+interface PlayerOperationResult {
+	[OperateType.GameInitFinished]: undefined;
+	[OperateType.RollDice]: undefined;
+	[OperateType.UseChanceCard]: {
+		chanceCardId: string;
+		targetIdList: string[];
 	};
-	currentPlayerIdInRound: string;
-	currentRound: number;
-	currentMultiplier: number;
-	playersList: PlayerInfo[];
-	propertiesList: PropertyInfo[];
-	isGameOver: boolean;
+	[OperateType.Animation]: string;
+	[OperateType.PauseGame]: undefined;
+	[OperateType.ResumeGame]: undefined;
+	[OperateType.ConfirmDialogResult]: {
+		id: string;
+		confirm: boolean;
+		data: any;
+	};
+	[OperateType.TargetSelectDialogResult]: TargetSelectDialogResult<TargetSelectType>;
+	[OperateType.ItemSelectDialogResult]: ItemSelectDialogResult;
 }
-type GameContext = {
-	cancel?: boolean;
-} & Record<string, any>;
 interface GameSetting {
 	[key: string]: {
 		label: string;
@@ -604,65 +726,9 @@ interface IGameProcess {
 	gameLogBroadcast(log: string): void;
 	gameBroadcast(msg: ServerSocketMessage): void;
 	showConfirmDialog<I extends InputOptionItem<string, any>[]>(playerId: string, option: ConfirmDialogOption<I>): Promise<ConfirmDialogResult<I>>;
-	showTargetSelectDialog<I extends TargetSelectType>(playerId: string, option: SelectDialogOption<I>): Promise<SelectDialogResult<I>>;
+	showTargetSelectDialog<I extends TargetSelectType>(playerId: string, option: TargetSelectDialogOption<I>): Promise<TargetSelectDialogResult<I>>;
+	showItemSelectDialog(playerId: string, option: ItemSelectDialogOption): Promise<ItemSelectDialogResult>;
 	checkGameOver(): Promise<void>;
-}
-interface DialogOption {
-	title: string;
-	content: string;
-	confirmText?: string;
-	cancelText?: string;
-}
-interface SelectDialogOption<I extends TargetSelectType> extends DialogOption {
-	type: I;
-}
-interface SelectDialogResult<I extends TargetSelectType> {
-	target: TargetSelectResult[I];
-}
-interface TargetSelectResult {
-	[TargetSelectType.ToMapItem]: string[];
-	[TargetSelectType.ToPlayer]: string[];
-	[TargetSelectType.ToOtherPlayer]: string[];
-	[TargetSelectType.ToSelf]: string[];
-	[TargetSelectType.ToProperty]: string[];
-}
-interface ConfirmDialogOption<I extends readonly InputOptionItem<string, any>[]> extends DialogOption {
-	inputOptions?: I;
-}
-type InputOptionItem<K extends string, D> = {
-	key: K;
-	label: string;
-	initData: D;
-};
-type ConfirmDialogResult<I extends readonly InputOptionItem<string, any>[]> = {
-	[P in I[number] as P["key"]]: P["initData"];
-} & {
-	confirm: boolean;
-};
-interface IGameRuntimeStack<Context extends GameContext> {
-	stack: GameEvent<Context>[];
-	run(context: Context, gameProcess: IGameProcess): Promise<void>;
-	isEmpty(): boolean;
-	push(...gameEvents: GameEvent<Context>[]): void;
-	pop(): GameEvent<Context> | undefined;
-}
-type GameEventFunction<Context extends GameContext> = (ctx: Context, gameProcess: IGameProcess) => Promise<void> | void;
-type GameEvent<Context extends GameContext> = {
-	fn: GameEventFunction<Context>;
-	key?: string;
-};
-interface GamePhaseInfo {
-	id: string;
-	name: string;
-	description: string;
-	mark?: GamePhaseMark;
-	from: string;
-	initEventCode: string;
-}
-interface IGamePhase<Context extends GameContext> extends GamePhaseInfo {
-	eventQueue: GameEvent<Context>[];
-	use(tiggerTime: EventTiggerTime, fn: GameEventFunction<Context>, key?: string): void;
-	getEventQueue(): GameEvent<Context>[];
 }
 interface IPlayer {
 	id: string;
@@ -735,74 +801,33 @@ interface IChanceCard {
 	use: (sourcePlayer: IPlayer, target: IPlayer | IProperty | IPlayer[] | IProperty[], gameProcess: IGameProcess) => Promise<void>;
 	getChanceCardInfo: () => ChanceCardClientInfo;
 }
-interface PlayerInfo {
-	id: string;
-	user: UserInRoomInfo;
-	dices: DiceInfo[];
-	money: number;
-	properties: PropertyInfo[];
-	chanceCards: ChanceCardClientInfo[];
-	buff: Buff[];
-	positionIndex: number;
-	stop: number;
-	isBankrupted: boolean;
-	isOffline: boolean;
+type GameContext = {
+	cancel?: boolean;
+} & Record<string, any>;
+interface IGameRuntimeStack<Context extends GameContext> {
+	stack: GameEvent<Context>[];
+	run(context: Context, gameProcess: IGameProcess): Promise<void>;
+	isEmpty(): boolean;
+	push(...gameEvents: GameEvent<Context>[]): void;
+	pop(): GameEvent<Context> | undefined;
 }
-interface PropertyInfo {
-	id: string;
-	name: string;
-	sellCost: number;
-	buildCost: number;
-	level: number;
-	maxLevel: number;
-	costList: number[];
-	streetId: string;
-	buildingModelIdList?: string[];
-	owner?: UserInRoomInfo;
-	custom?: PropertyCustom;
-}
-interface PropertyCustom {
-	effectCode: string;
-	description: string;
-}
-interface ChanceCardClientInfo extends Omit<ChanceCardInstanceInfo, "effectCode"> {
-}
-interface ChanceCardInstanceInfo extends ChanceCardInfo {
-	sourceId: string;
-}
-interface ChanceCardInfo {
+type GameEventFunction<Context extends GameContext> = (ctx: Context, gameProcess: IGameProcess) => Promise<void> | void;
+type GameEvent<Context extends GameContext> = {
+	fn: GameEventFunction<Context>;
+	key?: string;
+};
+interface GamePhaseInfo {
 	id: string;
 	name: string;
 	description: string;
-	iconId: string;
-	color: string;
-	effectCode: string;
-	type: TargetSelectType;
+	mark?: GamePhaseMark;
+	from: string;
+	initEventCode: string;
 }
-interface Buff {
-	id: string;
-	name: string;
-	description: string;
-	source: string;
-	triggerTiming: string;
-	triggerTimes: number;
-}
-interface PlayerOperationResult {
-	[OperateType.GameInitFinished]: undefined;
-	[OperateType.RollDice]: undefined;
-	[OperateType.UseChanceCard]: {
-		chanceCardId: string;
-		targetIdList: string[];
-	};
-	[OperateType.Animation]: string;
-	[OperateType.PauseGame]: undefined;
-	[OperateType.ResumeGame]: undefined;
-	[OperateType.ConfirmDialogResult]: {
-		id: string;
-		confirm: boolean;
-		data: any;
-	};
-	[OperateType.SelectDialogResult]: SelectDialogResult<TargetSelectType>;
+interface IGamePhase<Context extends GameContext> extends GamePhaseInfo {
+	eventQueue: GameEvent<Context>[];
+	use(tiggerTime: EventTiggerTime, fn: GameEventFunction<Context>, key?: string): void;
+	getEventQueue(): GameEvent<Context>[];
 }
 type SemVer = `${number}.${number}.${number}`;
 interface GameMapInfo {

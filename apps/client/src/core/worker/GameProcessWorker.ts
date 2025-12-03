@@ -29,9 +29,11 @@ import {
 	SocketMsgSource,
 	SocketMsgType,
 	UserInRoomInfo,
-	SelectDialogOption,
-	SelectDialogResult,
+	TargetSelectDialogOption,
+	TargetSelectDialogResult,
 	IChanceCard,
+	ItemSelectDialogOption,
+	ItemSelectDialogResult,
 } from "@fatpaper-monopoly/types";
 
 import Dice from "./class/Dice";
@@ -785,8 +787,8 @@ export class GameProcess implements IGameProcess {
 
 	public async showTargetSelectDialog<I extends TargetSelectType>(
 		playerId: string,
-		option: SelectDialogOption<I>
-	): Promise<SelectDialogResult<I>> {
+		option: TargetSelectDialogOption<I>
+	): Promise<TargetSelectDialogResult<I>> {
 		sendToUsers([playerId], {
 			type: SocketMsgType.TargetSelectDialog,
 			source: SocketMsgSource.Server,
@@ -795,7 +797,22 @@ export class GameProcess implements IGameProcess {
 				option,
 			},
 		});
-		return (await operationListener.onceAsync(playerId, OperateType.SelectDialogResult)) as SelectDialogResult<I>;
+		return (await operationListener.onceAsync(
+			playerId,
+			OperateType.TargetSelectDialogResult
+		)) as TargetSelectDialogResult<I>;
+	}
+
+	public async showItemSelectDialog(playerId: string, option: ItemSelectDialogOption): Promise<ItemSelectDialogResult> {
+		sendToUsers([playerId], {
+			type: SocketMsgType.ItemSelectDialog,
+			source: SocketMsgSource.Server,
+			data: {
+				playerId,
+				option,
+			},
+		});
+		return (await operationListener.onceAsync(playerId, OperateType.ItemSelectDialogResult)) as ItemSelectDialogResult;
 	}
 
 	private sleep(ms: number) {

@@ -7,10 +7,12 @@ import {
 	GameData,
 	GameSetting,
 	InputOptionItem,
+	ItemSelectDialogOption,
+	ItemSelectDialogResult,
 	PlayerInfo,
-	PlayerOperationResult,
 	PropertyInfo,
-	SelectDialogOption,
+	TargetSelectDialogOption,
+	TargetSelectDialogResult,
 } from "./game-process";
 import { Role, User } from "./item";
 
@@ -216,7 +218,14 @@ export interface SocketMessageDataType {
 		client: undefined;
 		server: {
 			playerId: string;
-			option: SelectDialogOption<TargetSelectType>;
+			option: TargetSelectDialogOption<TargetSelectType>;
+		};
+	};
+	[SocketMsgType.ItemSelectDialog]: {
+		client: undefined;
+		server: {
+			playerId: string;
+			option: ItemSelectDialogOption;
 		};
 	};
 	[SocketMsgType.UI]: {
@@ -258,4 +267,16 @@ export interface GameLog {
 	id: string;
 	time: number;
 	content: string;
+}
+
+export interface PlayerOperationResult {
+	[OperateType.GameInitFinished]: undefined;
+	[OperateType.RollDice]: undefined;
+	[OperateType.UseChanceCard]: { chanceCardId: string; targetIdList: string[] };
+	[OperateType.Animation]: string;
+	[OperateType.PauseGame]: undefined;
+	[OperateType.ResumeGame]: undefined;
+	[OperateType.ConfirmDialogResult]: { id: string; confirm: boolean; data: any };
+	[OperateType.TargetSelectDialogResult]: TargetSelectDialogResult<TargetSelectType>;
+	[OperateType.ItemSelectDialogResult]: ItemSelectDialogResult;
 }

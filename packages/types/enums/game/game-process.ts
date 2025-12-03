@@ -26,5 +26,6 @@ export enum OperateType {
 	ResumeGame = "ResumeGame", //房主恢复游戏
 
 	ConfirmDialogResult = "ConfirmDialogResult", //由服务端主机调起的dialog的结果返回
-	SelectDialogResult = "SelectDialogResult", //由服务端主机调起的dialog的结果返回
+	TargetSelectDialogResult = "TargetSelectDialogResult", //由服务端主机调起的dialog的结果返回
+	ItemSelectDialogResult = "ItemSelectDialogResult", //由服务端主机调起的dialog的结果返回
 }

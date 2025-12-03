@@ -2,7 +2,6 @@
 import { CustomUI } from "@fatpaper-monopoly/types";
 import CodeEditor from "@src/components/code-editor/index.vue";
 import libContent from "./editor-lib.d.ts?raw";
-import vueHLib from "./vue-h.d.ts?raw";
 import templateText from "./template-text?raw";
 import { onMounted, reactive, ref } from "vue";
 import { Modal } from "ant-design-vue";
@@ -80,7 +79,7 @@ function handleDelete() {
 				<code-editor
 					v-model="tempCustomUIForm.initCode"
 					:template-text="templateText"
-					:extra-libs="[libContent, vueHLib]"
+					:extra-libs="[libContent]"
 				/>
 			</div>
 		</a-col>

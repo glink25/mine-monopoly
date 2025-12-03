@@ -33,6 +33,7 @@ import { GameMap } from "@fatpaper-monopoly/utils/protos/game-map";
 import { loadGameMapFromFile, loadGameMapFromServer } from "@src/utils/file/game-map";
 import { base64ToArrayBuffer } from "@fatpaper-monopoly/utils";
 import { showTargetSelector } from "@src/components/common/target-seletor";
+import { showItemSelector } from "@src/components/utils/item-selector";
 
 type ServerMessageHandler<T extends SocketMsgType> = (
 	msg: SocketMessage<T, SocketMsgSource.Server>,
@@ -125,6 +126,8 @@ export function handleServerSocketMessage(msg: ServerSocketMessage, client: Mono
 		case SocketMsgType.TargetSelectDialog:
 			handleTargetSelect(msg, client);
 			break;
+		case SocketMsgType.ItemSelectDialog:
+			handleItemSelectDialog(msg, client);
 		default:
 			break;
 	}
@@ -322,7 +325,7 @@ const handleRollDiceAnimationPlay: ServerMessageHandler<SocketMsgType.RollDiceSt
 const handleRollDiceResult: ServerMessageHandler<SocketMsgType.RollDiceResult> = (msg) => {
 	const res = msg.data;
 	const utilStore = useUtil();
-	useEventBus().emit('dice-roll', res.rollDiceResult);
+	useEventBus().emit("dice-roll", res.rollDiceResult);
 	// utilStore.rollDiceResult = res.rollDiceResult;
 	utilStore.isRollDiceAnimationPlay = false;
 };
@@ -391,7 +394,7 @@ const handleTargetSelect: ServerMessageHandler<SocketMsgType.TargetSelectDialog>
 				type: SocketMsgType.Operation,
 				source: SocketMsgSource.Client,
 				data: {
-					operateType: OperateType.SelectDialogResult,
+					operateType: OperateType.TargetSelectDialogResult,
 					data: { target: res },
 				},
 			});
@@ -401,8 +404,33 @@ const handleTargetSelect: ServerMessageHandler<SocketMsgType.TargetSelectDialog>
 				type: SocketMsgType.Operation,
 				source: SocketMsgSource.Client,
 				data: {
-					operateType: OperateType.SelectDialogResult,
+					operateType: OperateType.TargetSelectDialogResult,
 					data: { target: [] },
+				},
+			});
+		});
+};
+
+const handleItemSelectDialog: ServerMessageHandler<SocketMsgType.ItemSelectDialog> = (msg, client) => {
+	const data = msg.data;
+	showItemSelector(data.option)
+		.then((res) => {
+			client.sendMsg({
+				type: SocketMsgType.Operation,
+				source: SocketMsgSource.Client,
+				data: {
+					operateType: OperateType.ItemSelectDialogResult,
+					data: { selected: res },
+				},
+			});
+		})
+		.catch(() => {
+			client.sendMsg({
+				type: SocketMsgType.Operation,
+				source: SocketMsgSource.Client,
+				data: {
+					operateType: OperateType.ItemSelectDialogResult,
+					data: { selected: "" },
 				},
 			});
 		});
