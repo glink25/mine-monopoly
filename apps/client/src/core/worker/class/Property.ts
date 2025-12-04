@@ -108,23 +108,23 @@ export class Property implements IProperty {
 	public getOriginalData = () => this.originalData;
 
 	public async levelUp() {
-		this.commandBus.execute({ type: "property.level.up", payload: {} });
+		await this.commandBus.execute({ type: "property.level.up", payload: {} });
 	}
 
 	public async levelDown() {
-		this.commandBus.execute({ type: "property.level.down", payload: {} });
+		await this.commandBus.execute({ type: "property.level.down", payload: {} });
 	}
 
 	public async setLevel(level: number) {
-		this.commandBus.execute({ type: "property.level.set", payload: { oldLevel: this.level, newLevel: level } });
+		await this.commandBus.execute({ type: "property.level.set", payload: { oldLevel: this.level, newLevel: level } });
 	}
 
 	public async setOwner(player: IPlayer | undefined) {
-		this.commandBus.execute({ type: "property.owner.change", payload: { oldOwner: this.owner, newOwner: player } });
+		await this.commandBus.execute({ type: "property.owner.change", payload: { oldOwner: this.owner, newOwner: player } });
 	}
 
 	public async arrived(player: IPlayer) {
-		this.commandBus.execute({
+		await this.commandBus.execute({
 			type: "property.arrived",
 			payload: { owner: this.owner, arrivedPlayer: player, toll: this.costList[this.level] || 0 },
 		});

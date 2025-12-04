@@ -358,7 +358,7 @@ export class GameProcess implements IGameProcess {
 						//地产是别人的
 						const ownerPlayer = this.getPlayerById(owner.id);
 						if (!ownerPlayer) return payload;
-						const passCost = property.arrived(arrivedPlayer);
+						const passCost = await property.arrived(arrivedPlayer);
 						this.messageNotify([arrivedPlayer.id], {
 							type: "error",
 							content: `你到达了${owner.name}的地皮: ${property.name}，支付了${passCost}￥过路费`,
@@ -396,7 +396,7 @@ export class GameProcess implements IGameProcess {
 					//地皮没有购买
 					//空地, 买房
 					//等待客户端回应买房
-					this.roundRemainingTimeBroadcast(0);
+					// this.roundRemainingTimeBroadcast(0);
 					const playerRes = await this.showConfirmDialog(arrivedPlayer.id, {
 						title: `购买 ${property.name}`,
 						content: `${generatePropertyHtml(property.getPropertyInfo())}`,
@@ -459,7 +459,7 @@ export class GameProcess implements IGameProcess {
 			data: undefined,
 		};
 		if (player.money > property.sellCost) {
-			property.setOwner(player);
+			await property.setOwner(player);
 			this.gameDataBroadcast();
 			this.gameMsgNotifyBroadcast("info", `${player.name} 买下了地皮 ${property.name}`);
 			this.gameLogBroadcast(
@@ -468,7 +468,7 @@ export class GameProcess implements IGameProcess {
 					property.id
 				)}`
 			);
-			player.cost(property.sellCost);
+			await player.cost(property.sellCost);
 		} else {
 			msgToSend.msg = { type: "error", content: "不够钱啊穷鬼" };
 			sendToUsers([player.id], msgToSend);
@@ -661,8 +661,7 @@ export class GameProcess implements IGameProcess {
 			if (!linkMapItem || !linkMapItem.property) return;
 			const property = this.properties.get(linkMapItem.property.id);
 			if (!property) return;
-			// let roundRemainingTime = this.gameSetting.roundTime;
-			property.arrived(arrivedPlayer);
+			await property.arrived(arrivedPlayer);
 		} else if (arriveItem.mapEventId) {
 			// 特殊地块
 			const mapEvent = this.mapEvents.get(arriveItem.mapEventId);
