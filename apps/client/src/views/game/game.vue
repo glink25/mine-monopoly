@@ -25,13 +25,14 @@ import RoundInfo from "@src/views/game/components/round-info.vue";
 import ProgressBar from "@src/views/game/components/progress-bar.vue";
 import PlayerContainer from "./components/player-container.vue";
 import { useGameData, useMapData } from "@src/store/game";
-import { CustomUI, GameMap } from "@fatpaper-monopoly/types";
+import { CustomUI, GameMap, UISchema } from "@fatpaper-monopoly/types";
 import { compileTsToJs } from "@src/utils";
 import { storeToRefs } from "pinia";
+import HtmlRender from "@src/components/utils/ui-renderer/ui-renderer.vue";
+import UiRenderer from "@src/components/utils/ui-renderer/ui-renderer.vue";
 
 //pinia仓库
-const gameInfoStore = useGameData();
-const utilStore = useUtil();
+const mapDataStore = useMapData();
 
 const windowWidth = computed(() => window.innerWidth);
 const windowHeight = computed(() => window.innerHeight);
@@ -40,10 +41,6 @@ let socketClient: MonopolyClient;
 let gameRenderer: GameRenderer | null;
 const islockingCamera = ref(true);
 const lockCameraIcon = computed(() => (islockingCamera.value ? "fa-video" : "fa-video-slash"));
-
-//动态数据部分
-const isMyTurn = computed(() => gameInfoStore.isMyTurn);
-const propertiesList = computed(() => gameInfoStore.propertiesList);
 
 function handleToggleLockCamera() {
 	if (gameRenderer) islockingCamera.value = gameRenderer.toggleLockCamera();
@@ -62,10 +59,8 @@ onMounted(async () => {
 
 		const canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
 		const container = document.getElementsByClassName("game-page")[0] as HTMLDivElement;
-		const mapData = JSON.parse(JSON.stringify(useMapData().$state)) as GameMap;
+		const mapData = JSON.parse(JSON.stringify(mapDataStore.$state)) as GameMap;
 		console.log("🚀 ~ mapData:", mapData);
-		const uiContainer = document.querySelector(".ui-container") as HTMLDivElement;
-		loadCustomUIs(uiContainer, mapData.customUIs);
 		gameRenderer = new GameRenderer(canvas, container, mapData);
 		await gameRenderer.init();
 		useLoading().showLoading("数据加载完成，等待其他玩家加载...");
@@ -77,44 +72,6 @@ onMounted(async () => {
 	}
 });
 
-function loadCustomUIs(container: HTMLDivElement, customUIs: CustomUI[]) {
-	useLoading().showLoading("加载UI中...");
-	const gameDataStore = useGameData();
-	render(null, container);
-
-	const renderList: VNode[] = [];
-
-	for (const customUI of customUIs) {
-		const initCodeCompiled = compileTsToJs(`return ${customUI.initCode}`, "");
-		const initFunction = new Function(initCodeCompiled)();
-
-		const CustomUIWrapper = {
-			name: `CustomUI_${customUI.id}`,
-			setup() {
-				return () => {
-					const vnode = initFunction(h, gameDataStore);
-					if (!isVNode(vnode)) {
-						console.error("加载地图自定义UI出错: 返回结果不是VNode!", customUI);
-						return null;
-					}
-					return h("div", { style: getCustomUIStyle(customUI.layout), class: "custom-ui-container" }, vnode);
-				};
-			},
-		};
-
-		renderList.push(h(CustomUIWrapper));
-	}
-
-	render(h(Fragment, renderList), container);
-
-	function getCustomUIStyle(layout: CustomUI["layout"]) {
-		return {
-			gridArea: `${layout.y + 1} / ${layout.x + 1} / span ${layout.height} / span ${layout.width}`,
-			zIndex: `var(--z-ui)`,
-		};
-	}
-}
-
 onBeforeUnmount(() => {
 	if (gameRenderer) gameRenderer.destroy();
 	gameRenderer = null;
@@ -125,9 +82,15 @@ onBeforeUnmount(() => {
 	<div class="game-page">
 		<canvas id="game-canvas" :width="windowWidth" :height="windowHeight"></canvas>
 		<div class="ui-container">
-			<!-- <ProgressBar /> -->
-
-			<!-- <RoundInfo /> -->
+			<UiRenderer
+				v-for="ui in mapDataStore.customUIs"
+				:schema="ui.uiSchema"
+				:context="useGameData().$state"
+				:style="{
+					gridArea: `${ui.layout.y + 1} / ${ui.layout.x + 1} / span ${ui.layout.height} / span ${ui.layout.width}`,
+					zIndex: `var(--z-ui)`,
+				}"
+			/>
 
 			<PlayerContainer />
 

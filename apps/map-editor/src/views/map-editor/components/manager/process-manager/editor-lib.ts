@@ -9,5 +9,4 @@ export type {
 	GameRoundEndContext,
 	GameEvent,
 	IGameProcess,
-	h,
 } from "@fatpaper-monopoly/types";

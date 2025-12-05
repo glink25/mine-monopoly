@@ -1,5 +1,5 @@
 import { TargetSelectType, MapEventType } from "../../enums/game/game";
-import { IPlayer, PlayerInfo, PropertyInfo } from "./game-process";
+import { IPlayer, PlayerInfo, PropertyInfo, UISchema } from "./game-process";
 
 export type SemVer = `${number}.${number}.${number}`;
 
@@ -90,5 +90,5 @@ export interface CustomUI {
 		width: number;
 		height: number;
 	};
-	initCode: string;
+	uiSchema: UISchema;
 }

@@ -2,6 +2,8 @@
 // script 部分保持不变
 import { toRaw, computed } from "vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import HtmlRenderer from "../ui-renderer/ui-renderer.vue";
+import { useGameData } from "@src/store/game";
 
 interface Prop {
 	column: number;
@@ -14,6 +16,8 @@ interface Prop {
 const props = defineProps<Prop>();
 
 const emits = defineEmits(["select", "update:selectedKey"]);
+
+const gameDataStore = useGameData();
 
 const isItemSelected = (itemId: string): boolean => {
 	if (props.multiple) {
@@ -62,7 +66,9 @@ function handleItemClick(item: any) {
 				<FontAwesomeIcon icon="check" />
 			</div>
 
-			<div v-if="item.display" class="item-display-html" v-html="item.display"></div>
+			<div v-if="item.display" class="item-display-html">
+				<html-renderer :schema="item.display" :context="useGameData().$state" />
+			</div>
 
 			<slot v-else name="item" v-bind="item"></slot>
 		</div>
@@ -72,14 +78,14 @@ function handleItemClick(item: any) {
 <style lang="scss" scoped>
 .item-selector {
 	display: grid;
-	gap: 20px;
-	padding: 10px;
+	gap: 1.6rem;
+	padding: 0.7rem;
 
 	& > .items {
 		position: relative;
 		background-color: #ffffff;
 		border-radius: 0.8rem;
-		border: 2px solid #e0e0e0;
+		border: 0.2rem solid #e0e0e0;
 		cursor: pointer;
 		transition: all 0.3s ease-out;
 		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -102,13 +108,14 @@ function handleItemClick(item: any) {
 			position: absolute;
 			top: 0.1rem;
 			right: 0.1rem;
-			width: 2rem;
-			height: 2rem;
+			max-width: 2rem;
+			max-height: 2rem;
+			height: calc(60%);
+			aspect-ratio: 1;
 			display: flex;
 			align-items: center;
 			justify-content: center;
 
-			font-size: 1rem;
 			color: #ffffff;
 			background-color: var(--color-primary); // 主题色背景
 			border-radius: 50%; // 保持圆角一致性
@@ -119,7 +126,7 @@ function handleItemClick(item: any) {
 			width: 100%;
 			height: 100%;
 			display: flex;
-			padding: .5rem;
+			padding: 0.5rem;
 			align-items: center;
 			justify-content: center;
 			text-align: center;

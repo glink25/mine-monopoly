@@ -1,3 +1,0 @@
-((_h, gameData) => {
-	return _h()
-}) as (_h: h, gameData: GameData) => VNode;

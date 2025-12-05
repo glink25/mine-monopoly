@@ -3,10 +3,16 @@ import * as monaco from "monaco-editor";
 import { ref, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
 import loader from "@monaco-editor/loader";
 
-const props = defineProps<{
-	templateText: string;
-	extraLibs?: string[];
-}>();
+const props = withDefaults(
+	defineProps<{
+		templateText: string;
+		extraLibs?: string[];
+		language?: "typescript" | "javascript" | "html" | string;
+	}>(),
+	{
+		language: "typescript",
+	}
+);
 
 const code = defineModel<string>();
 
@@ -19,14 +25,17 @@ const initEditor = async () => {
 		loader.config({ monaco });
 		const monacoInstance = await loader.init();
 
-		// 设置额外声明
-		props.extraLibs &&
+		// 设置额外声明 (仅对 TS/JS 有效，HTML 模式下的 script 标签支持有限)
+		if (props.extraLibs) {
 			monacoInstance.languages.typescript.typescriptDefaults.setExtraLibs(props.extraLibs.map((s) => ({ content: s })));
+		}
 
 		editor = monacoInstance.editor.create(containerRef.value, {
 			value: code.value && code.value !== "" ? code.value : props.templateText || "",
-			language: "typescript",
+			language: props.language,
 			minimap: { enabled: false },
+			wordWrap: "on",
+			theme: "vs",
 		});
 
 		// --- 双向绑定：编辑器 -> code ---
@@ -42,6 +51,18 @@ watch(code, (newValue) => {
 		editor.setValue(newValue || "");
 	}
 });
+
+watch(
+	() => props.language,
+	(newLang) => {
+		if (editor) {
+			const model = editor.getModel();
+			if (model) {
+				monaco.editor.setModelLanguage(model, newLang);
+			}
+		}
+	}
+);
 
 onMounted(async () => {
 	await nextTick();

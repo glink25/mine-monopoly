@@ -1,7 +1,6 @@
 // utils/item-selector/index.ts
 import { createVNode, render, getCurrentInstance, type AppContext } from "vue";
 import SelectorModal from "./selector-modal.vue";
-import { VNode } from "@fatpaper-monopoly/types";
 
 interface SelectorOptions<T = any> {
 	title?: string;

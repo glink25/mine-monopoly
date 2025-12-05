@@ -154,10 +154,22 @@ interface ItemSelectDialogOption<T = SelectorItem> extends Omit<DialogOption, "c
 }
 interface SelectorItem {
 	id: string;
-	display: string;
+	display: UISchema;
 }
 interface ItemSelectDialogResult {
 	selected: string | string[];
+}
+interface UISchema {
+	id: string;
+	type: "div" | "span" | "img" | "button" | "text";
+	vFor?: string;
+	vShow?: string;
+	styleBinding?: Record<string, string>;
+	style?: Record<string, string>;
+	props?: Record<string, any>;
+	content?: string;
+	textBinding?: string;
+	children?: UISchema[];
 }
 declare enum GamePhaseMark {
 	GameRoundStart = 0,
@@ -897,5 +909,5 @@ interface CustomUI {
 		width: number;
 		height: number;
 	};
-	initCode: string;
+	uiSchema: UISchema;
 }
