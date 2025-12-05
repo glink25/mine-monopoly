@@ -6,6 +6,7 @@ interface DialogOption {
 	content: string;
 	confirmText?: string;
 	cancelText?: string;
+	closable?: boolean;
 }
 
 // 目标选择Dialog

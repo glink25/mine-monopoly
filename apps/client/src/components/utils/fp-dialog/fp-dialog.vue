@@ -10,12 +10,14 @@ const visible = defineModel<boolean>("visible", { default: false });
 
 const props = withDefaults(
 	defineProps<{
+		closable?: boolean;
 		submitDisable?: boolean;
 		hiddenFooter?: boolean;
 		style?: CSSProperties | string; // 兼容字符串和对象写法
 		appendToBody?: boolean; // 可选：是否传送到 body
 	}>(),
 	{
+		closable: true,
 		submitDisable: false,
 		hiddenFooter: false,
 		style: "",
@@ -30,12 +32,11 @@ const emits = defineEmits<{
 
 function handleSubmit() {
 	emits("submit");
-	// 注意：通常提交后是否关闭弹窗应由父组件控制（例如等待接口返回）
-	// 这里保留你原本的逻辑，直接关闭
 	visible.value = false;
 }
 
 function closeDialog() {
+	if (!props.closable) return;
 	emits("cancel");
 	visible.value = false;
 }
@@ -52,7 +53,7 @@ function closeDialog() {
 						<div class="title">
 							<slot name="title">默认标题</slot>
 						</div>
-						<button class="close-button" @click="closeDialog">
+						<button v-if="closable" class="close-button" @click="closeDialog">
 							<FontAwesomeIcon icon="close" />
 						</button>
 					</div>

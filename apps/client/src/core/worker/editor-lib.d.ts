@@ -118,6 +118,7 @@ interface DialogOption {
 	content: string;
 	confirmText?: string;
 	cancelText?: string;
+	closable?: boolean;
 }
 interface TargetSelectDialogOption<I extends TargetSelectType> extends DialogOption {
 	type: I;
