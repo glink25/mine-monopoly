@@ -68,7 +68,7 @@ onBeforeMount(() => {
 
 function resizeContainer() {
 	const topBarHeight = 30;
-	const availableHeight = window.innerHeight - (useDeviceStatus().isFullScreen ? 0 : topBarHeight);
+	const availableHeight = window.innerHeight - (useDeviceStatus().isFullScreen || !isPC() ? 0 : topBarHeight);
 	const availableWidth = window.innerWidth;
 	const ratio = 16 / 10;
 	const fontSizeBase = 0.0115;
