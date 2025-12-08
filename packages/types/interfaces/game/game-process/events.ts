@@ -3,6 +3,7 @@ import { GamePhaseMark, EventTiggerTime } from "../../../../types/enums/game/gam
 import { PropertyInfo } from "./infos"; // 引用 infos
 import { IPlayer } from "./entities"; // 引用 entities
 import { IGameProcess } from "./core"; // 引用 core
+import { DiceResult } from "../util";
 
 // Host服务端 Worker
 export type GameContext = {
@@ -54,7 +55,7 @@ export interface PlayerRoundContext extends GameContext {
 export interface PlayerRoundStartContext extends PlayerRoundContext {}
 
 export interface RollDiceContext extends PlayerRoundStartContext {
-    dice: number[];
+    diceResult: DiceResult[];
 }
 
 export interface PlayerMoveContext extends RollDiceContext {

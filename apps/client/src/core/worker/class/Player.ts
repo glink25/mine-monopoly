@@ -1,9 +1,11 @@
 import {
 	Buff,
+	DiceResult,
 	GameContext,
 	GamePhaseInfo,
 	IChanceCard,
 	ICommandBus,
+	IDice,
 	IGamePhase,
 	IGameProcess,
 	IModifier,
@@ -21,6 +23,7 @@ import GameProcessTypes from "../editor-lib.d.ts?raw";
 import { CommandBus } from "./action-system/CommandBus";
 import { ModifierManager } from "./action-system/ModifiersManager";
 import Dice from "./Dice";
+import { clone } from "lodash";
 
 export class Player implements IPlayer {
 	public id: string;
@@ -39,7 +42,7 @@ export class Player implements IPlayer {
 	public roundPhases: IGamePhase<GameContext>[] = [];
 	public modifierManager: IModifierManager<PlayerCommandMap>;
 	public commandBus: ICommandBus<PlayerCommandMap>;
-	public dices: Dice[];
+	public dices: IDice[];
 
 	private user: UserInRoomInfo;
 	private roleInitFunction: (player: IPlayer, gameProcess: IGameProcess) => void;
@@ -139,6 +142,19 @@ export class Player implements IPlayer {
 		this.commandBus.setHandler("player.dice.roll", (payload) => {
 			const { dices } = payload;
 			return { diceResult: dices.map((d) => d.roll()) };
+		});
+
+		this.commandBus.setHandler("player.dice.add", (payload) => {
+			const { newDice } = payload;
+			this.dices.push(newDice);
+			return { diceId: newDice.id };
+		});
+
+		this.commandBus.setHandler("player.dice.remove", (payload) => {
+			const { diceId } = payload;
+			const removeDice = this.dices.find((d) => d.id === diceId);
+			if (removeDice) return { removeDice };
+			else return { removeDice: undefined };
 		});
 	}
 
@@ -259,8 +275,18 @@ export class Player implements IPlayer {
 		await this.commandBus.execute({ type: "player.tp", payload: { positionIndex } });
 	}
 
-	public async rollDices(): Promise<number[]> {
-		return (await this.commandBus.execute({ type: "player.dice.roll", payload: { dices: this.dices } })).diceResult;
+	public async rollDices(): Promise<DiceResult[]> {
+		return (await this.commandBus.execute({ type: "player.dice.roll", payload: { dices: clone(this.dices) } }))
+			.diceResult;
+	}
+
+	public async addDice(diceValue?: number[]) {
+		return (await this.commandBus.execute({ type: "player.dice.add", payload: { newDice: new Dice(diceValue) } }))
+			.diceId;
+	}
+
+	public async removeDice(id: string) {
+		return (await this.commandBus.execute({ type: "player.dice.remove", payload: { diceId: id } })).removeDice;
 	}
 
 	public registerModifier(modifier: IModifier<PlayerCommandMap>) {

@@ -12,14 +12,20 @@ export interface IRoundTimeTimer {
 
 export interface IDice extends DiceInfo {
 	addDiceprophecy(prophecy: number): void;
-	roll(): number;
+	setDiceValues(values: number[]): void;
+	roll(): DiceResult;
 	getInfo(): DiceInfo;
 }
 
 export interface DiceInfo {
-	min: number;
-	max: number;
+	id: string;
+	diceValues: number[];
 	diceProphecyQueue: number[];
+}
+
+export interface DiceResult {
+	diceValues: number[];
+	result: number;
 }
 
 export type ComponentType = "number-input" | "select";

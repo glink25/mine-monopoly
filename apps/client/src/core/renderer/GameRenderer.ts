@@ -1,8 +1,7 @@
 import * as THREE from "three";
-
 import gsap from "gsap";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { ChanceCardInfo, MapItemType, MapItem, PlayerInfo, PropertyInfo, GameMap } from "@fatpaper-monopoly/types";
+import { ChanceCardInfo, MapItemType, MapItem, PlayerInfo, PropertyInfo, GameMap, DiceResult } from "@fatpaper-monopoly/types";
 import { useDeviceStatus, useLoading, useSettig, useUserInfo } from "@src/store";
 import { Component, ComponentPublicInstance, createApp, toRaw, watch, WatchStopHandle } from "vue";
 import { loadItemTypeModules } from "@src/utils/three/itemtype-loader";
@@ -31,7 +30,6 @@ import { clone } from "lodash";
 import { getDracoLoader } from "@src/utils/draco/draco";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
-const BLOCK_HEIGHT = 0.09;
 const PLAY_MODEL_SIZE = 0.7;
 const loadingMask = useLoading();
 
@@ -67,7 +65,6 @@ export class GameRenderer {
 		string,
 		{
 			InfoWatcher: WatchStopHandle | undefined;
-			// moneyWatcher: WatchStopHandle | undefined;
 			bankruptWatcher: WatchStopHandle | undefined;
 		}
 	> = new Map();
@@ -317,6 +314,7 @@ export class GameRenderer {
 			this.mapItemsInScene.set(mapItem.id, mapItemModel);
 			this.mapContainer.add(mapItemModel);
 
+			// [修改] 如果有事件图标，需要计算当前格子的表面高度来放置图标
 			if (mapItem.mapEventId) {
 				const arrivedEvent = useMapData().getMapEventById(mapItem.mapEventId);
 				if (!arrivedEvent) return;
@@ -335,7 +333,11 @@ export class GameRenderer {
 				iconPlane.rotateX(-Math.PI / 2);
 				this.arrivedEventIcons.set(arrivedEvent.id, iconPlane);
 				this.mapContainer.add(iconPlane);
-				this.setItemPositionOnMap(iconPlane, mapItem.x, mapItem.y, 0, BLOCK_HEIGHT + 0.01);
+
+				// 获取格子表面高度
+				const surfaceY = this.getMapItemSurfaceHeight(mapItemModel);
+				// 放在表面上方一点点，防止 Z-fighting
+				this.setItemPositionOnMap(iconPlane, mapItem.x, mapItem.y, 0, surfaceY + 0.01);
 			}
 		}
 	}
@@ -463,9 +465,13 @@ export class GameRenderer {
 					ease: "back.in(1.7)",
 				});
 
-				// 3. 执行位移 (瞬间)
-				const { x, y, z } = this.getMapItemPosition(positionIndex);
-				model.position.set(x, y + BLOCK_HEIGHT, z);
+				// 3. 执行位移 (瞬间) - 修复高度问题
+				const mapItem = this.getMapItem(positionIndex);
+				if (mapItem) {
+					const { x, z } = mapItem.position;
+					const surfaceY = this.getMapItemSurfaceHeight(mapItem);
+					model.position.set(x, surfaceY, z);
+				}
 				this.playerPosition.set(tpPlayerId, positionIndex);
 
 				// 4. 出现动画
@@ -493,7 +499,7 @@ export class GameRenderer {
 			this.updateBuilding(useGameData().getPropertyById(propertyId)!);
 		});
 
-		useEventBus().on("dice-roll", async (diceRes: number[]) => {
+		useEventBus().on("dice-roll", async (diceRes: DiceResult[]) => {
 			if (!this.diceManager) return;
 			this.diceManager.setDiceCount(diceRes.length);
 			this.isRenderDice = true;
@@ -649,6 +655,9 @@ export class GameRenderer {
 		const targetMapItemModel = this.mapItemsInScene.get(targetMapItem?.id);
 		if (!targetMapItemModel) return;
 
+		// [修改] 获取目标格子的表面高度
+		const surfaceY = this.getMapItemSurfaceHeight(targetMapItemModel);
+
 		const modelIdList = newProperty.buildingModelIdList ?? mapInfo.buildingModelIdList;
 		if (!modelIdList || modelIdList.length === 0) return;
 		const getModel = (index: number) => {
@@ -660,7 +669,8 @@ export class GameRenderer {
 		if (!buildModel) return;
 		const propertyBuildModel = buildModel.clone();
 		propertyBuildModel.position.copy(targetMapItemModel.position);
-		propertyBuildModel.position.y += BLOCK_HEIGHT;
+		// [修改] 设置为表面高度，替代 BLOCK_HEIGHT
+		propertyBuildModel.position.y = surfaceY;
 		propertyBuildModel.scale.copy(targetMapItemModel.scale);
 		propertyBuildModel.userData = { ...newProperty, isProperty: true };
 		propertyBuildModel.traverse((object) => {
@@ -698,9 +708,13 @@ export class GameRenderer {
 			if (item.linkto === targetMapItem.id) return true;
 		});
 		if (linkMapItem && this.mapItemsInScene.has(linkMapItem.id)) {
+			const linkItem = this.mapItemsInScene.get(linkMapItem.id)!;
+			// [修改] LookAt 的高度也基于目标表面
+			const linkSurfaceY = this.getMapItemSurfaceHeight(linkItem);
+
 			const lookat = new THREE.Vector3();
-			lookat.copy(this.mapItemsInScene.get(linkMapItem.id)!.position);
-			lookat.setY(BLOCK_HEIGHT);
+			lookat.copy(linkItem.position);
+			lookat.setY(linkSurfaceY);
 			propertyBuildModel.lookAt(lookat);
 			propertyBuildModel.rotateY(-Math.PI / 2);
 		}
@@ -768,8 +782,11 @@ export class GameRenderer {
 					currentAnimation && currentAnimation.kill();
 					const endMapItem = this.getMapItem(endIndex);
 					if (endMapItem) {
-						const { x, y, z } = endMapItem.position;
-						playerModule.position.set(x, y + BLOCK_HEIGHT, z);
+						// [修改] 获取动态高度
+						const surfaceY = this.getMapItemSurfaceHeight(endMapItem);
+						const { x, z } = endMapItem.position;
+
+						playerModule.position.set(x, surfaceY, z);
 						if (playerBody) {
 							playerBody.scale.y = 1;
 							playerBody.scale.x = Math.sign(playerBody.scale.x);
@@ -787,6 +804,9 @@ export class GameRenderer {
 					currentAnimation = gsap.timeline();
 					const duration = 0.5;
 
+					// [修改] 获取下一个格子的动态高度
+					const nextSurfaceY = this.getMapItemSurfaceHeight(nextMapItem);
+
 					// --- 1. 方向翻转 ---
 					if (playerBody) {
 						let targetDir = Math.sign(playerBody.scale.x);
@@ -796,13 +816,13 @@ export class GameRenderer {
 						currentAnimation.to(playerBody.scale, { x: targetDir, duration: 0.1 }, 0);
 					}
 
-					// --- 2. 整体位移 ---
-					const { x, y, z } = nextMapItem.position;
+					// --- 2. 整体位移 [修改] ---
+					const { x, z } = nextMapItem.position;
 					currentAnimation.to(
 						playerModule.position,
 						{
 							x,
-							y: y + BLOCK_HEIGHT,
+							y: nextSurfaceY, // [修改] 使用计算出的高度
 							z,
 							duration: duration,
 							ease: "power2.inOut",
@@ -888,10 +908,16 @@ export class GameRenderer {
 	}
 
 	private updatePlayerPosition(playerInfo: PlayerInfo) {
-		const { x, y, z } = this.getMapItemPosition(playerInfo.positionIndex);
+		const mapItem = this.getMapItem(playerInfo.positionIndex);
+		if (!mapItem) return;
+
+		const surfaceY = this.getMapItemSurfaceHeight(mapItem);
+		const { x, z } = mapItem.position;
+
 		const player = this.playerEntities.get(playerInfo.id);
 		if (!player) return;
-		player.model.position.set(x, y + BLOCK_HEIGHT, z);
+		// 使用动态高度
+		player.model.position.set(x, surfaceY, z);
 	}
 
 	private getMapItemPosition(index: number) {
@@ -909,6 +935,38 @@ export class GameRenderer {
 		const mapIndex = useMapData().mapIndex;
 		const id = mapIndex[index];
 		return this.mapItemsInScene.get(id);
+	}
+
+	/**
+	 * 获取指定 MapItem 模型的表面高度 (世界坐标 Y)
+	 * 优先查找名为 'Floor'/'Base'/'Ground' 的子Mesh作为地面基准
+	 * @param mapItem 格子的 Group 对象
+	 */
+	private getMapItemSurfaceHeight(mapItem: THREE.Object3D): number {
+		if (!mapItem) return 0;
+
+		let target: THREE.Object3D | null = null;
+		// 1. 尝试寻找明确标记为地面的子对象
+		mapItem.traverse((child) => {
+			const name = child.name.toLowerCase();
+			if (name.includes("floor") || name.includes("base") || name.includes("ground")) {
+				// 简单的启发式：通常地面是 Mesh
+				//@ts-ignore
+				if (child.isMesh) {
+					target = child;
+				}
+			}
+		});
+
+		// 2. 如果没找到特定地面，就计算整体包围盒
+		if (!target) target = mapItem;
+
+		const box = new THREE.Box3().setFromObject(target);
+
+		// 3. 安全检查：如果包围盒无效，回退到物体原点
+		if (box.isEmpty()) return mapItem.position.y;
+
+		return box.max.y;
 	}
 
 	private getGroupCenter(group: THREE.Group) {
@@ -930,9 +988,14 @@ export class GameRenderer {
 	private breakUpPlayersInSameMapItem() {
 		const playersList = useGameData().playersList;
 		groupByPositionIndex(playersList).forEach((a) => {
+			const positionIndex = a[0].positionIndex;
+			const mapItem = this.getMapItem(positionIndex);
+			if (!mapItem) return;
+
+			const { x, z } = mapItem.position;
+			const surfaceY = this.getMapItemSurfaceHeight(mapItem);
+
 			if (a.length > 1) {
-				const positionIndex = a[0].positionIndex;
-				const { x, y, z } = this.getMapItemPosition(positionIndex);
 				const offsetArr = generateCirclePointsOffset(x, z, 0.5, a.length);
 				offsetArr.forEach((offset, index) => {
 					const playerEntity = this.getPlayerEntity(a[index].id);
@@ -940,6 +1003,8 @@ export class GameRenderer {
 						// 使用初始位置减去偏移量
 						playerEntity.model.position.x = x + offset.offsetX;
 						playerEntity.model.position.z = z + offset.offsetY;
+						playerEntity.model.position.y = surfaceY;
+
 						const scale = 1 - 1 / a.length;
 
 						gsap.to(playerEntity.model.scale, {
@@ -952,10 +1017,8 @@ export class GameRenderer {
 			} else {
 				const playerEntity = this.getPlayerEntity(a[0].id);
 				if (playerEntity) {
-					const positionIndex = a[0].positionIndex;
-					const { x, y, z } = this.getMapItemPosition(positionIndex);
 					playerEntity.model.position.setX(x);
-					playerEntity.model.position.setY(y + BLOCK_HEIGHT);
+					playerEntity.model.position.setY(surfaceY); // [关键修改]
 					playerEntity.model.position.setZ(z);
 					gsap.to(playerEntity.model.scale, {
 						x: Math.sign(playerEntity.model.scale.x),
@@ -1018,10 +1081,6 @@ export class GameRenderer {
 		position.copy(playerEntity.model.position);
 
 		const { css2DObject, appInstance, unmount } = createCSS2DObjectFromVue(component, props);
-
-		// position.x += playerEntity.size * (Math.random() - 0.5) * 0.1;
-		// position.y += playerEntity.size / 2;
-		// position.z += playerEntity.size * (Math.random() - 0.5) * 0.1;
 		css2DObject.position.copy(position);
 		this.scene.add(css2DObject);
 		if (delay)
@@ -1066,34 +1125,3 @@ function createCSS2DObjectFromVue(rootComponent: Component, rootProps?: Record<s
 	// 返回CSS2DObject
 	return { css2DObject, appInstance, containerEl, unmount };
 }
-
-// function createTextSprite(text: string, fontSize: number, color: string, strokeWidth: number) {
-// 	const canvas = document.createElement("canvas");
-// 	const resolution = 10;
-// 	const h = fontSize * resolution;
-// 	const w = fontSize * resolution;
-// 	canvas.width = w;
-// 	canvas.height = h;
-// 	const c = canvas.getContext("2d") as CanvasRenderingContext2D;
-// 	// 文字
-// 	c.beginPath();
-// 	c.translate(w / 2, h / 2);
-// 	c.fillStyle = color;
-// 	c.font = `bold ${fontSize}px ContentFont`;
-// 	c.textBaseline = "middle";
-// 	c.textAlign = "center";
-// 	c.lineWidth = strokeWidth;
-// 	c.strokeStyle = "#fff";
-// 	c.strokeText(text, 0, 0);
-// 	c.fillText(text, 0, 0);
-// 	const texture = new Texture(canvas);
-// 	texture.needsUpdate = true;
-// 	texture.colorSpace = THREE.SRGBColorSpace;
-// 	const material = new SpriteMaterial({
-// 		map: texture,
-// 		depthWrite: false,
-// 		transparent: true,
-// 		side: DoubleSide,
-// 	});
-// 	return new Sprite(material);
-// }

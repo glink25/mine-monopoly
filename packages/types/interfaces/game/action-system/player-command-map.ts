@@ -1,5 +1,5 @@
 import { IChanceCard, IPlayer, IProperty } from "../game-process";
-import { IDice } from "../util";
+import { DiceResult, IDice } from "../util";
 import { ICommandMap } from "./command";
 
 export interface PlayerCommandMap extends ICommandMap {
@@ -61,6 +61,16 @@ export interface PlayerCommandMap extends ICommandMap {
 	// 骰子
 	"player.dice.roll": {
 		payload: { dices: IDice[] };
-		result: { diceResult: number[] };
+		result: { diceResult: DiceResult[] };
+	};
+
+	"player.dice.add": {
+		payload: { newDice: IDice };
+		result: { diceId: string };
+	};
+
+	"player.dice.remove": {
+		payload: { diceId: string };
+		result: { removeDice: IDice | undefined };
 	};
 }

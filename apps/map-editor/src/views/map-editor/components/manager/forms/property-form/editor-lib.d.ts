@@ -28,13 +28,18 @@ interface IRoundTimeTimer {
 }
 interface IDice extends DiceInfo {
 	addDiceprophecy(prophecy: number): void;
-	roll(): number;
+	setDiceValues(values: number[]): void;
+	roll(): DiceResult;
 	getInfo(): DiceInfo;
 }
 interface DiceInfo {
-	min: number;
-	max: number;
+	id: string;
+	diceValues: number[];
 	diceProphecyQueue: number[];
+}
+interface DiceResult {
+	diceValues: number[];
+	result: number;
 }
 type ComponentType = "number-input" | "select";
 interface SelectOption {
@@ -352,7 +357,23 @@ interface PlayerCommandMap extends ICommandMap {
 			dices: IDice[];
 		};
 		result: {
-			diceResult: number[];
+			diceResult: DiceResult[];
+		};
+	};
+	"player.dice.add": {
+		payload: {
+			newDice: IDice;
+		};
+		result: {
+			diceId: string;
+		};
+	};
+	"player.dice.remove": {
+		payload: {
+			diceId: string;
+		};
+		result: {
+			removeDice: IDice | undefined;
 		};
 	};
 }
@@ -579,7 +600,7 @@ interface SocketMessageDataType {
 	[SocketMsgType.RollDiceResult]: {
 		client: never;
 		server: {
-			rollDiceResult: number[];
+			rollDiceResult: DiceResult[];
 			rollDicePlayerId: string;
 		};
 	};
@@ -789,7 +810,9 @@ interface IPlayer {
 	setBankrupted: (isBankrupted: boolean) => void;
 	walk: (step: number) => Promise<void>;
 	tp: (positionIndex: number) => Promise<void>;
-	rollDices: () => Promise<number[]>;
+	rollDices: () => Promise<DiceResult[]>;
+	addDice: (diceValue?: number[]) => Promise<string>;
+	removeDice: (id: string) => Promise<IDice | undefined>;
 	commandBus: ICommandBus<PlayerCommandMap>;
 	registerModifier<K extends keyof PlayerCommandMap>(modifier: IModifier<PlayerCommandMap, K>): void;
 	getPlayerInfo: () => PlayerInfo;

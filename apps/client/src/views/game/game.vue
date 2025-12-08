@@ -12,7 +12,7 @@ import {
 	render,
 	Fragment,
 } from "vue";
-import { GameRenderer } from "@src/core/game/GameRenderer";
+import { GameRenderer } from "@src/core/renderer/GameRenderer";
 import { useLoading, useRoomInfo, useUtil } from "@src/store";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import router from "@src/router/index";

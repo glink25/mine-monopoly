@@ -1,12 +1,22 @@
 import { DiceInfo, IDice } from "@fatpaper-monopoly/types";
+import { clone, result } from "lodash";
 
 class Dice implements IDice {
-	public min: number = 1;
-	public max: number = 6;
+	public id: string;
+	public diceValues: number[] = [1, 2, 3, 4, 5, 6];
 	public diceProphecyQueue: number[] = [];
+
+	constructor(diceValues?: number[]) {
+		this.id = crypto.randomUUID();
+		diceValues && this.setDiceValues(diceValues);
+	}
 
 	public addDiceprophecy(prophecy: number) {
 		this.diceProphecyQueue.push(prophecy);
+	}
+
+	public setDiceValues(values: number[]): void {
+		this.diceValues = clone(values);
 	}
 
 	public roll() {
@@ -15,22 +25,19 @@ class Dice implements IDice {
 		if (this.diceProphecyQueue.length > 0) {
 			r = this.diceProphecyQueue.shift() as number;
 		} else {
-			r = this.getRandomInteger(1, 6);
+			r = this.getRandomInteger();
 		}
-		// 纠正
-		r = Math.max(r, this.min);
-		r = Math.min(r, this.max);
-		return r;
+		return { diceValues: this.diceValues, result: r };
 	}
 
-	private getRandomInteger(min: number, max: number) {
-		return Math.floor(Math.random() * (max - min + 1)) + min;
+	private getRandomInteger() {
+		return this.diceValues[Math.floor(Math.random() * this.diceValues.length)];
 	}
 
 	public getInfo(): DiceInfo {
 		return {
-			min: this.min,
-			max: this.max,
+			id: this.id,
+			diceValues: this.diceValues,
 			diceProphecyQueue: this.diceProphecyQueue,
 		};
 	}

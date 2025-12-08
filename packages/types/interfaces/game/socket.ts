@@ -16,6 +16,7 @@ import {
 	TargetSelectDialogResult,
 } from "./game-process";
 import { Role, User } from "./item";
+import { DiceResult } from "./util";
 
 export type MonopolyWebSocketMsg = {
 	type: MonopolyWebSocketMsgType;
@@ -163,7 +164,7 @@ export interface SocketMessageDataType {
 	[SocketMsgType.RollDiceResult]: {
 		client: never;
 		server: {
-			rollDiceResult: number[];
+			rollDiceResult: DiceResult[];
 			rollDicePlayerId: string;
 		};
 	};
