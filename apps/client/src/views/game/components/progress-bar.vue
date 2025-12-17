@@ -6,7 +6,7 @@ import { __PROTOCOL__ } from "@src/../global.config";
 import { useRoomInfo } from "@src/store";
 import { useGameData } from "@src/store/game";
 
-const playerList = computed(() => useGameData().playersList);
+const playerList = computed(() => useGameData().players);
 const overMoney = computed(() => useRoomInfo().gameSetting.overMoney);
 
 function getBlockHeight(money: number) {

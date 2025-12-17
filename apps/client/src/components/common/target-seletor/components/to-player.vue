@@ -10,7 +10,7 @@ const selectedTargetIdList = inject<Ref<string[]>>("targetIdList", ref<string[]>
 const gameInfoStore = useGameData();
 
 const targetPlayerList = computed(() => {
-	return gameInfoStore.playersList.filter((p) => p.isBankrupted === false);
+	return gameInfoStore.players.filter((p) => p.isBankrupted === false);
 });
 
 function handlePlayerCardClick(playerId: string) {

@@ -1,13 +1,10 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import path from "path";
-import { visualizer } from "rollup-plugin-visualizer";
 import viteCompression from "vite-plugin-compression";
-import externalGlobals from "rollup-plugin-external-globals";
-import { manifestGenerator } from "./build/plugins/vite-plugin-manifest";
 import electron from "vite-plugin-electron/simple";
-import generateDTS from "./src/plugins/vite-plugin-generate-dts";
 import pkg from "./package.json";
+import generateMonacoDTS from "./plugins/vite-plugin-generate-monaco-dts";
 
 const APP_VERSION_SHORT = pkg.version.split(".").slice(0, 2).join(".");
 
@@ -23,7 +20,7 @@ export default defineConfig(({ command }) => {
 		},
 		plugins: [
 			vue(),
-			generateDTS(),
+			generateMonacoDTS(),
 			viteCompression(),
 			electron({
 				main: {

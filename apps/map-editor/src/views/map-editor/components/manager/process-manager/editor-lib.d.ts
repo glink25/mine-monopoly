@@ -60,14 +60,14 @@ interface FormSchema {
 	options?: SelectOption[];
 }
 interface GameData {
-	extra: {
+	exportData: {
 		[key: string]: any;
 	};
 	currentPlayerIdInRound: string;
 	currentRound: number;
 	currentMultiplier: number;
-	playersList: PlayerInfo[];
-	propertiesList: PropertyInfo[];
+	players: PlayerInfo[];
+	properties: PropertyInfo[];
 	isGameOver: boolean;
 }
 interface PlayerInfo {
@@ -738,6 +738,21 @@ interface PlayerOperationResult {
 	[OperateType.TargetSelectDialogResult]: TargetSelectDialogResult<TargetSelectType>;
 	[OperateType.ItemSelectDialogResult]: ItemSelectDialogResult;
 }
+declare type EventType = string | symbol;
+declare type Handler<T = unknown> = (event: T) => void;
+declare type WildcardHandler<T = Record<string, unknown>> = (type: keyof T, event: T[keyof T]) => void;
+declare type EventHandlerList<T = unknown> = Array<Handler<T>>;
+declare type WildCardEventHandlerList<T = Record<string, unknown>> = Array<WildcardHandler<T>>;
+declare type EventHandlerMap<Events extends Record<EventType, unknown>> = Map<keyof Events | "*", EventHandlerList<Events[keyof Events]> | WildCardEventHandlerList<Events>>;
+interface Emitter<Events extends Record<EventType, unknown>> {
+	all: EventHandlerMap<Events>;
+	on<Key extends keyof Events>(type: Key, handler: Handler<Events[Key]>): void;
+	on(type: "*", handler: WildcardHandler<Events>): void;
+	off<Key extends keyof Events>(type: Key, handler?: Handler<Events[Key]>): void;
+	off(type: "*", handler: WildcardHandler<Events>): void;
+	emit<Key extends keyof Events>(type: Key, event: Events[Key]): void;
+	emit<Key extends keyof Events>(type: undefined extends Events[Key] ? Key : never): void;
+}
 interface GameSetting {
 	[key: string]: {
 		label: string;
@@ -746,7 +761,9 @@ interface GameSetting {
 	};
 }
 interface IGameProcess {
+	eventBus: Emitter<GameRuntimeEvent>;
 	extraData: Record<string, any>;
+	exportData: Record<string, any>;
 	mapData: GameMap;
 	gameSetting: GameSetting;
 	players: Map<string, IPlayer>;
@@ -905,6 +922,24 @@ interface PlayerRoundEndContext extends ArrivedEventContext {
 }
 interface GameRoundEndContext extends GameContext {
 }
+type GameRuntimeEvent = {
+	"game-round-start": void;
+	"game-round-end": void;
+	"player-round-start": {
+		player: IPlayer;
+	};
+	"player-round-end": {
+		player: IPlayer;
+	};
+	"player-arrived": {
+		positionIndex: number;
+		player: IPlayer;
+	};
+	"player-passed": {
+		passedMapItemsId: string[];
+		player: IPlayer;
+	};
+} & Record<string, any>;
 type SemVer = `${number}.${number}.${number}`;
 interface GameMapInfo {
 	name: string;

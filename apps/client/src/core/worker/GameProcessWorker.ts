@@ -2,9 +2,7 @@ import { OperateListener } from "./class/OperateListener";
 import { WorkerCommMsg } from "@src/interfaces/worker";
 import { WorkerCommType } from "@src/enums/worker";
 import {
-	ChanceCardClientInfo,
 	ChanceCardInfo,
-	ChanceCardInstanceInfo,
 	TargetSelectType,
 	ConfirmDialogOption,
 	ConfirmDialogResult,
@@ -35,9 +33,9 @@ import {
 	ItemSelectDialogOption,
 	ItemSelectDialogResult,
 	MessageCardOption,
+	GameRuntimeEvent,
 } from "@fatpaper-monopoly/types";
 
-import Dice from "./class/Dice";
 import { RoundTimeTimer } from "./class/RoundTimeTimer";
 import { Player } from "./class/Player";
 import { Property } from "./class/Property";
@@ -47,6 +45,8 @@ import { GamePhase } from "@src/core/worker/class/GamePhase";
 import { GameRuntimeStack } from "@src/core/worker/class/GameRuntimeStack";
 import GameProcessTypes from "./editor-lib.d.ts?raw";
 import { generatePropertyHtml } from "@src/utils/html";
+import mitt from "mitt";
+import type { Emitter } from "mitt";
 
 const operationListener = new OperateListener();
 let gameProcess: GameProcess | null = null;
@@ -99,12 +99,15 @@ function sendToUsers(userIdList: string[], msg: ServerSocketMessage) {
 (async () => {})();
 
 export class GameProcess implements IGameProcess {
+	public eventBus: Emitter<GameRuntimeEvent> = mitt<GameRuntimeEvent>();
 	public extraData: Record<string, any> = {};
-	private startTime: number = Date.now();
+	public exportData: Record<string, any> = {};
 
 	public mapData: GameMap;
 	public gameSetting: GameSetting;
+
 	private userList: UserInRoomInfo[];
+	private startTime: number = Date.now();
 
 	private gameRoundPhase: {
 		roundStartPhase: IGamePhase<GameContext>[];
@@ -258,12 +261,15 @@ export class GameProcess implements IGameProcess {
 				const sourceIndex = player.positionIndex;
 				const total = this.mapData.mapIndex.length;
 				const newIndex = (((sourceIndex + steps) % total) + total) % total;
-				let passedStart = false;
-				if (steps > 0) {
-					passedStart = sourceIndex + steps >= total;
-				} else if (steps < 0) {
-					passedStart = sourceIndex + steps < 0;
+
+				const passedMapItemsId: string[] = [];
+				const direction = steps > 0 ? 1 : -1;
+				for (let i = 1; i <= Math.abs(steps); i++) {
+					const nextIndex = (((sourceIndex + i * direction) % total) + total) % total;
+					const mapItemId = this.mapData.mapIndex[nextIndex];
+					passedMapItemsId.push(mapItemId);
 				}
+
 				player.setPositionIndex(newIndex);
 				this.gameDataBroadcast();
 				this.gameBroadcast(msg);
@@ -286,6 +292,7 @@ export class GameProcess implements IGameProcess {
 					}
 				});
 				clearTimeout(animationTimer);
+				this.eventBus.emit("player-passed", { passedMapItemsId, player });
 				return payload;
 			});
 
@@ -431,6 +438,7 @@ export class GameProcess implements IGameProcess {
 		//游戏循环
 		while (!this.isGameOver) {
 			//回合循环 加载回合开始阶段
+			this.eventBus.emit("game-round-start");
 			const roundStartPhases = this.gameRoundPhase.roundStartPhase;
 			for (const phase of roundStartPhases) {
 				await this.runGamePhase(phase);
@@ -438,6 +446,7 @@ export class GameProcess implements IGameProcess {
 
 			//玩家回合
 			for (const player of Array.from(this.players.values())) {
+				this.eventBus.emit("player-round-start", { player });
 				const context: PlayerRoundContext = {
 					currentRoundPlayer: player,
 				};
@@ -445,6 +454,7 @@ export class GameProcess implements IGameProcess {
 				for (const phase of playerRoundPhases) {
 					await this.runGamePhase(phase, context);
 				}
+				this.eventBus.emit("player-round-end", { player });
 			}
 
 			//回合结束阶段
@@ -452,6 +462,7 @@ export class GameProcess implements IGameProcess {
 			for (const phase of roundEndPhases) {
 				await this.runGamePhase(phase);
 			}
+			this.eventBus.emit("game-round-end");
 		}
 		this.roundTimeTimer.clearInterval();
 	}
@@ -875,12 +886,12 @@ export class GameProcess implements IGameProcess {
 
 	public getGameData() {
 		const gameInfo: GameData = {
-			extra: this.extraData,
+			exportData: this.exportData,
 			currentPlayerIdInRound: this.currentRoundPlayer ? this.currentRoundPlayer.id : "",
 			currentRound: this.currentRound,
 			currentMultiplier: this.currentMultiplier,
-			playersList: Array.from(this.players.values()).map((player) => player.getPlayerInfo()),
-			propertiesList: Array.from(this.properties.values()).map((property) => property.getPropertyInfo()),
+			players: Array.from(this.players.values()).map((player) => player.getPlayerInfo()),
+			properties: Array.from(this.properties.values()).map((property) => property.getPropertyInfo()),
 			isGameOver: this.isGameOver,
 		};
 		return gameInfo;

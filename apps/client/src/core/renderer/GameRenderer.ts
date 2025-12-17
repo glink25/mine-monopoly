@@ -1,7 +1,15 @@
 import * as THREE from "three";
 import gsap from "gsap";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { ChanceCardInfo, MapItemType, MapItem, PlayerInfo, PropertyInfo, GameMap, DiceResult } from "@fatpaper-monopoly/types";
+import {
+	ChanceCardInfo,
+	MapItemType,
+	MapItem,
+	PlayerInfo,
+	PropertyInfo,
+	GameMap,
+	DiceResult,
+} from "@fatpaper-monopoly/types";
 import { useDeviceStatus, useLoading, useSettig, useUserInfo } from "@src/store";
 import { Component, ComponentPublicInstance, createApp, toRaw, watch, WatchStopHandle } from "vue";
 import { loadItemTypeModules } from "@src/utils/three/itemtype-loader";
@@ -270,7 +278,7 @@ export class GameRenderer {
 
 	private initBackground() {
 		const bgTextureLoader = new THREE.TextureLoader();
-		const bgResource = useResourceStore().getRecourceById(this.mapData.info.coverImageId);
+		const bgResource = useResourceStore().getRecourceById(this.mapData.info.backgroundImageId);
 		if (!bgResource) return;
 
 		const bgTexture = bgTextureLoader.load(bgResource.url);
@@ -345,7 +353,7 @@ export class GameRenderer {
 	private async initProperties() {
 		//加载地皮
 		const gameInfo = useGameData();
-		gameInfo.propertiesList.forEach((property) => {
+		gameInfo.properties.forEach((property) => {
 			const textSprite = new TextSprite(
 				`${property.name}\n可购买: ${Math.round(property.sellCost)}￥`,
 				64,
@@ -363,7 +371,7 @@ export class GameRenderer {
 	}
 
 	private async initPlayer() {
-		const playersList = useGameData().playersList;
+		const playersList = useGameData().players;
 		await this.loadPlayersModules(playersList);
 		playersList.forEach((p) => {
 			this.updatePlayerPosition(p);
@@ -986,7 +994,7 @@ export class GameRenderer {
 	}
 
 	private breakUpPlayersInSameMapItem() {
-		const playersList = useGameData().playersList;
+		const playersList = useGameData().players;
 		groupByPositionIndex(playersList).forEach((a) => {
 			const positionIndex = a[0].positionIndex;
 			const mapItem = this.getMapItem(positionIndex);

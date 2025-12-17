@@ -5,7 +5,8 @@ import { PlayerOperationResult, ServerSocketMessage } from "../socket";
 import { IRoundTimeTimer } from "../util";
 import { IPlayer, IProperty, IChanceCard } from "./entities"; // 引用 entities
 import { ChanceCardInfo } from "./infos"; // 引用 infos
-import { IGameRuntimeStack, GameContext, GameEvent } from "./events"; // 引用 events
+import { IGameRuntimeStack, GameContext, GameEvent, GameRuntimeEvent } from "./events"; // 引用 events
+
 import {
 	ConfirmDialogOption,
 	ConfirmDialogResult,
@@ -16,13 +17,16 @@ import {
 	TargetSelectDialogOption,
 	TargetSelectDialogResult,
 } from "./ui"; // 引用 ui
+import type { Emitter } from "mitt";
 
 export interface GameSetting {
 	[key: string]: { label: string; value: any; displayValue: any };
 }
 
 export interface IGameProcess {
+	eventBus: Emitter<GameRuntimeEvent>;
 	extraData: Record<string, any>;
+	exportData: Record<string, any>;
 	mapData: GameMap;
 	gameSetting: GameSetting;
 	players: Map<string, IPlayer>;

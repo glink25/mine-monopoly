@@ -275,10 +275,10 @@ const handleGameInit: ServerMessageHandler<SocketMsgType.GameInit> = (msg) => {
 			currentPlayerIdInRound: gameData.currentPlayerIdInRound,
 			currentRound: gameData.currentRound,
 			currentMultiplier: gameData.currentMultiplier,
-			playersList: gameData.playersList,
-			propertiesList: gameData.propertiesList,
+			players: gameData.players,
+			properties: gameData.properties,
 		});
-		const me = gameData.playersList.find((p) => p.id === useUserInfo().userId);
+		const me = gameData.players.find((p) => p.id === useUserInfo().userId);
 		if (me && me.isBankrupted) {
 			const utilStore = useUtil();
 			utilStore.canRoll = false;
@@ -309,7 +309,7 @@ const handleGameData: ServerMessageHandler<SocketMsgType.GameData> = (msg) => {
 	const gameData = msg.data;
 	if (gameData) {
 		gameDataStore.updateGameData(gameData);
-		const me = gameData.playersList.find((p) => p.id === useUserInfo().userId);
+		const me = gameData.players.find((p) => p.id === useUserInfo().userId);
 		if (me && me.isBankrupted) {
 			const utilStore = useUtil();
 			utilStore.canRoll = false;

@@ -1,4 +1,5 @@
 //@need-to-parse
+
 export type {
 	GameRoundStartContext,
 	PlayerRoundStartContext,
@@ -10,3 +11,5 @@ export type {
 	GameEvent,
 	IGameProcess,
 } from "@fatpaper-monopoly/types";
+
+export type { Emitter } from "mitt";

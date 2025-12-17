@@ -93,7 +93,7 @@ export default function generateMonacoDTS() {
             fs.readSync(fd, buffer as any, 0, 30, 0);
             fs.closeSync(fd);
 
-						const NEED_PARSE_FLAG = "//" + "@need-to-parse";
+            const NEED_PARSE_FLAG = "//" + "@need-to-parse";
             if (buffer.toString().includes(NEED_PARSE_FLAG)) {
               generateForFile(fullPath);
             }

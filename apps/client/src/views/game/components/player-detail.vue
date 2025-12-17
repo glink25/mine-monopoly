@@ -13,7 +13,7 @@ const props = defineProps<{
 }>();
 
 const playersPropertyies = computed(() => {
-	return useGameData().propertiesList.filter((property) => {
+	return useGameData().properties.filter((property) => {
 		return property.owner && property.owner.userId === props.player.id;
 	});
 });

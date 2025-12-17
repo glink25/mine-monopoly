@@ -11,7 +11,7 @@ import gsap from "gsap";
 import { remToPx } from "@src/utils";
 
 const gameInfoStore = useGameData();
-const _playersList = computed(() => gameInfoStore.playersList);
+const _playersList = computed(() => gameInfoStore.players);
 const playerDetailVisiable = ref(false);
 const currentPlayer = ref<PlayerInfo | null>(null);
 const roundTurnPlayerId = computed(() => gameInfoStore.currentPlayerIdInRound);

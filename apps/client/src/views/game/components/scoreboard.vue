@@ -7,7 +7,7 @@ import { useGameData } from "@src/store/game";
 const router = useRouter();
 const isGameOver = computed(() => useGameData().isGameOver);
 const playerListSorted = computed(() =>
-	useGameData().playersList.sort((playerA, playerB) => playerB.money - playerA.money)
+	useGameData().players.sort((playerA, playerB) => playerB.money - playerA.money)
 );
 
 function toRoomList() {

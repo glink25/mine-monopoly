@@ -403,7 +403,7 @@ function toRoomList() {
 	}
 }
 
-.title {
+.login-page > .title {
 	margin-top: 30px;
 
 	& > span {

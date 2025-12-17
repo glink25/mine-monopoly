@@ -23,7 +23,7 @@ const currentSelectedProperty = computed(() => {
 	if (!targetMapItem) return;
 	const targetPropertyId = targetMapItem.property?.id;
 	if (!targetPropertyId) return;
-	const targetProperty = useGameData().propertiesList.find((p) => p.id === targetPropertyId);
+	const targetProperty = useGameData().properties.find((p) => p.id === targetPropertyId);
 	return targetProperty;
 });
 

@@ -3,6 +3,7 @@ import { defineStore } from "pinia";
 import { useUserInfo } from ".";
 import useEventBus from "@src/utils/event-bus";
 import { compareObjectArrays } from "@src/utils";
+import { clone } from "lodash";
 
 export const useResourceStore = defineStore("temp-resource", {
 	state: () => {
@@ -39,8 +40,10 @@ export const useMapData = defineStore("map-data", {
 			name: "",
 			author: "",
 			version: "0.0.0",
+			editorVersion: "",
 			backgroundImageId: "",
 			coverImageId: "",
+			description: "",
 		},
 		gameSettingForm: [],
 		mapItems: [],
@@ -97,18 +100,18 @@ export const useMapData = defineStore("map-data", {
 export const useGameData = defineStore("game-data", {
 	state: (): GameData => {
 		return {
-			extra: {},
+			exportData: {},
 			currentPlayerIdInRound: "",
 			currentRound: 0,
 			currentMultiplier: 0,
-			playersList: new Array<PlayerInfo>(),
-			propertiesList: new Array<PropertyInfo>(),
+			players: new Array<PlayerInfo>(),
+			properties: new Array<PropertyInfo>(),
 			isGameOver: false,
 		};
 	},
 	getters: {
 		isMyTurn: (state) => useUserInfo().userId === state.currentPlayerIdInRound,
-		myGameInfo: (state) => state.playersList.find((p) => p.id === useUserInfo().userId),
+		myGameInfo: (state) => state.players.find((p) => p.id === useUserInfo().userId),
 		canIOperate: (state) => {
 			const _this = useGameData();
 			const amIBankrupted = _this.myGameInfo && _this.myGameInfo.isBankrupted;
@@ -117,29 +120,23 @@ export const useGameData = defineStore("game-data", {
 	},
 	actions: {
 		getPlayerInfoById(id: string) {
-			return this.$state.playersList.find((p) => p.id === id);
+			return this.$state.players.find((p) => p.id === id);
 		},
 		getPropertyById(id: string) {
-			return this.$state.propertiesList.find((p) => p.id === id);
+			return this.$state.properties.find((p) => p.id === id);
 		},
 		updateGameData(newGamedata: GameData) {
-			console.log("🚀 ~ updateGameData ~ newGamedata:", newGamedata)
 			const eventBus = useEventBus();
-			const oldGameData = JSON.parse(JSON.stringify(this.$state)) as GameData;
+			const oldGameData = clone(this.$state);
 
 			this.$patch(newGamedata);
 
-			compareObjectArrays(oldGameData.playersList, newGamedata.playersList, "id", (itemId, key, oldValue, newValue) => {
+			compareObjectArrays(oldGameData.players, newGamedata.players, "id", (itemId, key, oldValue, newValue) => {
 				eventBus.emit(`player-${key}`, itemId, oldValue, newValue);
 			});
-			compareObjectArrays(
-				oldGameData.propertiesList,
-				newGamedata.propertiesList,
-				"id",
-				(itemId, key, oldValue, newValue) => {
-					eventBus.emit(`property-${key}`, itemId, oldValue, newValue);
-				}
-			);
+			compareObjectArrays(oldGameData.properties, newGamedata.properties, "id", (itemId, key, oldValue, newValue) => {
+				eventBus.emit(`property-${key}`, itemId, oldValue, newValue);
+			});
 		},
 	},
 });

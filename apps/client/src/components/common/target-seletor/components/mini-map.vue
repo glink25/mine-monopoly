@@ -8,8 +8,8 @@ const mapDataStore = useMapData();
 const props = defineProps<{ highLightList: string[]; selectedId: string }>();
 const emits = defineEmits(["update:selectedId"]);
 
-const properties = useGameData().propertiesList;
-const playerList = useGameData().playersList;
+const properties = useGameData().properties;
+const playerList = useGameData().players;
 const indexList = useMapData().mapIndex;
 const myInfo = useGameData().myGameInfo;
 

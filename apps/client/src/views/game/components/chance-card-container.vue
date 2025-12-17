@@ -14,7 +14,7 @@ const utilStore = useUtil();
 const settingStore = useSettig();
 
 const _chanceCardsList = computed(() => {
-	const player = gameInfoStore.playersList.find((player) => player.id === userInfoStore.userId);
+	const player = gameInfoStore.players.find((player) => player.id === userInfoStore.userId);
 	if (player) {
 		return player.chanceCards;
 	} else {
