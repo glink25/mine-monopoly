@@ -774,6 +774,15 @@ export class GameRenderer {
 			const playerModule = playerEntity.model;
 			const playerBody = playerEntity.bodyMesh;
 
+			const totalSteps = Math.abs(stepNum);
+			const stepTextSprite = new TextSprite(totalSteps.toString(), 64, "#ffb84d", 8, 0);
+			const stepMesh = stepTextSprite.getSprite();
+			stepMesh.position.set(0.5, PLAY_MODEL_SIZE - 0.3, 0);
+			stepMesh.scale.set(3, 3, 3);
+			stepMesh.renderOrder = 9999999;
+			playerBody && playerBody.add(stepMesh);
+			// ----------------------------
+
 			let animationShouldStop = false;
 			let currentAnimation: gsap.core.Timeline | null = null;
 			const deviceStatusStore = useDeviceStatus();
@@ -785,132 +794,149 @@ export class GameRenderer {
 				{ once: true }
 			);
 
-			for (let i = 1; i <= Math.abs(stepNum); i++) {
-				if (animationShouldStop) {
-					currentAnimation && currentAnimation.kill();
-					const endMapItem = this.getMapItem(endIndex);
-					if (endMapItem) {
-						// [修改] 获取动态高度
-						const surfaceY = this.getMapItemSurfaceHeight(endMapItem);
-						const { x, z } = endMapItem.position;
+			try {
+				for (let i = 1; i <= totalSteps; i++) {
+					if (animationShouldStop) {
+						currentAnimation && currentAnimation.kill();
+						const endMapItem = this.getMapItem(endIndex);
+						if (endMapItem) {
+							const surfaceY = this.getMapItemSurfaceHeight(endMapItem);
+							const { x, z } = endMapItem.position;
 
-						playerModule.position.set(x, surfaceY, z);
-						if (playerBody) {
-							playerBody.scale.y = 1;
-							playerBody.scale.x = Math.sign(playerBody.scale.x);
+							playerModule.position.set(x, surfaceY, z);
+							if (playerBody) {
+								playerBody.scale.y = 1;
+								playerBody.scale.x = Math.sign(playerBody.scale.x);
+							}
 						}
-					}
-					break;
-				}
-
-				const nextMapItem = this.getMapItem((((sourceIndex + Math.sign(stepNum) * i) % total) + total) % total);
-
-				if (nextMapItem) {
-					const { x: nextMapItemScreenX } = getScreenPosition(nextMapItem, this.camera);
-					const { x: playerScreenX } = getScreenPosition(playerModule, this.camera);
-
-					currentAnimation = gsap.timeline();
-					const duration = 0.5;
-
-					// [修改] 获取下一个格子的动态高度
-					const nextSurfaceY = this.getMapItemSurfaceHeight(nextMapItem);
-
-					// --- 1. 方向翻转 ---
-					if (playerBody) {
-						let targetDir = Math.sign(playerBody.scale.x);
-						if (nextMapItemScreenX > playerScreenX) targetDir = 1;
-						else if (nextMapItemScreenX < playerScreenX) targetDir = -1;
-
-						currentAnimation.to(playerBody.scale, { x: targetDir, duration: 0.1 }, 0);
+						break;
 					}
 
-					// --- 2. 整体位移 [修改] ---
-					const { x, z } = nextMapItem.position;
-					currentAnimation.to(
-						playerModule.position,
-						{
-							x,
-							y: nextSurfaceY, // [修改] 使用计算出的高度
-							z,
-							duration: duration,
-							ease: "power2.inOut",
-						},
-						0
-					);
+					const nextMapItem = this.getMapItem((((sourceIndex + Math.sign(stepNum) * i) % total) + total) % total);
 
-					// --- 3. 动态形变  ---
-					if (playerBody) {
-						currentAnimation.to(
-							playerBody.scale,
-							{
-								y: 0.95,
-								duration: duration * 0.2,
-								ease: "power2.in",
-							},
-							duration * 0.5
-						);
+					if (nextMapItem) {
+						const { x: nextMapItemScreenX } = getScreenPosition(nextMapItem, this.camera);
+						const { x: playerScreenX } = getScreenPosition(playerModule, this.camera);
 
-						currentAnimation.to(
-							nextMapItem.scale,
-							{
-								x: 0.45,
-								y: 0.45,
-								z: 0.45,
-								duration: duration * 0.2,
-								ease: "power2.in",
-							},
-							duration * 0.5
-						);
+						currentAnimation = gsap.timeline();
+						const duration = 0.35;
 
+						const nextSurfaceY = this.getMapItemSurfaceHeight(nextMapItem);
+
+						// --- 1. 方向翻转 ---
+						if (playerBody) {
+							let targetDir = Math.sign(playerBody.scale.x);
+							if (nextMapItemScreenX > playerScreenX) targetDir = 1;
+							else if (nextMapItemScreenX < playerScreenX) targetDir = -1;
+
+							currentAnimation.to(playerBody.scale, { x: targetDir, duration: 0.1 }, 0);
+						}
+
+						// --- 2. 整体位移 ---
+						const { x, z } = nextMapItem.position;
 						currentAnimation.to(
-							playerBody.scale,
+							playerModule.position,
 							{
-								y: 1.05,
-								duration: duration * 0.5,
-								ease: "power2.out",
+								x,
+								y: nextSurfaceY,
+								z,
+								duration: duration,
+								ease: "power2.inOut",
 							},
 							0
 						);
 
-						currentAnimation.to(
-							nextMapItem.scale,
-							{
-								x: 0.55,
-								y: 0.55,
-								z: 0.55,
-								duration: duration * 0.5,
-								ease: "power2.out",
-							},
-							duration * 0.5
-						);
+						// --- 3. 动态形变 ---
+						if (playerBody) {
+							currentAnimation.to(
+								playerBody.scale,
+								{
+									y: 0.98,
+									duration: duration * 0.2,
+									ease: "power2.in",
+									onComplete: () => {
+										const remaining = totalSteps - i;
+										if (remaining >= 0) {
+											stepTextSprite.updateText(remaining.toString());
+										}
+									},
+								},
+								duration * 0.5
+							);
 
-						currentAnimation.to(
-							playerBody.scale,
-							{
-								y: 1,
-								duration: duration * 0.2,
-								ease: "sine.out",
-							},
-							duration * 0.9
-						);
+							currentAnimation.to(
+								nextMapItem.scale,
+								{
+									x: 0.45,
+									y: 0.45,
+									z: 0.45,
+									duration: duration * 0.2,
+									ease: "power2.in",
+								},
+								duration * 0.5
+							);
 
-						currentAnimation.to(
-							nextMapItem.scale,
-							{
-								x: 0.5,
-								y: 0.5,
-								z: 0.5,
-								duration: duration * 0.2,
-								ease: "sine.out",
-							},
-							duration * 0.9
-						);
+							currentAnimation.to(
+								playerBody.scale,
+								{
+									y: 1.02,
+									duration: duration * 0.5,
+									ease: "power2.out",
+								},
+								0
+							);
+
+							currentAnimation.to(
+								nextMapItem.scale,
+								{
+									x: 0.55,
+									y: 0.55,
+									z: 0.55,
+									duration: duration * 0.5,
+									ease: "power2.out",
+								},
+								duration * 0.5
+							);
+
+							currentAnimation.to(
+								playerBody.scale,
+								{
+									y: 1,
+									duration: duration * 0.2,
+									ease: "sine.out",
+								},
+								duration * 0.9
+							);
+
+							currentAnimation.to(
+								nextMapItem.scale,
+								{
+									x: 0.5,
+									y: 0.5,
+									z: 0.5,
+									duration: duration * 0.2,
+									ease: "sine.out",
+								},
+								duration * 0.9
+							);
+						}
+
+						await currentAnimation;
+					} else {
+						throw new Error("MapItem error");
 					}
-
-					await currentAnimation;
-				} else {
-					throw new Error("MapItem error");
 				}
+			} finally {
+				// --- [新增] 清理资源 ---
+				// 动画结束或中断后，移除并销毁步数文字
+				playerBody && playerBody.remove(stepMesh);
+				stepMesh.geometry.dispose();
+				if (Array.isArray(stepMesh.material)) {
+					stepMesh.material.forEach((m) => m.dispose());
+				} else {
+					stepMesh.material.dispose();
+				}
+				// -------------------
 			}
 		}
 	}

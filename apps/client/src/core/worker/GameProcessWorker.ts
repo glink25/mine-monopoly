@@ -275,7 +275,7 @@ export class GameProcess implements IGameProcess {
 				this.gameBroadcast(msg);
 
 				//在计划的动画完成事件后取消监听, 防止客户端因特殊情况没有发送动画完成的指令造成永久等待
-				const animationDuration = 600 * (Math.abs(steps) + 3);
+				const animationDuration = 350 * (Math.abs(steps) + 3);
 				let animationTimer = setTimeout(() => {
 					operationListener.emit(player.id, OperateType.Animation);
 				}, animationDuration);
