@@ -7,6 +7,8 @@ import { useMapDataStore } from "@src/stores";
 import { GamePhaseInfo } from "@fatpaper-monopoly/types";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
+const extraLibs = computed(() => useMapDataStore().extraLibs);
+
 const model = defineModel({ default: false });
 const mapDataStore = useMapDataStore();
 
@@ -212,7 +214,7 @@ function removePhase(group: PhaseGroupKey, id: string) {
 			<CodeEditor
 				v-if="currentPhase"
 				v-model="currentPhase.initEventCode"
-				:extra-libs="[EditorLib]"
+				:extra-libs="[EditorLib, extraLibs]"
 				:template-text="TemplateText"
 			/>
 		</div>

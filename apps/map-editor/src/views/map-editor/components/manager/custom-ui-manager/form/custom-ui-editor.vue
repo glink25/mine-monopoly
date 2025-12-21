@@ -1,8 +1,5 @@
 <script setup lang="ts">
 import { CustomUI } from "@fatpaper-monopoly/types";
-import CodeEditor from "@src/components/code-editor/index.vue";
-import libContent from "./editor-lib.d.ts?raw";
-import templateText from "./template-text?raw";
 import { onMounted, reactive, ref } from "vue";
 import { Modal } from "ant-design-vue";
 import UiSchemaForm from "./ui-schema-form.vue";

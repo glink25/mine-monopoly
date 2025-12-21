@@ -3,16 +3,17 @@ import { useMapDataStore, useResourceStore } from "@src/stores";
 import { addNewImage } from "@src/utils/file";
 import { RolePreviewerRenderer } from "@src/utils/three/RolePreviewerRenderer";
 import { message } from "ant-design-vue";
-import { ref, reactive, onMounted, onUpdated, onBeforeUnmount } from "vue";
+import { ref, reactive, onMounted, onUpdated, onBeforeUnmount, computed } from "vue";
 import CodeEditor from "@src/components/code-editor/index.vue";
 import libContent from "./editor-lib.d.ts?raw";
 import templateText from "./template-text?raw";
 import { Role } from "@fatpaper-monopoly/types";
+import { clone } from "lodash";
 
 const { role } = defineProps<{ role: Role | undefined }>();
+const extraLibs = computed(() => useMapDataStore().extraLibs);
 
 onMounted(async () => {
-	console.log("🚀 ~ role:", role)
 	if (role) {
 		roleForm.id = role.id;
 		roleForm.name = role.name;
@@ -161,13 +162,9 @@ function handleClose() {
 		</a-form>
 		<div class="editor-container">
 			<span class="title">
-				<a-alert
-					message="在下面编辑器编写角色代码，在玩家初始化时会执行"
-					type="info"
-					show-icon
-				/>
+				<a-alert message="在下面编辑器编写角色代码，在玩家初始化时会执行" type="info" show-icon />
 			</span>
-			<code-editor v-model="roleForm.initCode" :template-text="templateText" :extra-libs="[libContent]" />
+			<code-editor v-model="roleForm.initCode" :template-text="templateText" :extra-libs="[libContent, extraLibs]" />
 		</div>
 	</div>
 </template>

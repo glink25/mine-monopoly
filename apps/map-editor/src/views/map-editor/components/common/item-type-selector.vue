@@ -48,17 +48,18 @@ function handleMapItemTypeSelected(id: string | undefined) {
 }
 
 function handleDeleteMapItemType() {
-	Modal.warning({
+	Modal.confirm({
 		title: "删除物块类型",
 		content: "删除这个物块类型会导致基于这个类型的MapItem也一并删除",
-		okText: "确定",
-		cancelText: "取消",
+		closable: true,
 		onOk: () => {
 			if (!currentMapItemType.value) return;
 			useMapDataStore().removeMapItemType(currentMapItemType.value);
 			editorStore.currentMapItemTypeId = undefined;
 			eventBus.emit("map-item-type-selected", undefined);
 		},
+		okText: "确定",
+		cancelText: "取消",
 	});
 }
 </script>

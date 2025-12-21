@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import * as monaco from "monaco-editor";
-import { ref, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
+import { ref, onMounted, onBeforeUnmount, nextTick, watch, toRaw } from "vue";
 import loader from "@monaco-editor/loader";
 
 const props = withDefaults(
@@ -19,16 +19,43 @@ const code = defineModel<string>();
 const containerRef = ref<HTMLDivElement | null>(null);
 let editor: monaco.editor.IStandaloneCodeEditor | null = null;
 let resizeObserver: ResizeObserver | null = null;
+let monacoInstance: typeof monaco | null = null;
+
+let isInitializing = false;
+
+const updateExtraLibs = (libs: string[]) => {
+	if (!monacoInstance) return;
+
+	const libDefinitions = libs.map((content, index) => ({
+		content,
+		filePath: `file:///extra-lib-${index}.d.ts`,
+	}));
+
+	monacoInstance.languages.typescript.typescriptDefaults.setExtraLibs(libDefinitions);
+};
 
 const initEditor = async () => {
-	if (containerRef.value && !editor) {
-		loader.config({ monaco });
-		const monacoInstance = await loader.init();
+	if (editor || isInitializing || !containerRef.value) return;
 
-		// 设置额外声明 (仅对 TS/JS 有效，HTML 模式下的 script 标签支持有限)
+	isInitializing = true;
+
+	try {
+		loader.config({ monaco });
+		monacoInstance = await loader.init();
+
 		if (props.extraLibs) {
-			monacoInstance.languages.typescript.typescriptDefaults.setExtraLibs(props.extraLibs.map((s) => ({ content: s })));
+			updateExtraLibs(props.extraLibs);
 		}
+		monacoInstance.languages.typescript.typescriptDefaults.setCompilerOptions({
+			target: monacoInstance.languages.typescript.ScriptTarget.ES2020,
+			allowNonTsExtensions: true,
+			moduleResolution: monacoInstance.languages.typescript.ModuleResolutionKind.NodeJs,
+			module: monacoInstance.languages.typescript.ModuleKind.CommonJS,
+			noEmit: true,
+			esModuleInterop: true,
+		});
+
+		if (!containerRef.value) return;
 
 		editor = monacoInstance.editor.create(containerRef.value, {
 			value: code.value && code.value !== "" ? code.value : props.templateText || "",
@@ -36,12 +63,17 @@ const initEditor = async () => {
 			minimap: { enabled: false },
 			wordWrap: "on",
 			theme: "vs",
+			automaticLayout: false,
 		});
 
 		// --- 双向绑定：编辑器 -> code ---
 		editor.onDidChangeModelContent(() => {
 			code.value = editor!.getValue();
 		});
+	} catch (error) {
+		console.error("Monaco Editor Init Failed:", error);
+	} finally {
+		isInitializing = false;
 	}
 };
 
@@ -51,6 +83,17 @@ watch(code, (newValue) => {
 		editor.setValue(newValue || "");
 	}
 });
+
+// --- 监听 extraLibs 变化 ---
+watch(
+	() => props.extraLibs,
+	(newValue) => {
+		if (newValue) {
+			updateExtraLibs(newValue);
+		}
+	},
+	{ deep: true }
+);
 
 watch(
 	() => props.language,
@@ -66,24 +109,30 @@ watch(
 
 onMounted(async () => {
 	await nextTick();
+	await initEditor();
 	resizeObserver = new ResizeObserver(() => {
-		if (containerRef.value?.offsetWidth && containerRef.value?.offsetHeight) {
-			initEditor();
+		if (editor) {
+			editor.layout();
 		}
 	});
+
 	if (containerRef.value) {
 		resizeObserver.observe(containerRef.value);
 	}
 });
 
 onBeforeUnmount(() => {
-	if (editor) {
-		editor.dispose();
-		editor = null;
-	}
 	if (resizeObserver && containerRef.value) {
 		resizeObserver.unobserve(containerRef.value);
+		resizeObserver.disconnect();
 		resizeObserver = null;
+	}
+
+	if (editor) {
+		const model = editor.getModel();
+		if (model) model.dispose();
+		editor.dispose();
+		editor = null;
 	}
 });
 </script>

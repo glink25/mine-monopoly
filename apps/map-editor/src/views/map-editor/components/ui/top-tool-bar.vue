@@ -18,6 +18,7 @@ import mapDataViewer from "../common/map-data-viewer.vue";
 import GameSettingForm from "../manager/forms/game-setting-form/index.vue";
 import { eventBus } from "@src/utils/event-bus";
 import { addNewImage } from "@src/utils/file";
+import ExtraLibsEditor from "../manager/forms/extra-libs-editor/extra-libs-editor.vue";
 
 const editorStore = useEditorStore();
 
@@ -130,6 +131,13 @@ const buttonConfigs: ButtonConifg[] = [
 			gameSettingFormVisible.value = true;
 		},
 	},
+	{
+		text: "代码Lib",
+		icon: "fas fa-code",
+		onClick: () => {
+			extraLibsEditorVisible.value = true;
+		},
+	},
 ];
 
 async function seleteMapBackgroundImage() {
@@ -153,6 +161,7 @@ const chanceCardManagerVisible = ref(false);
 const customUIManagerVisible = ref(false);
 const mapDataViewerVisible = ref(false);
 const gameSettingFormVisible = ref(false);
+const extraLibsEditorVisible = ref(false);
 </script>
 
 <template>
@@ -229,6 +238,7 @@ const gameSettingFormVisible = ref(false);
 		<custom-ui-manager v-model="customUIManagerVisible" />
 		<map-data-viewer v-model="mapDataViewerVisible" />
 		<game-setting-form v-model="gameSettingFormVisible" />
+		<extra-libs-editor v-model="extraLibsEditorVisible" />
 	</div>
 </template>
 

@@ -25,4 +25,5 @@ export interface GameMap {
 	};
 	buildingModelIdList: string[];
 	customUIs: CustomUI[];
+	extraLibs: string;
 }

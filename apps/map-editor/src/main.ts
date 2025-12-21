@@ -40,6 +40,7 @@ import {
 	faLayerGroup,
 	faDatabase,
 	faSlidersH,
+	faCode,
 } from "@fortawesome/free-solid-svg-icons";
 import { eventBus } from "./utils/event-bus";
 import { loadMapDataFromPath } from "@src/utils/file";
@@ -71,7 +72,8 @@ library.add(
 	faHouse,
 	faLayerGroup,
 	faDatabase,
-	faSlidersH
+	faSlidersH,
+	faCode
 );
 
 eventBus.on("renderer-ready", () => {

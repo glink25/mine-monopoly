@@ -9,9 +9,11 @@ import { message } from "ant-design-vue";
 import { MapEventType } from "@fatpaper-monopoly/types";
 import { addNewImage } from "@src/utils/file";
 import { Rule } from "ant-design-vue/es/form";
+import { clone } from "lodash";
 
 const props = defineProps<{ mapEvent: MapEvent | undefined }>();
 const emits = defineEmits(["close"]);
+const extraLibs = computed(() => useMapDataStore().extraLibs);
 
 onMounted(async () => {
 	if (!props.mapEvent) return;
@@ -130,7 +132,7 @@ const iconRule = async (_rule: Rule, value: string) => {
 					show-icon
 				/>
 			</span>
-			<code-editor v-model="mapEventForm.effectCode" :template-text="templateText" :extra-libs="[libContent]" />
+			<code-editor v-model="mapEventForm.effectCode" :template-text="templateText" :extra-libs="[libContent, extraLibs]" />
 		</div>
 	</div>
 </template>

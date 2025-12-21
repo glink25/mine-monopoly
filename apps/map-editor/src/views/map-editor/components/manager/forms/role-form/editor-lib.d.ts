@@ -424,6 +424,7 @@ interface GameMap {
 	};
 	buildingModelIdList: string[];
 	customUIs: CustomUI[];
+	extraLibs: string;
 }
 declare const enum SocketMsgType {
 	Heart = "Heart",//心跳信息
@@ -764,10 +765,16 @@ interface GameSetting {
 		displayValue: any;
 	};
 }
+interface IGameProcessCustomData {
+	[key: string]: any;
+}
+interface IGameProcessExportData {
+	[key: string]: any;
+}
 interface IGameProcess {
 	eventBus: Emitter<GameRuntimeEvent>;
-	customData: Record<string, any>;
-	exportData: Record<string, any>;
+	customData: IGameProcessCustomData;
+	exportData: IGameProcessExportData;
 	mapData: GameMap;
 	gameSetting: GameSetting;
 	players: Map<string, IPlayer>;

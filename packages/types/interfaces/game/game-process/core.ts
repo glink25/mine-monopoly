@@ -23,10 +23,18 @@ export interface GameSetting {
 	[key: string]: { label: string; value: any; displayValue: any };
 }
 
+export interface IGameProcessCustomData {
+	[key: string]: any;
+}
+
+export interface IGameProcessExportData {
+	[key: string]: any;
+}
+
 export interface IGameProcess {
 	eventBus: Emitter<GameRuntimeEvent>;
-	customData: Record<string, any>;
-	exportData: Record<string, any>;
+	customData: IGameProcessCustomData;
+	exportData: IGameProcessExportData;
 	mapData: GameMap;
 	gameSetting: GameSetting;
 	players: Map<string, IPlayer>;

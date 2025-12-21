@@ -140,6 +140,10 @@ input[type="submit"] {
   position: relative;
 }
 
+.felt-card-no-stitched {
+  background-image: var(--texture-felt);
+}
+
 // 缝线装饰容器
 .stitched-box {
   background: var(--color-second);

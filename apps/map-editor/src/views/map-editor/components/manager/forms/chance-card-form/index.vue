@@ -12,6 +12,7 @@ import ChanceCardPreview from "@src/views/map-editor/components/common/chance-ca
 
 const props = defineProps<{ chanceCard: ChanceCardInfo | undefined }>();
 const emits = defineEmits(["close"]);
+const extraLibs = computed(() => useMapDataStore().extraLibs);
 
 onMounted(async () => {
 	if (!props.chanceCard) return;
@@ -171,7 +172,11 @@ const iconRule = async (_rule: Rule, value: string) => {
 					show-icon
 				/>
 			</span>
-			<code-editor v-model="chanceCardForm.effectCode" :template-text="templateText" :extra-libs="[libContent]" />
+			<code-editor
+				v-model="chanceCardForm.effectCode"
+				:template-text="templateText"
+				:extra-libs="[libContent, extraLibs]"
+			/>
 		</div>
 	</div>
 </template>

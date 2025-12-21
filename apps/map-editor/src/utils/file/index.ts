@@ -129,6 +129,7 @@ export function createDefaultMapData(): GameMap {
 		gameSettingForm: [
 			{ id: "initMoney", key: "initMoney", type: "number-input", label: "初始金钱", defaultValue: 10000 },
 		],
+		extraLibs: "",
 	} as GameMap;
 }
 
