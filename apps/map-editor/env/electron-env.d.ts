@@ -23,7 +23,6 @@ declare namespace NodeJS {
 
 // Used in Renderer process, expose in `preload.ts`
 interface Window {
-	ipcRenderer: import("electron").IpcRenderer;
 	electronAPI: {
 		minimize: () => void;
 		maximize: () => void;
@@ -37,7 +36,7 @@ interface Window {
 		copyFile: (
 			fromFilePath: string,
 			toFilePath: string,
-			newFileName: string
+			newFileName: string,
 		) => Promise<{ filePath: string; fileType: string }>;
 		clearTempDir: () => Promise<void>;
 
@@ -46,6 +45,9 @@ interface Window {
 
 		getVersion: () => string;
 		getImageBase64: (fliePath: string) => Promise<string>;
+
+		rendererReady: () => void;
+		onOpenMapFile: (callback: (filePath: string) => void) => () => void;
 	};
 
 	updateAPI: {

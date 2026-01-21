@@ -34,6 +34,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
 	getVersion: () => version,
 	getImageBase64: async (filePath: string): Promise<string> => ipcRenderer.invoke("get-image-base64", filePath),
+
+	// 【新增】告诉主进程：我加载完了，有东西就发给我
+  rendererReady: () => ipcRenderer.send("renderer-ready"),
+
+  // 【新增】监听打开文件的请求 (涵盖冷启动和热启动)
+  onOpenMapFile: (callback: (filePath: string) => void) => {
+    const listener = (_event: any, filePath: string) => callback(filePath);
+    ipcRenderer.on("open-map-file", listener);
+    // 返回清理函数
+    return () => ipcRenderer.removeListener("open-map-file", listener);
+  },
 });
 
 contextBridge.exposeInMainWorld("updateAPI", {

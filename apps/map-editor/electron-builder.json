@@ -8,6 +8,16 @@
 			"url": "http://localhost:81/static/updates/map-editor/win/"
 		}
 	],
+	"fileAssociations": [
+    {
+      "ext": ["fpmap"],
+      "name": "FatPaper Map File",
+      "description": "FatPaper 大富翁地图文件",
+      "icon": "build/fpmap.ico", 
+      "role": "Editor",
+      "isPackage": true
+    }
+  ],
 	"releaseInfo": {
 		"releaseNotesFile": "build/release-notes.md"
 	},

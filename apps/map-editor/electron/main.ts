@@ -8,6 +8,25 @@ import url from "node:url";
 import { autoUpdater } from "electron-updater";
 import log from "electron-log";
 
+// 处理单例启动
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+	app.quit();
+} else {
+	app.on("second-instance", (event, commandLine) => {
+		if (win) {
+			if (win.isMinimized()) win.restore();
+			win.focus();
+
+			const filePath = getFileFromArgv(commandLine);
+			if (filePath) {
+				// 热启动：此时 Vue 肯定加载完了，直接发
+				win.webContents.send("open-map-file", filePath);
+			}
+		}
+	});
+}
+
 autoUpdater.logger = log;
 autoUpdater.autoDownload = false; // 关键：设为 false，防止游戏过程中自动抢网速
 autoUpdater.autoInstallOnAppQuit = true; // 退出时自动安装
@@ -24,6 +43,25 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
 
 let win: BrowserWindow | null;
+
+// 处理文件启动
+// 1. 定义暂存变量
+let fileToOpen: string | null = null;
+
+// 2. 辅助函数：解析命令行参数 (Windows)
+function getFileFromArgv(argv: string[]) {
+	// 生产环境通常 argv[1] 是文件路径
+	const possibleFile = argv[1];
+	if (possibleFile && possibleFile.endsWith(".fpmap")) {
+		return possibleFile;
+	}
+	return null;
+}
+
+// 3. 冷启动检查 (Windows)
+if (process.platform !== "darwin") {
+	fileToOpen = getFileFromArgv(process.argv);
+}
 
 function createWindow() {
 	win = new BrowserWindow({
@@ -76,6 +114,15 @@ function createWindow() {
 	});
 
 	win.webContents.openDevTools();
+
+	ipcMain.on("renderer-ready", (event) => {
+		console.log("Vue is ready.");
+		if (fileToOpen) {
+			console.log("Sending cached file to renderer:", fileToOpen);
+			event.sender.send("open-map-file", fileToOpen);
+			fileToOpen = null; // 发送完清空
+		}
+	});
 }
 
 app.on("window-all-closed", () => {
@@ -213,7 +260,7 @@ export async function cleanTempDir() {
 				} else {
 					await fs.unlinkSync(filePath); // 删除文件
 				}
-			})
+			}),
 		);
 
 		console.log(`已清空临时目录: ${tempDir}`);
