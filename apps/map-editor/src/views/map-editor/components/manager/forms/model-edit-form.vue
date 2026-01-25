@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { addNewModel, updateExistingModel } from "@src/utils/file";
+import { addNewModel, convertToFpUrl, updateExistingModel } from "@src/utils/file";
 import { ModelPreviewerRenderer } from "@src/utils/three/ModelPreviewerRenderer";
 import { reactive, watch, ref, nextTick } from "vue"; // 引入 watch, nextTick
 import { useResourceStore } from "@src/stores"; // 引入 store 获取回显数据
@@ -73,7 +73,8 @@ async function handleSelectFile() {
 	});
 
 	if (res.filePaths.length > 0) {
-		createModelFrom.fileUrl = res.filePaths[0];
+		createModelFrom.fileUrl = convertToFpUrl(res.filePaths[0]);
+		console.log("🚀 ~ handleSelectFile ~ createModelFrom.fileUrl:", createModelFrom.fileUrl)
 		initPreviewer();
 		await modelPreviewer?.loadModel(createModelFrom.fileUrl, true);
 	}

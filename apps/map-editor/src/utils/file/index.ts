@@ -234,8 +234,8 @@ export async function updateExistingModel(id: string, name: string, filePath: st
 
 	if (filePath && filePath !== oldModel.url) {
 		try {
-			const buffer = await window.electronAPI.readFile(filePath);
-			await window.electronAPI.saveLocalFile(oldModel.url, new Uint8Array(buffer));
+			const buffer = await window.electronAPI.readFile(convertFpUrlToPath(filePath));
+			await window.electronAPI.saveLocalFile(convertFpUrlToPath(oldModel.url), new Uint8Array(buffer));
 			const newExt = filePath.split(".").pop();
 			if (newExt) {
 				finalFileType = newExt;
