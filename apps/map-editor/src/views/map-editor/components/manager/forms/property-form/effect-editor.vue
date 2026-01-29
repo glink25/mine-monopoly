@@ -12,7 +12,7 @@ const extraLibs = computed(() => useMapDataStore().extraLibs);
 
 <template>
 	<div class="editor-container">
-		<code-editor v-model="effectCode" :template-text="templateText" :extra-libs="[libContent, extraLibs]" />
+		<code-editor v-model="effectCode" :template-text="templateText" :extra-libs="[extraLibs, libContent]" />
 	</div>
 </template>
 

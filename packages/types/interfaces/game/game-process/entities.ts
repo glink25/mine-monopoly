@@ -7,7 +7,15 @@ import { PlayerInfo, PropertyInfo, ChanceCardClientInfo, PropertyCustom } from "
 import { IGameProcess } from "./core"; // 引用 core
 import { UISchema } from "./ui";
 
-export interface IPlayer {
+export interface IPlayerExportData {
+	// 默认为空，允许利用 declare module 扩展
+}
+
+export interface IPlayerCustomFields {
+	// 默认为空，允许利用 declare module 扩展
+}
+
+export interface IPlayer extends IPlayerCustomFields {
 	id: string;
 	name: string;
 	roleId: string;
@@ -23,7 +31,7 @@ export interface IPlayer {
 	dices: IDice[];
 	infoDisplay: UISchema;
 
-	customData: Record<string, any>;
+	exportData: IPlayerExportData & Record<string, any>;
 
 	getUser: () => UserInRoomInfo;
 
@@ -60,7 +68,15 @@ export interface IPlayer {
 	getRoundPhases: () => IGamePhase<GameContext>[];
 }
 
-export interface IProperty {
+export interface IPropertyCustomFields {
+	// 默认为空，允许利用 declare module 扩展
+}
+
+export interface IPropertyExportData {
+	// 默认为空，允许利用 declare module 扩展
+}
+
+export interface IProperty extends IPropertyCustomFields {
 	id: string;
 	name: string;
 	level: number;
@@ -72,7 +88,7 @@ export interface IProperty {
 	custom: PropertyCustom | undefined;
 	owner: IPlayer | undefined;
 
-	customData: Record<string, any>;
+	exportData: IPropertyExportData & Record<string, any>;
 
 	getOriginalData: () => PropertyInfo;
 
@@ -100,7 +116,7 @@ export interface IChanceCard {
 	use: (
 		sourcePlayer: IPlayer,
 		target: IPlayer | IProperty | IPlayer[] | IProperty[],
-		gameProcess: IGameProcess
+		gameProcess: IGameProcess,
 	) => Promise<void>;
 
 	getChanceCardInfo: () => ChanceCardClientInfo;

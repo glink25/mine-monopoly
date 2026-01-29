@@ -115,6 +115,7 @@ interface MessageCardOption {
 }
 interface UITemplate {
 	id: string;
+	slug: string;
 	name: string;
 	template: UISchema;
 }
@@ -155,7 +156,7 @@ interface PlayerInfo {
 	isBankrupted: boolean;
 	isOffline: boolean;
 	infoDisplay: UISchema;
-	customData: Record<string, any>;
+	exportData: Record<string, any>;
 }
 interface PropertyInfo {
 	id: string;
@@ -168,7 +169,7 @@ interface PropertyInfo {
 	buildingModelIdList?: string[];
 	owner?: UserInRoomInfo;
 	custom?: PropertyCustom;
-	customData: Record<string, any>;
+	exportData: Record<string, any>;
 	customUI: string | undefined;
 }
 interface PropertyCustom {
@@ -783,15 +784,12 @@ interface GameSetting {
 		displayValue: any;
 	};
 }
-interface IGameProcessCustomData {
-	[key: string]: any;
+interface IGameProcessCustomFields {
 }
 interface IGameProcessExportData {
-	[key: string]: any;
 }
-interface IGameProcess {
+interface IGameProcess extends IGameProcessCustomFields {
 	eventBus: Emitter<GameRuntimeEvent>;
-	customData: IGameProcessCustomData;
 	exportData: IGameProcessExportData;
 	mapData: GameMap;
 	gameSetting: GameSetting;
@@ -829,7 +827,11 @@ interface IGameProcess {
 	showMessageCard(playerIds: string[], option: MessageCardOption): Promise<void>;
 	checkGameOver(): Promise<void>;
 }
-interface IPlayer {
+interface IPlayerExportData {
+}
+interface IPlayerCustomFields {
+}
+interface IPlayer extends IPlayerCustomFields {
 	id: string;
 	name: string;
 	roleId: string;
@@ -844,7 +846,7 @@ interface IPlayer {
 	roundPhases: IGamePhase<GameContext>[];
 	dices: IDice[];
 	infoDisplay: UISchema;
-	customData: Record<string, any>;
+	exportData: IPlayerExportData & Record<string, any>;
 	getUser: () => UserInRoomInfo;
 	setPropertiesList: (newPropertiesList: IProperty[]) => void;
 	gainProperty: (property: IProperty) => Promise<void>;
@@ -869,7 +871,11 @@ interface IPlayer {
 	getPlayerInfo: () => PlayerInfo;
 	getRoundPhases: () => IGamePhase<GameContext>[];
 }
-interface IProperty {
+interface IPropertyCustomFields {
+}
+interface IPropertyExportData {
+}
+interface IProperty extends IPropertyCustomFields {
 	id: string;
 	name: string;
 	level: number;
@@ -880,7 +886,7 @@ interface IProperty {
 	buildingModelIdList: string[] | undefined;
 	custom: PropertyCustom | undefined;
 	owner: IPlayer | undefined;
-	customData: Record<string, any>;
+	exportData: IPropertyExportData & Record<string, any>;
 	getOriginalData: () => PropertyInfo;
 	levelUp: () => Promise<void>;
 	levelDown: () => Promise<void>;

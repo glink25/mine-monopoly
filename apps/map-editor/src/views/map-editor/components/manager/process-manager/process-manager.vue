@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import CodeEditor from "@src/components/code-editor/index.vue";
-import EditorLib from "./editor-lib.d.ts?raw";
+import libContent from "./editor-lib.d.ts?raw";
 import TemplateText from "./template-text?raw";
 import { computed, ref } from "vue";
 import { useMapDataStore } from "@src/stores";
@@ -216,7 +216,7 @@ function removePhase(group: PhaseGroupKey, id: string) {
 			<CodeEditor
 				v-if="currentPhase"
 				v-model="currentPhase.initEventCode"
-				:extra-libs="[EditorLib, extraLibs]"
+				:extra-libs="[extraLibs, libContent]"
 				:template-text="TemplateText"
 			/>
 		</div>

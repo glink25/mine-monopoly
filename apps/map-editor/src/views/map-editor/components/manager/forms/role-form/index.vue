@@ -170,14 +170,14 @@ function handleClose() {
 			</a-form-item>
 
 			<a-form-item>
-				<a-button style="width: 100%;" type="primary" html-type="submit">提交</a-button>
+				<a-button style="width: 100%" type="primary" html-type="submit">提交</a-button>
 			</a-form-item>
 		</a-form>
 		<div class="editor-container">
 			<span class="title">
 				<a-alert message="在下面编辑器编写角色代码，在玩家初始化时会执行" type="info" show-icon />
 			</span>
-			<code-editor v-model="roleForm.initCode" :template-text="templateText" :extra-libs="[libContent, extraLibs]" />
+			<code-editor v-model="roleForm.initCode" :template-text="templateText" :extra-libs="[extraLibs, libContent]" />
 		</div>
 	</div>
 </template>

@@ -31,7 +31,7 @@ export class Property implements IProperty {
 	public commandBus: ICommandBus<PropertyCommandMap>;
 	private originalData: PropertyInfo;
 
-	public customData: Record<string, any> = {};
+	public exportData: Record<string, any> = {};
 
 	private customPropertyInitFunction: ((property: IProperty, gameProcess: IGameProcess) => void) | undefined;
 
@@ -139,7 +139,7 @@ export class Property implements IProperty {
 			owner: owner ? owner.getUser() : undefined,
 			buildingModelIdList: this.buildingModelIdList,
 			custom: this.custom ? { effectCode: "", description: this.custom.description } : undefined,
-			customData: this.customData,
+			exportData: this.exportData,
 			customUI: this.customUI,
 		};
 		return propertyInfo;

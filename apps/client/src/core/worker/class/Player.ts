@@ -45,7 +45,7 @@ export class Player implements IPlayer {
 	public commandBus: ICommandBus<PlayerCommandMap>;
 	public dices: IDice[];
 
-	public customData: Record<string, any> = {};
+	public exportData: Record<string, any> = {};
 
 	private user: UserInRoomInfo;
 	private roleInitFunction: (player: IPlayer, gameProcess: IGameProcess) => void;
@@ -55,7 +55,7 @@ export class Player implements IPlayer {
 		initMoney: number,
 		initPositionIndex: number,
 		roundPhasesInfo: GamePhaseInfo[],
-		role: Role
+		role: Role,
 	) {
 		this.roundPhases = roundPhasesInfo.map((roundPhaseInfo) => {
 			return new GamePhase(roundPhaseInfo);
@@ -253,7 +253,7 @@ export class Player implements IPlayer {
 			isBankrupted: this.isBankrupted,
 			isOffline: this.isOffline,
 			infoDisplay: this.infoDisplay,
-			customData: this.customData,
+			exportData: this.exportData,
 		};
 		return playerInfo;
 	}

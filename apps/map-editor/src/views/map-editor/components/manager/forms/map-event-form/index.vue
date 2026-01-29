@@ -14,6 +14,7 @@ import { cloneDeep } from "lodash";
 const props = defineProps<{ mapEvent: MapEvent | undefined }>();
 const emits = defineEmits(["close"]);
 const resourceStore = useResourceStore();
+const extraLibs = computed(() => useMapDataStore().extraLibs);
 
 // 存储当前选中的图片路径（可能是 store 里的，也可能是新选的）
 const iconUrl = ref("");
@@ -139,7 +140,11 @@ const iconRule = async (_rule: Rule, value: string) => {
 					show-icon
 				/>
 			</span>
-			<code-editor v-model="mapEventForm.effectCode" :template-text="templateText" :extra-libs="[libContent]" />
+			<code-editor
+				v-model="mapEventForm.effectCode"
+				:template-text="templateText"
+				:extra-libs="[extraLibs, libContent]"
+			/>
 		</div>
 	</div>
 </template>

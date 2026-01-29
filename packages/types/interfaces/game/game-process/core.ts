@@ -23,17 +23,16 @@ export interface GameSetting {
 	[key: string]: { label: string; value: any; displayValue: any };
 }
 
-export interface IGameProcessCustomData {
-	[key: string]: any;
+export interface IGameProcessCustomFields {
+	// 默认为空，允许利用 declare module 扩展
 }
 
 export interface IGameProcessExportData {
-	[key: string]: any;
+	// 默认为空，允许利用 declare module 扩展
 }
 
-export interface IGameProcess {
+export interface IGameProcess extends IGameProcessCustomFields {
 	eventBus: Emitter<GameRuntimeEvent>;
-	customData: IGameProcessCustomData;
 	exportData: IGameProcessExportData;
 	mapData: GameMap;
 	gameSetting: GameSetting;

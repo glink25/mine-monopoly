@@ -165,7 +165,7 @@ const iconRule = async (_rule: Rule, value: string) => {
 			<code-editor
 				v-model="chanceCardForm.effectCode"
 				:template-text="templateText"
-				:extra-libs="[libContent, extraLibs]"
+				:extra-libs="[extraLibs, libContent]"
 			/>
 		</div>
 	</div>

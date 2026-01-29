@@ -780,15 +780,12 @@ interface GameSetting {
 		displayValue: any;
 	};
 }
-interface IGameProcessCustomData {
-	[key: string]: any;
+interface IGameProcessCustomFields {
 }
 interface IGameProcessExportData {
-	[key: string]: any;
 }
-interface IGameProcess {
+interface IGameProcess extends IGameProcessCustomFields {
 	eventBus: Emitter<GameRuntimeEvent>;
-	customData: IGameProcessCustomData;
 	exportData: IGameProcessExportData;
 	mapData: GameMap;
 	gameSetting: GameSetting;
@@ -826,7 +823,9 @@ interface IGameProcess {
 	showMessageCard(playerIds: string[], option: MessageCardOption): Promise<void>;
 	checkGameOver(): Promise<void>;
 }
-interface IPlayer {
+interface IPlayerCustomFields {
+}
+interface IPlayer extends IPlayerCustomFields {
 	id: string;
 	name: string;
 	roleId: string;
@@ -866,7 +865,9 @@ interface IPlayer {
 	getPlayerInfo: () => PlayerInfo;
 	getRoundPhases: () => IGamePhase<GameContext>[];
 }
-interface IProperty {
+interface IPropertyCustomFields {
+}
+interface IProperty extends IPropertyCustomFields {
 	id: string;
 	name: string;
 	level: number;

@@ -6,7 +6,13 @@
 	"type": "module",
 	"scripts": {
 		"dev": "node scripts/start-dev-all.js",
-		"build": ""
+		"dev-client": "pnpm --filter @fatpaper-monopoly/client run dev",
+		"dev-server": "pnpm --filter @fatpaper-monopoly/server run dev",
+		"dev-editor": "pnpm --filter @fatpaper-monopoly/map-editor run dev",
+		"build": "",
+		"build-client": "pnpm --filter @fatpaper-monopoly/client run build",
+		"build-server": "pnpm --filter @fatpaper-monopoly/server run build",
+		"build-editor": "pnpm --filter @fatpaper-monopoly/map-editor run build"
 	},
 	"keywords": [],
 	"author": "",

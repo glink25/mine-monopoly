@@ -26,7 +26,7 @@ const createDefaultData = (): PropertyInfo => ({
 	maxLevel: 2, // 建议在普通模式下由 costList.length - 1 决定
 	buildingModelIdList: undefined,
 	custom: undefined,
-	customData: {},
+	exportData: {},
 	customUI: undefined,
 });
 
@@ -52,7 +52,7 @@ const customDataList = ref<CustomDataRow[]>([]);
 
 // 初始化：将 Object 转为 List
 function initCustomDataList() {
-	const data = formData.customData || {};
+	const data = formData.exportData || {};
 	customDataList.value = Object.entries(data).map(([key, val]) => {
 		let type: CustomDataRow["type"] = "string";
 		if (typeof val === "number") type = "number";
@@ -91,9 +91,9 @@ watch(
 				}
 			}
 		});
-		formData.customData = newData;
+		formData.exportData = newData;
 	},
-	{ deep: true }
+	{ deep: true },
 );
 
 function addCustomDataRow() {
@@ -109,7 +109,7 @@ watch(
 	(newItemId) => {
 		initForm(newItemId || "");
 	},
-	{ immediate: true, deep: true }
+	{ immediate: true, deep: true },
 );
 
 function initForm(itemId: string) {
@@ -338,7 +338,13 @@ const uiTemplate = computed(() => useMapDataStore().uiTemplates);
 			<a-divider style="margin: 12px 0" />
 
 			<a-form-item label="自定义展示UI模板">
-				<a-select v-model:value="formData.customUI" placeholder="请选择组件" show-search allow-clear option-filter-prop="label">
+				<a-select
+					v-model:value="formData.customUI"
+					placeholder="请选择组件"
+					show-search
+					allow-clear
+					option-filter-prop="label"
+				>
 					<a-select-option v-for="t in uiTemplate" :key="t.id" :value="t.id" :label="t.name">
 						{{ t.name }}
 						<span style="color: #ccc; font-size: 12px; margin-left: 4px"> ({{ t.id.slice(0, 6) }}) </span>
