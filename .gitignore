@@ -134,3 +134,6 @@ dist-electron/
 pnpm-lock.yaml
 temp
 map-cache
+
+# claude code
+CLAUDE.md
