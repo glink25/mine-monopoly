@@ -23,23 +23,8 @@
       "Bash(claude mcp remove:*)",
       "Bash(claude:*)",
       "Bash(xargs:*)",
-      "mcp__mine-monopoly-mcp__get_map_info",
-      "mcp__mine-monopoly-mcp__update_map_info",
-      "mcp__mine-monopoly-mcp__get_current_file_path",
-      "mcp__mine-monopoly-mcp__save_map_file",
-      "mcp__mine-monopoly-mcp__get_map_summary",
-      "mcp__mine-monopoly-mcp__get_map_events",
-      "mcp__mine-monopoly-mcp__list_images",
-      "mcp__mine-monopoly-mcp__add_map_event",
-      "mcp__mine-monopoly-mcp__remove_map_event",
-      "mcp__mine-monopoly-mcp__get_roles",
-      "mcp__mine-monopoly-mcp__add_role",
-      "mcp__mine-monopoly-mcp__get_extra_libs",
-      "mcp__mine-monopoly-mcp__add_temp_image",
-      "mcp__mine-monopoly-mcp__remove_role",
-      "mcp__mine-monopoly-mcp__get_phases",
-      "mcp__mine-monopoly-mcp__add_chance_card",
-      "mcp__mine-monopoly-mcp__update_role"
+      "mcp__mine-monopoly-mcp__*",
+      "Bash(npx tsc:*)"
     ]
   },
   "mcpServers": {

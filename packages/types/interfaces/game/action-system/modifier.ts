@@ -28,7 +28,7 @@ export interface IModifier<C extends ICommandMap, K extends keyof C = keyof C> {
 
 export interface IModifierManager<C extends ICommandMap, K extends keyof C = keyof C> {
 	// 基础增删改
-	add(mod: IModifier<C, K>): string; // 修改返回值：返回生成的 ID
+	add<KK extends keyof C>(mod: IModifier<C, KK>): string; // 修改返回值：返回生成的 ID
 	removeById(id: string): boolean;
 	clear(): void;
 

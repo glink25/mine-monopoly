@@ -4,7 +4,7 @@ import { clone, cloneDeep } from "lodash";
 export class ModifierManager<C extends ICommandMap, K extends keyof C = keyof C> implements IModifierManager<C> {
 	private modifiers = new Map<string, IModifier<C, any>>();
 
-	public add(mod: IModifier<C, K>): string {
+	public add<KK extends keyof C>(mod: IModifier<C, KK>): string {
 		const modClone = cloneDeep(mod);
 
 		const id = modClone.descriptor.id;

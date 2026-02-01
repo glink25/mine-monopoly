@@ -408,7 +408,7 @@ interface IModifier<C extends ICommandMap, K extends keyof C = keyof C> {
 	fn(command: ICommand<C, K>, context: ICommandContext<C, K>): Promise<void> | void;
 }
 interface IModifierManager<C extends ICommandMap, K extends keyof C = keyof C> {
-	add(mod: IModifier<C, K>): string;
+	add<KK extends keyof C>(mod: IModifier<C, KK>): string;
 	removeById(id: string): boolean;
 	clear(): void;
 	removeByTag(tag: string): void;
@@ -823,11 +823,7 @@ interface IGameProcess extends IGameProcessCustomFields {
 	showMessageCard(playerIds: string[], option: MessageCardOption): Promise<void>;
 	checkGameOver(): Promise<void>;
 }
-interface IPlayerExportData {
-}
-interface IPlayerCustomFields {
-}
-interface IPlayer extends IPlayerCustomFields {
+interface IPlayer {
 	id: string;
 	name: string;
 	roleId: string;
@@ -842,7 +838,7 @@ interface IPlayer extends IPlayerCustomFields {
 	roundPhases: IGamePhase<GameContext>[];
 	dices: IDice[];
 	infoDisplay: UISchema;
-	exportData: IPlayerExportData & Record<string, any>;
+	exportData: Record<string, any>;
 	getUser: () => UserInRoomInfo;
 	setPropertiesList: (newPropertiesList: IProperty[]) => void;
 	gainProperty: (property: IProperty) => Promise<void>;
@@ -867,11 +863,7 @@ interface IPlayer extends IPlayerCustomFields {
 	getPlayerInfo: () => PlayerInfo;
 	getRoundPhases: () => IGamePhase<GameContext>[];
 }
-interface IPropertyCustomFields {
-}
-interface IPropertyExportData {
-}
-interface IProperty extends IPropertyCustomFields {
+interface IProperty {
 	id: string;
 	name: string;
 	level: number;
@@ -882,7 +874,7 @@ interface IProperty extends IPropertyCustomFields {
 	buildingModelIdList: string[] | undefined;
 	custom: PropertyCustom | undefined;
 	owner: IPlayer | undefined;
-	exportData: IPropertyExportData & Record<string, any>;
+	exportData: Record<string, any>;
 	getOriginalData: () => PropertyInfo;
 	levelUp: () => Promise<void>;
 	levelDown: () => Promise<void>;

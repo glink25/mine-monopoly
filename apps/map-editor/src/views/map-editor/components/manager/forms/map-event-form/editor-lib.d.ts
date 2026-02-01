@@ -412,7 +412,7 @@ interface IModifier<C extends ICommandMap, K extends keyof C = keyof C> {
 	fn(command: ICommand<C, K>, context: ICommandContext<C, K>): Promise<void> | void;
 }
 interface IModifierManager<C extends ICommandMap, K extends keyof C = keyof C> {
-	add(mod: IModifier<C, K>): string;
+	add<KK extends keyof C>(mod: IModifier<C, KK>): string;
 	removeById(id: string): boolean;
 	clear(): void;
 	removeByTag(tag: string): void;
