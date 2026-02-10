@@ -173,6 +173,8 @@ export const useSettig = defineStore("setting", {
 			lockRole: true,
 			// 画面质量设置：低/中/高三档
 			graphicQuality: "medium" as "low" | "medium" | "high",
+			// 阴影开关
+			enableShadow: false,
 		};
 	},
 	actions: {

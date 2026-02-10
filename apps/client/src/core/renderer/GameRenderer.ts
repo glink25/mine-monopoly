@@ -115,9 +115,11 @@ export class GameRenderer {
 		console.log("[画质设置] 初始化像素比:", initialPixelRatio);
 		this.renderer.setPixelRatio(initialPixelRatio);
 
+		// 初始化阴影设置
+		console.log("[阴影设置] 初始化阴影设置:", settingStore.enableShadow ? "开启" : "关闭");
 		this.renderer.toneMapping = THREE.LinearToneMapping;
 		this.renderer.toneMappingExposure = 1.1;
-		this.renderer.shadowMap.enabled = true;
+		this.renderer.shadowMap.enabled = settingStore.enableShadow;
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 		this.scene = new THREE.Scene();
@@ -330,9 +332,10 @@ export class GameRenderer {
 
 	private async initMapModels() {
 		const modelResourcesList = Array.from(useResourceStore().recourceMap.values()).filter((r) => r.type === "model");
+		const enableShadow = useSettig().enableShadow;
 		for await (const modelResource of modelResourcesList) {
 			const model = await getModelById(modelResource.id);
-			enableShadows(model);
+			enableShadows(model, enableShadow);
 			this.mapModules.set(modelResource.id, model);
 		}
 	}
@@ -434,27 +437,31 @@ export class GameRenderer {
 		this.scene.add(dirLight);
 		this.scene.add(dirLight.target);
 
-		dirLight.castShadow = true;
+		// 从设置中读取阴影开关
+		const enableShadow = useSettig().enableShadow;
+		dirLight.castShadow = enableShadow;
 
-		// 提高阴影贴图分辨率以获得更清晰的阴影
-		dirLight.shadow.mapSize.width = 4096;
-		dirLight.shadow.mapSize.height = 4096;
+		if (enableShadow) {
+			// 提高阴影贴图分辨率以获得更清晰的阴影
+			dirLight.shadow.mapSize.width = 4096;
+			dirLight.shadow.mapSize.height = 4096;
 
-		// 调整阴影偏移以减少伪影
-		dirLight.shadow.bias = -0.0005;
-		dirLight.shadow.normalBias = 0.02;
+			// 调整阴影偏移以减少伪影
+			dirLight.shadow.bias = -0.0005;
+			dirLight.shadow.normalBias = 0.02;
 
-		// 设置阴影半径以软化边缘（PCFSoftShadowMap）
-		dirLight.shadow.radius = 2;
+			// 设置阴影半径以软化边缘（PCFSoftShadowMap）
+			dirLight.shadow.radius = 2;
 
-		// 调整阴影相机范围
-		const d = 100;
-		dirLight.shadow.camera.left = -d;
-		dirLight.shadow.camera.right = d;
-		dirLight.shadow.camera.top = d;
-		dirLight.shadow.camera.bottom = -d;
-		dirLight.shadow.camera.near = 0.1;
-		dirLight.shadow.camera.far = 500;
+			// 调整阴影相机范围
+			const d = 100;
+			dirLight.shadow.camera.left = -d;
+			dirLight.shadow.camera.right = d;
+			dirLight.shadow.camera.top = d;
+			dirLight.shadow.camera.bottom = -d;
+			dirLight.shadow.camera.near = 0.1;
+			dirLight.shadow.camera.far = 500;
+		}
 	}
 
 	private initOutlinePass() {}
@@ -468,6 +475,12 @@ export class GameRenderer {
 			const ratioMap = { low: 0.85, medium: 1.0, high: 2.0 };
 			const newPixelRatio = window.devicePixelRatio * ratioMap[quality];
 			this.applyPixelRatio(newPixelRatio);
+		});
+
+		// 监听阴影变化事件
+		useEventBus().on("graphics:shadow:change", ({ enable }: { enable: boolean }) => {
+			console.log("[阴影设置] 接收到阴影变化事件:", enable);
+			this.applyShadowSetting(enable);
 		});
 
 		useEventBus().on("round-trun", () => {
@@ -1223,6 +1236,34 @@ export class GameRenderer {
 		console.log("[画质设置] 设置后 Canvas:", this.canvas.width, "x", this.canvas.height);
 		console.log("[画质设置] 像素比生效:", this.renderer.getPixelRatio());
 	}
+
+	/**
+	 * 应用阴影设置
+	 */
+	private applyShadowSetting(enable: boolean) {
+		console.log("[阴影设置] 应用阴影设置:", enable);
+
+		// 设置渲染器阴影开关
+		this.renderer.shadowMap.enabled = enable;
+
+		// 遍历场景中所有对象，更新阴影属性
+		this.scene.traverse((object) => {
+			if ((object as THREE.Mesh).isMesh) {
+				(object as THREE.Mesh).castShadow = enable;
+				(object as THREE.Mesh).receiveShadow = enable;
+			}
+		});
+
+		// 更新灯光阴影
+		this.scene.traverse((object) => {
+			if ((object as THREE.DirectionalLight).isDirectionalLight) {
+				const light = object as THREE.DirectionalLight;
+				light.castShadow = enable;
+			}
+		});
+
+		console.log("[阴影设置] 阴影设置已应用");
+	}
 }
 
 function createCSS2DObjectFromVue(rootComponent: Component, rootProps?: Record<string, any>) {
@@ -1244,11 +1285,11 @@ function createCSS2DObjectFromVue(rootComponent: Component, rootProps?: Record<s
 	return { css2DObject, appInstance, containerEl, unmount };
 }
 
-function enableShadows(object: THREE.Object3D) {
+function enableShadows(object: THREE.Object3D, enable: boolean) {
 	object.traverse((child) => {
 		if ((child as THREE.Mesh).isMesh) {
-			child.castShadow = true;
-			child.receiveShadow = true;
+			child.castShadow = enable;
+			child.receiveShadow = enable;
 		}
 	});
 }

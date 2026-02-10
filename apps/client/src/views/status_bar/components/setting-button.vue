@@ -23,6 +23,7 @@ const qualityLabels = {
 const tempAutoMusic = ref(settingStore.autoMusic);
 const tempLockRole = ref(settingStore.lockRole);
 const tempGraphicQuality = ref<"low" | "medium" | "high">(settingStore.graphicQuality);
+const tempEnableShadow = ref(settingStore.enableShadow);
 
 // 监听设置面板打开，重置临时状态
 watch(settingVisible, (isOpen) => {
@@ -30,6 +31,7 @@ watch(settingVisible, (isOpen) => {
 		tempAutoMusic.value = settingStore.autoMusic;
 		tempLockRole.value = settingStore.lockRole;
 		tempGraphicQuality.value = settingStore.graphicQuality;
+		tempEnableShadow.value = settingStore.enableShadow;
 	}
 });
 
@@ -38,7 +40,8 @@ const hasChanges = computed(() => {
 	return (
 		tempAutoMusic.value !== settingStore.autoMusic ||
 		tempLockRole.value !== settingStore.lockRole ||
-		tempGraphicQuality.value !== settingStore.graphicQuality
+		tempGraphicQuality.value !== settingStore.graphicQuality ||
+		tempEnableShadow.value !== settingStore.enableShadow
 	);
 });
 
@@ -74,6 +77,13 @@ const applySettings = () => {
 
 		// 显示提示
 		console.log(`[画质设置] 画质已设置为：${qualityLabels[quality]}画质`);
+	}
+
+	// 应用阴影设置
+	if (tempEnableShadow.value !== settingStore.enableShadow) {
+		settingStore.enableShadow = tempEnableShadow.value;
+		eventBus.emit("graphics:shadow:change", { enable: tempEnableShadow.value });
+		console.log(`[阴影设置] 阴影已${tempEnableShadow.value ? "开启" : "关闭"}`);
 	}
 
 	FpMessage({ message: "所有设置已应用", type: "success" });
@@ -199,6 +209,41 @@ const applySettings = () => {
 							<label for="quality-high">
 								<FontAwesomeIcon icon="square-check" v-if="tempGraphicQuality === 'high'" />
 								高</label
+							>
+						</div>
+					</div>
+				</div>
+
+				<!-- 阴影设置 -->
+				<div class="setting-item">
+					<div class="label">阴影</div>
+					<div class="content">
+						<div>
+							<input
+								type="radio"
+								name="shadow-mode"
+								:value="true"
+								id="shadow-mode-true"
+								v-model="tempEnableShadow"
+								hidden
+							/>
+							<label for="shadow-mode-true">
+								<FontAwesomeIcon icon="square-check" v-if="tempEnableShadow" />
+								开启</label
+							>
+						</div>
+						<div>
+							<input
+								type="radio"
+								name="shadow-mode"
+								:value="false"
+								id="shadow-mode-false"
+								v-model="tempEnableShadow"
+								hidden
+							/>
+							<label for="shadow-mode-false">
+								<FontAwesomeIcon icon="square-check" v-if="!tempEnableShadow" />
+								关闭</label
 							>
 						</div>
 					</div>
