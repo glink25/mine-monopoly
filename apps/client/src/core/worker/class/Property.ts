@@ -47,6 +47,7 @@ export class Property implements IProperty {
 		this.custom = property.custom;
 		this.originalData = property;
 		this.customUI = property.customUI;
+		this.exportData = property.exportData;
 
 		this.modifierManager = new ModifierManager();
 		this.commandBus = new CommandBus<PropertyCommandMap>(this.modifierManager);
