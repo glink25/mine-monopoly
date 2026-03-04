@@ -491,6 +491,7 @@ export class MapRenderer {
 			while (temp) {
 				if (temp.userData.id && temp.userData.position) {
 					const isLinkMode = useEditorStore().isLinkMode;
+					const currentMapItemId = useEditorStore().currentMapItemId;
 					const id = temp.userData.id;
 					this.linkOutlinePass.selectedObjects = [];
 
@@ -498,10 +499,20 @@ export class MapRenderer {
 					const isMultiSelect = (window.event as MouseEvent)?.ctrlKey || (window.event as MouseEvent)?.metaKey;
 
 					if (isLinkMode) {
-						// 链接模式保持原有逻辑
-						this.linkOutlinePass.selectedObjects = [temp];
-						eventBus.emit("other-map-item-selected", id);
-					} else if (isMultiSelect) {
+						// 如果没有当前选中的 mapitem，退出绑定模式并正常选中
+						if (!currentMapItemId) {
+							useEditorStore().isLinkMode = false;
+							eventBus.emit("change-link-mode", false);
+							// 继续执行普通选中逻辑
+						} else {
+							// 链接模式保持原有逻辑
+							this.linkOutlinePass.selectedObjects = [temp];
+							eventBus.emit("other-map-item-selected", id);
+							break;
+						}
+					}
+
+					if (isMultiSelect) {
 						// Ctrl 多选模式
 						const store = useEditorStore();
 						if (store.selectedMapItemIds.includes(id)) {
@@ -519,8 +530,8 @@ export class MapRenderer {
 						const mapItem = useMapDataStore().findMapItemById(id);
 						if (mapItem) {
 							const targetId = mapItem.beLinked || mapItem.linkto || "";
-							const target = this.mapItemsInScene.get(targetId);
-							if (target) this.linkOutlinePass.selectedObjects = [target];
+							const targetObject = this.mapItemsInScene.get(targetId);
+							if (targetObject) this.linkOutlinePass.selectedObjects = [targetObject];
 						}
 					}
 					break;
@@ -530,8 +541,15 @@ export class MapRenderer {
 			}
 		} else {
 			// 点击空白处，清空选择
+			const isLinkMode = useEditorStore().isLinkMode;
 			this.clearMultiSelect();
 			eventBus.emit("other-map-item-selected", "");
+
+			// 如果当前是绑定模式，退出绑定模式
+			if (isLinkMode) {
+				useEditorStore().isLinkMode = false;
+				eventBus.emit("change-link-mode", false);
+			}
 		}
 	}
 
