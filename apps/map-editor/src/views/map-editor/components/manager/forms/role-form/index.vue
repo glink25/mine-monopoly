@@ -10,7 +10,6 @@ import templateText from "./template-text?raw";
 import { Role } from "@mine-monopoly/types";
 
 const { role } = defineProps<{ role: Role | undefined }>();
-const extraLibs = computed(() => useMapDataStore().extraLibs);
 
 // 使用 ref 代替 querySelector，更符合 Vue 规范且防止 ID 冲突
 const canvasContainerRef = ref<HTMLDivElement>();
@@ -177,7 +176,7 @@ function handleClose() {
 			<span class="title">
 				<a-alert message="在下面编辑器编写角色代码，在玩家初始化时会执行" type="info" show-icon />
 			</span>
-			<code-editor v-model="roleForm.initCode" :template-text="templateText" :extra-libs="[extraLibs, libContent]" />
+			<code-editor v-model="roleForm.initCode" :template-text="templateText" :static-types="libContent" />
 		</div>
 	</div>
 </template>

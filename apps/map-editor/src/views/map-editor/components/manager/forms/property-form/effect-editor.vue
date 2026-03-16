@@ -13,7 +13,6 @@ const emit = defineEmits<{
 	save: [value: string];
 }>();
 
-const extraLibs = computed(() => useMapDataStore().extraLibs);
 const localCode = ref(props.value || "");
 
 // 监听外部值变化，更新本地编辑状态
@@ -32,7 +31,7 @@ const handleSave = () => {
 <template>
 	<div class="effect-editor-wrapper">
 		<div class="editor-container">
-			<code-editor v-model="localCode" :template-text="templateText" :extra-libs="[extraLibs, libContent]" />
+			<code-editor v-model="localCode" :template-text="templateText" :static-types="libContent" />
 		</div>
 		<div class="save-bar">
 			<a-button type="primary" @click="handleSave">保存</a-button>
