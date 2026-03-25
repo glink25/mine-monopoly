@@ -112,38 +112,40 @@ const iconRule = async (_rule: Rule, value: string) => {
 
 <template>
 	<div class="map-event-form-container">
-		<a-form
-			class="map-event-form"
-			@finish="handleAddMapEvent"
-			:model="mapEventForm"
-			name="map-event"
-			autocomplete="off"
-		>
-			<a-form-item label="ID">
-				<a-alert style="word-break: break-all" :message="mapEventForm.id" type="info" />
-			</a-form-item>
-			<a-form-item label="事件名称" name="name" :rules="[{ required: true, message: '请输入事件名称' }]">
-				<a-input v-model:value="mapEventForm.name" />
-			</a-form-item>
-			<a-form-item label="事件描述" name="description" :rules="[{ required: true, message: '请输入事件描述' }]">
-				<a-textarea v-model:value="mapEventForm.description" :auto-size="{ minRows: 3, maxRows: 5 }" />
-				<a-typography-paragraph type="secondary" style="font-size: 12px; margin-top: 4px;">
-					支持 \n 进行换行
-				</a-typography-paragraph>
-			</a-form-item>
-			<a-form-item label="事件触发类型" name="type" :rules="[{ required: true, message: '请选择事件触发类型' }]">
-				<a-select v-model:value="mapEventForm.type" :options="eventTypeOptions" />
-			</a-form-item>
-			<a-form-item label="icon图片" name="iconUrl" :rules="[{ required: true, validator: iconRule }]">
-				<template v-if="iconUrl">
-					<img class="icon-preview" :src="mapEventIconPreview" />
-				</template>
-				<a-button @click="handleAddIcon" size="small">选择图片</a-button>
-			</a-form-item>
-			<a-form-item>
-				<a-button style="width: 100%" type="primary" html-type="submit">提交</a-button>
-			</a-form-item>
-		</a-form>
+		<div class="map-event-form">
+			<div class="form-content">
+				<a-form
+					@finish="handleAddMapEvent"
+					:model="mapEventForm"
+					name="map-event"
+					autocomplete="off"
+				>
+					<a-form-item label="ID">
+						<a-alert style="word-break: break-all" :message="mapEventForm.id" type="info" />
+					</a-form-item>
+					<a-form-item label="事件名称" name="name" :rules="[{ required: true, message: '请输入事件名称' }]">
+						<a-input v-model:value="mapEventForm.name" />
+					</a-form-item>
+					<a-form-item label="事件描述" name="description" :rules="[{ required: true, message: '请输入事件描述' }]">
+						<a-textarea v-model:value="mapEventForm.description" :auto-size="{ minRows: 3, maxRows: 5 }" />
+					</a-form-item>
+					<a-form-item label="事件触发类型" name="type" :rules="[{ required: true, message: '请选择事件触发类型' }]">
+						<a-select v-model:value="mapEventForm.type" :options="eventTypeOptions" />
+					</a-form-item>
+					<a-form-item label="icon图片" name="iconUrl" :rules="[{ required: true, validator: iconRule }]">
+						<template v-if="iconUrl">
+							<img class="icon-preview" :src="mapEventIconPreview" />
+						</template>
+						<a-button @click="handleAddIcon" size="small">选择图片</a-button>
+					</a-form-item>
+				</a-form>
+			</div>
+			<div class="footer-actions">
+				<a-button type="primary" block @click="handleAddMapEvent">
+					{{ mapEvent ? '保存修改' : '创建事件' }}
+				</a-button>
+			</div>
+		</div>
 		<div class="editor-container">
 			<span class="title">
 				<a-alert
@@ -170,8 +172,19 @@ const iconRule = async (_rule: Rule, value: string) => {
 		width: 25vw;
 		display: flex;
 		flex-direction: column;
-		overflow-y: scroll;
 		padding-right: 10px;
+
+		.form-content {
+			flex: 1;
+			overflow-y: auto;
+		}
+
+		.footer-actions {
+			flex-shrink: 0;
+			padding: 12px 0;
+			border-top: 1px solid #f0f0f0;
+			background: #fff;
+		}
 	}
 
 	.editor-container {

@@ -118,42 +118,43 @@ const iconRule = async (_rule: Rule, value: string) => {
 <template>
 	<div class="chance-card-form-container">
 		<div class="chance-card-form">
-			<ChanceCard
-				class="chance-card-preview"
-				:chance-card="chanceCardForm"
-				:disable="false"
-				:icon-url="chanceCardIconPreview"
-			/>
-			<a-form @finish="handleAddChanceCard" :model="chanceCardForm" name="map-event" autocomplete="off">
-				<a-form-item label="ID">
-					<a-alert size="small" style="word-break: break-all" :message="chanceCardForm.id" type="info" />
-				</a-form-item>
-				<a-form-item label="机会卡名称" name="name" :rules="[{ required: true, message: '请输入机会卡名称' }]">
-					<a-input v-model:value="chanceCardForm.name" />
-				</a-form-item>
-				<a-form-item label="机会卡描述" name="description" :rules="[{ required: true, message: '请输入机会卡描述' }]">
-					<a-textarea v-model:value="chanceCardForm.description" :auto-size="{ minRows: 3, maxRows: 5 }" />
-					<a-typography-paragraph type="secondary" style="font-size: 12px; margin-top: 4px;">
-						支持 \n 进行换行
-					</a-typography-paragraph>
-				</a-form-item>
-				<a-form-item label="机会卡类型" name="type" :rules="[{ required: true, message: '请选择机会卡目标类型' }]">
-					<a-select v-model:value="chanceCardForm.type">
-						<a-select-option v-for="(value, key) in targetNameMap" :value="key" :key="key">
-							{{ value }}
-						</a-select-option>
-					</a-select>
-				</a-form-item>
-				<a-form-item label="颜色" name="color" :rules="[{ required: true, message: '请输入机会卡颜色' }]">
-					<input type="color" v-model="chanceCardForm.color" />
-				</a-form-item>
-				<a-form-item label="icon图片" name="iconUrl" :rules="[{ required: true, validator: iconRule }]">
-					<a-button size="small" @click="handleAddIcon">选择图片</a-button>
-				</a-form-item>
-				<a-form-item>
-					<a-button style="width: 100%" type="primary" html-type="submit">确认修改</a-button>
-				</a-form-item>
-			</a-form>
+			<div class="form-content">
+				<ChanceCard
+					class="chance-card-preview"
+					:chance-card="chanceCardForm"
+					:disable="false"
+					:icon-url="chanceCardIconPreview"
+				/>
+				<a-form @finish="handleAddChanceCard" :model="chanceCardForm" name="map-event" autocomplete="off">
+					<a-form-item label="ID">
+						<a-alert size="small" style="word-break: break-all" :message="chanceCardForm.id" type="info" />
+					</a-form-item>
+					<a-form-item label="机会卡名称" name="name" :rules="[{ required: true, message: '请输入机会卡名称' }]">
+						<a-input v-model:value="chanceCardForm.name" />
+					</a-form-item>
+					<a-form-item label="机会卡描述" name="description" :rules="[{ required: true, message: '请输入机会卡描述' }]">
+						<a-textarea v-model:value="chanceCardForm.description" :auto-size="{ minRows: 3, maxRows: 5 }" />
+					</a-form-item>
+					<a-form-item label="机会卡类型" name="type" :rules="[{ required: true, message: '请选择机会卡目标类型' }]">
+						<a-select v-model:value="chanceCardForm.type">
+							<a-select-option v-for="(value, key) in targetNameMap" :value="key" :key="key">
+								{{ value }}
+							</a-select-option>
+						</a-select>
+					</a-form-item>
+					<a-form-item label="颜色" name="color" :rules="[{ required: true, message: '请输入机会卡颜色' }]">
+						<input type="color" v-model="chanceCardForm.color" />
+					</a-form-item>
+					<a-form-item label="icon图片" name="iconUrl" :rules="[{ required: true, validator: iconRule }]">
+						<a-button size="small" @click="handleAddIcon">选择图片</a-button>
+					</a-form-item>
+				</a-form>
+			</div>
+			<div class="footer-actions">
+				<a-button type="primary" block @click="handleAddChanceCard">
+					{{ chanceCard ? '保存修改' : '创建机会卡' }}
+				</a-button>
+			</div>
 		</div>
 
 		<div class="editor-container">
@@ -182,12 +183,26 @@ const iconRule = async (_rule: Rule, value: string) => {
 		width: 25vw;
 		display: flex;
 		flex-direction: column;
-		overflow-y: scroll;
 		padding-right: 10px;
-		align-items: center;
 
-		.chance-card-preview {
-			margin: 10px 0;
+		.form-content {
+			flex: 1;
+			overflow-y: auto;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+
+			.chance-card-preview {
+				font-size: 14px;
+				margin: 10px 0;
+			}
+		}
+
+		.footer-actions {
+			flex-shrink: 0;
+			padding: 12px 0;
+			border-top: 1px solid #f0f0f0;
+			background: #fff;
 		}
 	}
 

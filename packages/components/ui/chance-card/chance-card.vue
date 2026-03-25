@@ -27,7 +27,7 @@ const formattedDescription = computed(() => {
 </script>
 
 <template>
-	<div class="chance-card" :class="{ disable }" :style="{ border: `0.4em solid ${chanceCard.color}` }">
+	<div class="chance-card" :class="{ disable }" :style="{ border: `0.3em solid ${chanceCard.color}` }">
 		<div class="icon" v-if="chanceCard.iconId && iconUrl"><img :src="iconUrl" alt="" /></div>
 		<div class="name" :style="{ color: chanceCard.color }">{{ chanceCard.name }}</div>
 		<div class="describe" :style="{ color: chanceCard.color }">{{ formattedDescription }}</div>
@@ -36,15 +36,15 @@ const formattedDescription = computed(() => {
 
 <style lang="scss" scoped>
 .chance-card {
-	min-width: 11rem;
-	min-height: 14rem;
-	width: 11rem;
-	height: 14rem;
-	font-size: 0.8rem;
+	min-width: 11em;
+	min-height: 14em;
+	width: 11em;
+	height: 14em;
+	font-size: 0.8em;
 	background-color: #ffffff;
 	box-sizing: border-box;
-	border-radius: 2.2rem;
-	box-shadow: 0 0.1rem 0rem 0.2rem rgba(160, 160, 160, 0.5);
+	border-radius: 1.8em;
+	box-shadow: 0 0.1em 0em 0.2em rgba(160, 160, 160, 0.5);
 	user-select: none;
 	display: flex;
 	justify-content: center;
@@ -61,10 +61,10 @@ const formattedDescription = computed(() => {
 	}
 
 	& > .icon {
-		margin-bottom: 0.6em;
+		margin-bottom: 0.3em;
 
 		& > img {
-			$img-size: 5.2em;
+			$img-size: 5.4em;
 			width: $img-size;
 			height: $img-size;
 			pointer-events: none;
@@ -73,13 +73,13 @@ const formattedDescription = computed(() => {
 	}
 
 	& > .name {
-		font-size: 1.5em;
-		margin-bottom: 0.8em;
+		font-size: 1.2em;
+		margin-bottom: 0.6em;
 	}
 
 	& > .describe {
 		width: 80%;
-		font-size: 0.9em;
+		font-size: 0.7em;
 		margin-bottom: 1em;
 		word-wrap: break-word;
 		overflow-y: scroll;

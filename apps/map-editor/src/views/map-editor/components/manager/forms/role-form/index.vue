@@ -146,35 +146,37 @@ function handleClose() {
 
 <template>
 	<div class="role-form-container">
-		<a-form @finish="handleSubmit" :model="roleForm" name="basic" autocomplete="off" class="role-form">
-			<a-form-item label="ID">
-				<a-alert style="word-break: break-all" :message="roleForm.id" type="info" />
-			</a-form-item>
+		<div class="role-form">
+			<div class="form-content">
+				<a-form @finish="handleSubmit" :model="roleForm" name="basic" autocomplete="off">
+					<a-form-item label="ID">
+						<a-alert style="word-break: break-all" :message="roleForm.id" type="info" />
+					</a-form-item>
 
-			<a-form-item label="角色名称" name="name" :rules="[{ required: true, message: '请输入角色名称' }]">
-				<a-input v-model:value="roleForm.name" />
-			</a-form-item>
+					<a-form-item label="角色名称" name="name" :rules="[{ required: true, message: '请输入角色名称' }]">
+						<a-input v-model:value="roleForm.name" />
+					</a-form-item>
 
-			<a-form-item label="角色描述" name="description" :rules="[{ required: true, message: '请输入角色描述' }]">
-				<a-textarea v-model:value="roleForm.description" :auto-size="{ minRows: 4, maxRows: 6 }" />
-				<a-typography-paragraph type="secondary" style="font-size: 12px; margin-top: 4px;">
-					支持 \n 进行换行
-				</a-typography-paragraph>
-			</a-form-item>
+					<a-form-item label="角色描述" name="description" :rules="[{ required: true, message: '请输入角色描述' }]">
+						<a-textarea v-model:value="roleForm.description" :auto-size="{ minRows: 4, maxRows: 6 }" />
+					</a-form-item>
 
-			<a-form-item label="代表颜色" name="color" :rules="[{ required: true, message: '请输入代表颜色' }]">
-				<input type="color" v-model="roleForm.color" />
-			</a-form-item>
+					<a-form-item label="代表颜色" name="color" :rules="[{ required: true, message: '请输入代表颜色' }]">
+						<input type="color" v-model="roleForm.color" />
+					</a-form-item>
 
-			<a-form-item label="角色预览" name="fileUrl" :rules="[{ required: true, message: '请选择角色图片' }]">
-				<div ref="canvasContainerRef" class="model-preview-canvas-container"></div>
-				<a-button @click="handleAddRole" size="small">选择纸片人图片</a-button>
-			</a-form-item>
-
-			<a-form-item>
-				<a-button style="width: 100%" type="primary" html-type="submit">提交</a-button>
-			</a-form-item>
-		</a-form>
+					<a-form-item label="角色预览" name="fileUrl" :rules="[{ required: true, message: '请选择角色图片' }]">
+						<div ref="canvasContainerRef" class="model-preview-canvas-container"></div>
+						<a-button @click="handleAddRole" size="small">选择纸片人图片</a-button>
+					</a-form-item>
+				</a-form>
+			</div>
+			<div class="footer-actions">
+				<a-button type="primary" block @click="handleSubmit">
+					{{ role ? '保存修改' : '创建角色' }}
+				</a-button>
+			</div>
+		</div>
 		<div class="editor-container">
 			<span class="title">
 				<a-alert message="在下面编辑器编写角色代码，在玩家初始化时会执行" type="info" show-icon />
@@ -193,8 +195,19 @@ function handleClose() {
 		width: 25vw;
 		display: flex;
 		flex-direction: column;
-		overflow-y: scroll;
 		padding-right: 10px;
+
+		.form-content {
+			flex: 1;
+			overflow-y: auto;
+		}
+
+		.footer-actions {
+			flex-shrink: 0;
+			padding: 12px 0;
+			border-top: 1px solid #f0f0f0;
+			background: #fff;
+		}
 	}
 
 	.editor-container {

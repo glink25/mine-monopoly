@@ -80,6 +80,7 @@ async function handleChanceCardClick(card: ChanceCardClientInfo) {
 }
 
 .chance-card-container {
+	font-size: 1.2rem;
 	width: 10rem;
 	height: 15rem;
 	display: flex;
