@@ -28,7 +28,7 @@ const formattedDescription = computed(() => {
 
 <template>
 	<div class="chance-card" :class="{ disable }" :style="{ border: `0.34em solid ${chanceCard.color}` }">
-		<div class="icon" v-if="chanceCard.iconId && iconUrl"><img :src="iconUrl" alt="" /></div>
+		<div class="icon" v-if="iconUrl"><img :src="iconUrl" alt="" /></div>
 		<div class="name" :style="{ color: chanceCard.color }">{{ chanceCard.name }}</div>
 		<div class="describe" :style="{ color: chanceCard.color }">{{ formattedDescription }}</div>
 	</div>
