@@ -389,7 +389,6 @@ export class Room {
 						} </b> 提供，未经过官方验证，可能存在<b><color:red>数据异常、游戏不平衡或脚本风险。</color></b><br>请谨慎游玩，并自行承担使用非官方内容所带来的风险。`,
 						confirmText: "同意",
 						cancelText: "不同意",
-						totalPlayers: totalPlayers, // 添加总玩家数信息
 					},
 				});
 				return this.operationListener.onceAsync(user.userId, OperateType.ConfirmDialogResult);
@@ -493,10 +492,6 @@ export class Room {
 				case WorkerCommType.GameOver:
 					this.handleGameOver();
 					break;
-				case "worker-error":
-					// 处理来自 Worker 的错误消息
-					handleWorkerError(msg.data);
-					break;
 			}
 		});
 
@@ -595,7 +590,10 @@ export class Room {
 
 			// 通过 electron API 记录错误
 			if (window.electronAPI?.logError) {
-				window.electronAPI.logError(errorData);
+				window.electronAPI.logError({
+					...errorData,
+					type: "Worker" as const,
+				});
 			}
 		};
 	}
