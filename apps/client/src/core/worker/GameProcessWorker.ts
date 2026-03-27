@@ -577,8 +577,8 @@ export class GameProcess implements IGameProcess {
 						const ownerPlayer = this.getPlayerById(owner.id);
 						if (!ownerPlayer) return payload;
 						if (owner !== undefined && toll !== undefined) {
-							await owner.gain(toll, MoneyTag.SYSTEM);
-							await arrivedPlayer.cost(toll);
+							const res = await owner.gain(toll, MoneyTag.PLAYER);
+							await arrivedPlayer.cost(res.money, MoneyTag.PLAYER);
 						}
 						this.messageNotify([arrivedPlayer.id], {
 							type: "error",
@@ -719,7 +719,7 @@ export class GameProcess implements IGameProcess {
 					property.id,
 				)}`,
 			);
-			await player.cost(property.sellCost);
+			await player.cost(property.sellCost, MoneyTag.SYSTEM);
 		} else {
 			msgToSend.msg = { type: "error", content: "不够钱啊穷鬼" };
 			sendToUsers([player.id], msgToSend);
@@ -742,7 +742,7 @@ export class GameProcess implements IGameProcess {
 					property.id,
 				)} 升到了 ${property.level} 级`,
 			);
-			await player.cost(property.sellCost);
+			await player.cost(property.sellCost, MoneyTag.SYSTEM);
 		} else {
 			msgToSend.msg = { type: "error", content: "不够钱啊穷鬼" };
 			sendToUsers([player.id], msgToSend);
