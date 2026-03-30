@@ -32,6 +32,13 @@ export default defineConfig(({ command, mode }) => {
 			electron({
 				main: {
 					entry: "electron/main.ts",
+					vite: {
+						resolve: {
+							alias: {
+								"@src": path.resolve(__dirname, "src"),
+							},
+						},
+					},
 				},
 				preload: {
 					input: path.join(__dirname, "electron/preload.ts"),
@@ -48,7 +55,7 @@ export default defineConfig(({ command, mode }) => {
 			alias: [
 				{
 					find: "@src",
-					replacement: path.resolve(path.dirname("./"), "src"),
+					replacement: path.resolve(__dirname, "src"),
 				},
 			],
 		},

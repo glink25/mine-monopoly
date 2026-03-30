@@ -8,6 +8,7 @@ import libContent from "./editor-lib.d.ts?raw";
 import templateText from "./template-text?raw";
 import { Role } from "@mine-monopoly/types";
 import { ResourcePicker } from "@src/components/resource-picker";
+import { mapContentService } from "@src/services";
 
 const { role } = defineProps<{ role: Role | undefined }>();
 
@@ -58,15 +59,14 @@ async function handleEditRole() {
 	try {
 		if (!role) return;
 		const _role = {
-			id: role.id,
+			roleId: role.id,
 			name: roleForm.name,
 			description: roleForm.description,
 			color: roleForm.color,
 			imageId: roleForm.imageId,
 			initCode: roleForm.initCode,
 		};
-		useMapDataStore().editRole(_role);
-		message.success(`编辑角色 "${_role.name}" 成功`, 1);
+		await mapContentService.updateRole(_role);
 		emits("submit");
 	} catch (e: any) {
 		message.error(e.message, 1);
@@ -76,15 +76,13 @@ async function handleEditRole() {
 async function handleCreateRole() {
 	try {
 		const role = {
-			id: `role-${crypto.randomUUID()}`,
 			name: roleForm.name,
 			description: roleForm.description,
 			color: roleForm.color,
 			imageId: roleForm.imageId,
 			initCode: roleForm.initCode,
 		};
-		useMapDataStore().addRole(role);
-		message.success(`添加角色 "${role.name}" 成功`, 1);
+		await mapContentService.addRole(role);
 		emits("submit");
 	} catch (e: any) {
 		message.error(e.message, 1);

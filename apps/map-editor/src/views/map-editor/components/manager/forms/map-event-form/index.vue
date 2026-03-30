@@ -10,6 +10,7 @@ import { MapEventType } from "@mine-monopoly/types";
 import { ResourcePicker } from "@src/components/resource-picker";
 import { addNewImage } from "@src/utils/file";
 import { cloneDeep } from "lodash";
+import { mapContentService } from "@src/services";
 
 // 事件类型选项
 const eventTypeOptions = [
@@ -61,8 +62,6 @@ function handleResourceChange(resource: any) {
 
 async function handleAddMapEvent() {
 	try {
-		const mapDataStore = useMapDataStore();
-
 		if (props.mapEvent) {
 			// 编辑模式
 			if (mapEventForm.tempFilePath) {
@@ -70,8 +69,7 @@ async function handleAddMapEvent() {
 				const newIconId = await addNewImage(mapEventForm.tempFilePath, mapEventForm.name);
 				mapEventForm.iconId = newIconId;
 			}
-			mapDataStore.editMapEvent(mapEventForm);
-			message.success(`修改 "${mapEventForm.name}" 成功`);
+			await mapContentService.updateMapEvent(mapEventForm);
 		} else {
 			// 新增模式
 			if (mapEventForm.tempFilePath) {
@@ -80,8 +78,7 @@ async function handleAddMapEvent() {
 				mapEventForm.iconId = newIconId;
 			}
 			// ResourcePicker 已经添加了图片（autoSave: true 模式）
-			mapDataStore.addMapEvent(mapEventForm);
-			message.success(`添加 "${mapEventForm.name}" 成功`);
+			await mapContentService.addMapEvent(mapEventForm);
 		}
 		emits("close");
 	} catch (e: any) {

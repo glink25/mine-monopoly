@@ -1,78 +1,39 @@
 /**
  * MCP Tools for Game Phase Management
+ *
+ * Note: Game phase CRUD operations are now handled through the Service Layer.
+ * This file only exports tool definitions for MCP server registration.
  */
 
-import { z } from "zod";
-import { invokeTool } from "../bridge.js";
+import { mapContentService } from "@src/services";
 import { successResult, errorResult } from "../utils.js";
+import { z } from "zod";
 
 /**
- * Zod schemas for input validation
+ * Simple schemas for MCP tool registration
+ * Actual validation is done in Service Layer
  */
 export const GetPhasesSchema = z.object({});
-
 export const AddPhaseSchema = z.object({
-	id: z.string().min(1, "Phase ID is required"),
-	name: z.string().min(1, "Phase name is required"),
-	description: z.string().min(1, "Description is required"),
-	phaseType: z.enum([
-		"gameOverRule",
-		"gameInited",
-		"gameRoundStart",
-		"playerRound",
-		"gameRoundEnd",
-	], {
-		errorMap: () => ({ message: "Invalid phase type. Must be one of: gameOverRule, gameInited, gameRoundStart, playerRound, gameRoundEnd" }),
-	}),
-	mark: z.enum([
-		"GameRoundStart",
-		"PlayerRoundStart",
-		"RollDice",
-		"PlayerMove",
-		"ArrivedEvent",
-		"PlayerRoundEnd",
-		"GameRoundEnd",
-	]).optional(),
-	from: z.string().min(1, "From is required"),
-	initEventCode: z.string().min(1, "Init event code is required"),
+	id: z.string(),
+	name: z.string(),
+	description: z.string(),
+	phaseType: z.string(),
+	mark: z.string().optional(),
+	from: z.string(),
+	initEventCode: z.string(),
 });
-
 export const RemovePhaseSchema = z.object({
-	phaseId: z.string().min(1, "Phase ID is required"),
-	phaseType: z.enum([
-		"gameOverRule",
-		"gameInited",
-		"gameRoundStart",
-		"playerRound",
-		"gameRoundEnd",
-	], {
-		errorMap: () => ({ message: "Invalid phase type. Must be one of: gameOverRule, gameInited, gameRoundStart, playerRound, gameRoundEnd" }),
-	}),
+	phaseId: z.string(),
+	phaseType: z.string(),
 });
-
 export const UpdatePhaseSchema = z.object({
-	phaseId: z.string().min(1, "Phase ID is required"),
-	phaseType: z.enum([
-		"gameOverRule",
-		"gameInited",
-		"gameRoundStart",
-		"playerRound",
-		"gameRoundEnd",
-	], {
-		errorMap: () => ({ message: "Invalid phase type. Must be one of: gameOverRule, gameInited, gameRoundStart, playerRound, gameRoundEnd" }),
-	}),
-	name: z.string().min(1, "Phase name is required").optional(),
-	description: z.string().min(1, "Description is required").optional(),
-	mark: z.enum([
-		"GameRoundStart",
-		"PlayerRoundStart",
-		"RollDice",
-		"PlayerMove",
-		"ArrivedEvent",
-		"PlayerRoundEnd",
-		"GameRoundEnd",
-	]).optional(),
-	initEventCode: z.string().min(1, "Init event code is required").optional(),
+	phaseId: z.string(),
+	phaseType: z.string(),
+	name: z.string().optional(),
+	description: z.string().optional(),
+	mark: z.string().optional(),
+	initEventCode: z.string().optional(),
 });
 
 /**
@@ -80,8 +41,7 @@ export const UpdatePhaseSchema = z.object({
  */
 export async function getPhases(args: unknown) {
 	try {
-		const validated = GetPhasesSchema.parse(args);
-		const result = await invokeTool("get_phases", validated);
+		const result = await mapContentService.getPhases();
 		return successResult(result);
 	} catch (error: any) {
 		return errorResult(error.message || "Failed to get phases");
@@ -93,8 +53,7 @@ export async function getPhases(args: unknown) {
  */
 export async function addPhase(args: unknown) {
 	try {
-		const validated = AddPhaseSchema.parse(args);
-		const result = await invokeTool("add_phase", validated);
+		const result = await mapContentService.addPhase(args as any);
 		return successResult(result);
 	} catch (error: any) {
 		return errorResult(error.message || "Failed to add phase");
@@ -106,9 +65,9 @@ export async function addPhase(args: unknown) {
  */
 export async function removePhase(args: unknown) {
 	try {
-		const validated = RemovePhaseSchema.parse(args);
-		const result = await invokeTool("remove_phase", validated);
-		return successResult(result);
+		const validated = args as { phaseId: string; phaseType: string };
+		await mapContentService.removePhase(validated.phaseId, validated.phaseType as any);
+		return successResult({ success: true });
 	} catch (error: any) {
 		return errorResult(error.message || "Failed to remove phase");
 	}
@@ -119,8 +78,7 @@ export async function removePhase(args: unknown) {
  */
 export async function updatePhase(args: unknown) {
 	try {
-		const validated = UpdatePhaseSchema.parse(args);
-		const result = await invokeTool("update_phase", validated);
+		const result = await mapContentService.updatePhase(args as any);
 		return successResult(result);
 	} catch (error: any) {
 		return errorResult(error.message || "Failed to update phase");

@@ -1,18 +1,21 @@
 /**
  * MCP Tools for Extra Libraries Management
+ *
+ * Note: Extra libraries operations are now handled through the Service Layer.
+ * This file only exports tool definitions for MCP server registration.
  */
 
-import { z } from "zod";
-import { invokeTool } from "../bridge.js";
+import { mapContentService } from "@src/services";
 import { successResult, errorResult } from "../utils.js";
+import { z } from "zod";
 
 /**
- * Zod schemas for input validation
+ * Simple schemas for MCP tool registration
+ * Actual validation is done in Service Layer
  */
 export const GetExtraLibsSchema = z.object({});
-
 export const UpdateExtraLibsSchema = z.object({
-	code: z.string().min(1, "Code is required"),
+	code: z.string(),
 });
 
 /**
@@ -20,8 +23,7 @@ export const UpdateExtraLibsSchema = z.object({
  */
 export async function getExtraLibs(args: unknown) {
 	try {
-		const validated = GetExtraLibsSchema.parse(args);
-		const result = await invokeTool("get_extra_libs", validated);
+		const result = await mapContentService.getExtraLibs();
 		return successResult(result);
 	} catch (error: any) {
 		return errorResult(error.message || "Failed to get extra libraries");
@@ -33,9 +35,9 @@ export async function getExtraLibs(args: unknown) {
  */
 export async function updateExtraLibs(args: unknown) {
 	try {
-		const validated = UpdateExtraLibsSchema.parse(args);
-		const result = await invokeTool("update_extra_libs", validated);
-		return successResult(result);
+		const validated = args as { code: string };
+		await mapContentService.updateExtraLibs(validated.code);
+		return successResult({ success: true });
 	} catch (error: any) {
 		return errorResult(error.message || "Failed to update extra libraries");
 	}

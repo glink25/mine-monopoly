@@ -167,21 +167,15 @@ const toolsLoading = ref(false);
 const tools = ref<MCPTool[]>([]);
 
 // Function to categorize tools based on their name
+// MCP服务只支持6个核心功能: 机会卡、地块事件、角色、游戏流程、额外库、资源管理
 function getCategory(toolName: string): string {
-	if (toolName.includes("phase")) return "游戏阶段";
 	if (toolName.includes("chance_card")) return "机会卡";
-	if (toolName.includes("ui_template")) return "UI模板";
-	if (toolName.includes("custom_ui")) return "自定义UI";
-	if (toolName.includes("setting")) return "游戏设置";
-	if (toolName.includes("extra_libs")) return "额外库";
-	if (toolName.includes("map_info") || toolName.includes("map_summary")) return "信息";
-	if (toolName.includes("map_item") || toolName.includes("map_index")) return "元素";
-	if (toolName.includes("map_event")) return "事件";
+	if (toolName.includes("map_event")) return "地块事件";
 	if (toolName.includes("role")) return "角色";
-	if (toolName.includes("link") || toolName.includes("unlink")) return "元素";
-	if (toolName.includes("model") || toolName.includes("image") || toolName.includes("resource")) return "资源";
-	if (toolName.includes("file") || toolName.includes("create_new") || toolName.includes("load_map")) return "文件";
-	if (toolName.includes("validate") || toolName.includes("duplicate") || toolName.includes("analyze")) return "分析";
+	if (toolName.includes("phase")) return "游戏流程";
+	if (toolName.includes("extra_libs")) return "额外库";
+	if (toolName.includes("model") || toolName.includes("image") || toolName.includes("resource")) return "资源管理";
+	if (toolName.includes("link") || toolName.includes("unlink")) return "地块事件"; // link/unlink 是事件相关功能
 	return "其他";
 }
 

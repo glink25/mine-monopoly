@@ -9,21 +9,13 @@ import {
 	ListToolsRequestSchema,
 	type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
-import { mapInfoTools } from "./tools/map-info.js";
-import { mapItemTools } from "./tools/map-items.js";
-import { mapItemTypeTools } from "./tools/map-item-types.js";
-import { mapEventTools } from "./tools/map-events.js";
-import { resourceTools } from "./tools/resources.js";
-import { roleTools } from "./tools/roles.js";
-import { fileOpsTools } from "./tools/file-ops.js";
-import { analysisTools } from "./tools/analysis.js";
+// MCP服务只支持6个核心功能模块
 import { chanceCardTools } from "./tools/chance-cards.js";
-import { propertyTools } from "./tools/properties.js";
+import { mapEventTools } from "./tools/map-events.js";
+import { roleTools } from "./tools/roles.js";
 import { gamePhaseTools } from "./tools/game-phases.js";
-import { uiTemplateTools } from "./tools/ui-templates.js";
-import { customUITools } from "./tools/custom-uis.js";
-import { gameSettingTools } from "./tools/game-settings.js";
 import { extraLibsTools } from "./tools/extra-libs.js";
+import { resourceTools } from "./tools/resources.js";
 
 /**
  * Convert Zod schema to JSON Schema format for MCP
@@ -101,23 +93,15 @@ function getJsonSchemaType(zodField: any): string {
 
 /**
  * Collect all tools at module level
+ * MCP服务只支持6个核心功能: 机会卡、地块事件、角色、游戏流程、额外库、资源管理
  */
 const allTools = [
-	...mapInfoTools,
-	...mapItemTools,
-	...mapItemTypeTools,
-	...mapEventTools,
-	...resourceTools,
-	...roleTools,
-	...fileOpsTools,
-	...analysisTools,
 	...chanceCardTools,
-	...propertyTools,
+	...mapEventTools,
+	...roleTools,
 	...gamePhaseTools,
-	...uiTemplateTools,
-	...customUITools,
-	...gameSettingTools,
 	...extraLibsTools,
+	...resourceTools,
 ];
 
 /**
