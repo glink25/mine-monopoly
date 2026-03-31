@@ -1,11 +1,12 @@
 /**
  * MCP Tools for Game Phase Management
  *
- * Note: Game phase CRUD operations are now handled through the Service Layer.
- * This file only exports tool definitions for MCP server registration.
+ * This module provides CRUD operations for game phases through the IPC Bridge.
+ * All business logic, validation, and event notifications are handled by mapContentService
+ * in the renderer process via the bridge.
  */
 
-import { mapContentService } from "@src/services";
+import { invokeTool } from "../bridge.js";
 import { successResult, errorResult } from "../utils.js";
 import { z } from "zod";
 
@@ -41,7 +42,7 @@ export const UpdatePhaseSchema = z.object({
  */
 export async function getPhases(args: unknown) {
 	try {
-		const result = await mapContentService.getPhases();
+		const result = await invokeTool("get_phases", args);
 		return successResult(result);
 	} catch (error: any) {
 		return errorResult(error.message || "Failed to get phases");
@@ -53,7 +54,7 @@ export async function getPhases(args: unknown) {
  */
 export async function addPhase(args: unknown) {
 	try {
-		const result = await mapContentService.addPhase(args as any);
+		const result = await invokeTool("add_phase", args);
 		return successResult(result);
 	} catch (error: any) {
 		return errorResult(error.message || "Failed to add phase");
@@ -65,9 +66,8 @@ export async function addPhase(args: unknown) {
  */
 export async function removePhase(args: unknown) {
 	try {
-		const validated = args as { phaseId: string; phaseType: string };
-		await mapContentService.removePhase(validated.phaseId, validated.phaseType as any);
-		return successResult({ success: true });
+		const result = await invokeTool("remove_phase", args);
+		return successResult(result);
 	} catch (error: any) {
 		return errorResult(error.message || "Failed to remove phase");
 	}
@@ -78,7 +78,7 @@ export async function removePhase(args: unknown) {
  */
 export async function updatePhase(args: unknown) {
 	try {
-		const result = await mapContentService.updatePhase(args as any);
+		const result = await invokeTool("update_phase", args);
 		return successResult(result);
 	} catch (error: any) {
 		return errorResult(error.message || "Failed to update phase");

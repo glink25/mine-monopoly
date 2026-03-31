@@ -16,6 +16,7 @@ import { roleTools } from "./tools/roles.js";
 import { gamePhaseTools } from "./tools/game-phases.js";
 import { extraLibsTools } from "./tools/extra-libs.js";
 import { resourceTools } from "./tools/resources.js";
+import { systemTools } from "./tools/system.js";
 
 /**
  * Convert Zod schema to JSON Schema format for MCP
@@ -102,6 +103,7 @@ const allTools = [
 	...gamePhaseTools,
 	...extraLibsTools,
 	...resourceTools,
+	...systemTools,
 ];
 
 /**

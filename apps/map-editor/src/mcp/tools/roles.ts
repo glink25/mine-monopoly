@@ -1,71 +1,60 @@
 /**
  * MCP Tools for Role Management
  *
- * This module provides CRUD operations for roles through the Service Layer.
- * All business logic, validation, and event notifications are handled by mapContentService.
+ * This module provides CRUD operations for roles through the IPC Bridge.
+ * All business logic, validation, and event notifications are handled by mapContentService
+ * in the renderer process via the bridge.
  */
 
-import { mapContentService } from "@src/services";
+import { invokeTool } from "../bridge.js";
+import { successResult, errorResult } from "../utils.js";
 import type { Role } from "@src/services/validators/role-validators";
 
 /**
  * Add a new role
- *
- * Service API: addRole(data: Omit<Role, "id">): Promise<Role>
  */
 export async function addRole(args: unknown) {
 	try {
-		const data = args as Omit<Role, "id">;
-		const result = await mapContentService.addRole(data);
-		return {
-			success: true,
-			id: result.id,
-			role: result
-		};
+		const result = await invokeTool("add_role", args);
+		return successResult(result);
 	} catch (error: any) {
-		return {
-			success: false,
-			error: error.message
-		};
+		return errorResult(error.message || "Failed to add role");
 	}
 }
 
 /**
  * Update an existing role
- *
- * Service API: updateRole(data: { roleId, ...fields }): Promise<Role>
  */
 export async function updateRole(args: unknown) {
 	try {
-		const data = args as { roleId: string } & Partial<Omit<Role, "id">>;
-		const result = await mapContentService.updateRole(data);
-		return {
-			success: true,
-			role: result
-		};
+		const result = await invokeTool("update_role", args);
+		return successResult(result);
 	} catch (error: any) {
-		return {
-			success: false,
-			error: error.message
-		};
+		return errorResult(error.message || "Failed to update role");
 	}
 }
 
 /**
  * Remove a role
- *
- * Service API: removeRole(roleId: string): Promise<void>
  */
 export async function removeRole(args: unknown) {
 	try {
-		const params = args as { roleId: string };
-		await mapContentService.removeRole(params.roleId);
-		return { success: true };
+		const result = await invokeTool("remove_role", args);
+		return successResult(result);
 	} catch (error: any) {
-		return {
-			success: false,
-			error: error.message
-		};
+		return errorResult(error.message || "Failed to remove role");
+	}
+}
+
+/**
+ * List all roles
+ */
+export async function listRoles(args: unknown) {
+	try {
+		const result = await invokeTool("list_roles", args);
+		return successResult(result);
+	} catch (error: any) {
+		return errorResult(error.message || "Failed to list roles");
 	}
 }
 
@@ -117,5 +106,15 @@ export const roleTools = [
 			required: ["roleId"]
 		},
 		handler: removeRole
+	},
+	{
+		name: "list_roles",
+		description: "获取当前地图中所有角色的列表。返回所有角色的完整信息，包括 ID、名称、描述、颜色、初始化代码和图片ID。",
+		inputSchema: {
+			type: "object",
+			properties: {},
+			required: []
+		},
+		handler: listRoles
 	}
 ];

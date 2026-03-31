@@ -1,71 +1,60 @@
 /**
  * MCP Tools for Chance Card Management
  *
- * This module provides CRUD operations for chance cards through the Service Layer.
- * All business logic, validation, and event notifications are handled by mapContentService.
+ * This module provides CRUD operations for chance cards through the IPC Bridge.
+ * All business logic, validation, and event notifications are handled by mapContentService
+ * in the renderer process via the bridge.
  */
 
-import { mapContentService } from "@src/services";
+import { invokeTool } from "../bridge.js";
+import { successResult, errorResult } from "../utils.js";
 import type { ChanceCard } from "@src/services/validators/chance-card-validators";
 
 /**
  * Add a new chance card
- *
- * Service API: addChanceCard(data: Omit<ChanceCard, "id">): Promise<ChanceCard>
  */
 export async function addChanceCard(args: unknown) {
 	try {
-		const data = args as Omit<ChanceCard, "id">;
-		const result = await mapContentService.addChanceCard(data);
-		return {
-			success: true,
-			id: result.id,
-			chanceCard: result
-		};
+		const result = await invokeTool("add_chance_card", args);
+		return successResult(result);
 	} catch (error: any) {
-		return {
-			success: false,
-			error: error.message
-		};
+		return errorResult(error.message || "Failed to add chance card");
 	}
 }
 
 /**
  * Update an existing chance card
- *
- * Service API: updateChanceCard(data: ChanceCard): Promise<ChanceCard>
  */
 export async function updateChanceCard(args: unknown) {
 	try {
-		const data = args as ChanceCard;
-		const result = await mapContentService.updateChanceCard(data);
-		return {
-			success: true,
-			chanceCard: result
-		};
+		const result = await invokeTool("update_chance_card", args);
+		return successResult(result);
 	} catch (error: any) {
-		return {
-			success: false,
-			error: error.message
-		};
+		return errorResult(error.message || "Failed to update chance card");
 	}
 }
 
 /**
  * Remove a chance card
- *
- * Service API: removeChanceCard(cardId: string): Promise<void>
  */
 export async function removeChanceCard(args: unknown) {
 	try {
-		const params = args as { cardId: string };
-		await mapContentService.removeChanceCard(params.cardId);
-		return { success: true };
+		const result = await invokeTool("remove_chance_card", args);
+		return successResult(result);
 	} catch (error: any) {
-		return {
-			success: false,
-			error: error.message
-		};
+		return errorResult(error.message || "Failed to remove chance card");
+	}
+}
+
+/**
+ * List all chance cards
+ */
+export async function listChanceCards(args: unknown) {
+	try {
+		const result = await invokeTool("list_chance_cards", args);
+		return successResult(result);
+	} catch (error: any) {
+		return errorResult(error.message || "Failed to list chance cards");
 	}
 }
 
@@ -119,5 +108,15 @@ export const chanceCardTools = [
 			required: ["cardId"]
 		},
 		handler: removeChanceCard
+	},
+	{
+		name: "list_chance_cards",
+		description: "获取当前地图中所有机会卡的列表。返回所有机会卡的完整信息，包括 ID、名称、类型、描述、颜色、图标ID和效果代码。",
+		inputSchema: {
+			type: "object",
+			properties: {},
+			required: []
+		},
+		handler: listChanceCards
 	}
 ];

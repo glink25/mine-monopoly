@@ -1,11 +1,12 @@
 /**
  * MCP Tools for Extra Libraries Management
  *
- * Note: Extra libraries operations are now handled through the Service Layer.
- * This file only exports tool definitions for MCP server registration.
+ * This module provides CRUD operations for extra libraries through the IPC Bridge.
+ * All business logic, validation, and event notifications are handled by mapContentService
+ * in the renderer process via the bridge.
  */
 
-import { mapContentService } from "@src/services";
+import { invokeTool } from "../bridge.js";
 import { successResult, errorResult } from "../utils.js";
 import { z } from "zod";
 
@@ -23,7 +24,7 @@ export const UpdateExtraLibsSchema = z.object({
  */
 export async function getExtraLibs(args: unknown) {
 	try {
-		const result = await mapContentService.getExtraLibs();
+		const result = await invokeTool("get_extra_libs", args);
 		return successResult(result);
 	} catch (error: any) {
 		return errorResult(error.message || "Failed to get extra libraries");
@@ -35,9 +36,8 @@ export async function getExtraLibs(args: unknown) {
  */
 export async function updateExtraLibs(args: unknown) {
 	try {
-		const validated = args as { code: string };
-		await mapContentService.updateExtraLibs(validated.code);
-		return successResult({ success: true });
+		const result = await invokeTool("update_extra_libs", args);
+		return successResult(result);
 	} catch (error: any) {
 		return errorResult(error.message || "Failed to update extra libraries");
 	}

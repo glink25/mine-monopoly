@@ -11,14 +11,18 @@ export type MCPToolName =
 	| "add_chance_card"
 	| "update_chance_card"
 	| "remove_chance_card"
+	| "list_chance_cards"
 	// Map event tools
 	| "add_map_event"
 	| "update_map_event"
 	| "remove_map_event"
+	| "get_map_event_by_id"
+	| "list_map_events"
 	// Role tools
 	| "add_role"
 	| "update_role"
 	| "remove_role"
+	| "list_roles"
 	// Game phase tools
 	| "get_phases"
 	| "add_phase"
@@ -32,7 +36,9 @@ export type MCPToolName =
 	| "list_images"
 	| "get_resource_by_id"
 	| "add_temp_model"
-	| "add_temp_image";
+	| "add_temp_image"
+	// System tools
+	| "check_mcp_connection";
 
 /**
  * MCP tool handler type

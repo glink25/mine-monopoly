@@ -1,71 +1,60 @@
 /**
  * MCP Tools for Map Event Management
  *
- * This module provides CRUD operations for map events through the Service Layer.
- * All business logic, validation, and event notifications are handled by mapContentService.
+ * This module provides CRUD operations for map events through the IPC Bridge.
+ * All business logic, validation, and event notifications are handled by mapContentService
+ * in the renderer process via the bridge.
  */
 
-import { mapContentService } from "@src/services";
+import { invokeTool } from "../bridge.js";
+import { successResult, errorResult } from "../utils.js";
 import type { MapEvent } from "@src/services/validators/map-event-validators";
 
 /**
  * Add a new map event
- *
- * Service API: addMapEvent(data: Omit<MapEvent, "id">): Promise<MapEvent>
  */
 export async function addMapEvent(args: unknown) {
 	try {
-		const data = args as Omit<MapEvent, "id">;
-		const result = await mapContentService.addMapEvent(data);
-		return {
-			success: true,
-			id: result.id,
-			mapEvent: result
-		};
+		const result = await invokeTool("add_map_event", args);
+		return successResult(result);
 	} catch (error: any) {
-		return {
-			success: false,
-			error: error.message
-		};
+		return errorResult(error.message || "Failed to add map event");
 	}
 }
 
 /**
  * Update an existing map event
- *
- * Service API: updateMapEvent(data: MapEvent): Promise<MapEvent>
  */
 export async function updateMapEvent(args: unknown) {
 	try {
-		const data = args as MapEvent;
-		const result = await mapContentService.updateMapEvent(data);
-		return {
-			success: true,
-			mapEvent: result
-		};
+		const result = await invokeTool("update_map_event", args);
+		return successResult(result);
 	} catch (error: any) {
-		return {
-			success: false,
-			error: error.message
-		};
+		return errorResult(error.message || "Failed to update map event");
 	}
 }
 
 /**
  * Remove a map event
- *
- * Service API: removeMapEvent(eventId: string): Promise<void>
  */
 export async function removeMapEvent(args: unknown) {
 	try {
-		const params = args as { eventId: string };
-		await mapContentService.removeMapEvent(params.eventId);
-		return { success: true };
+		const result = await invokeTool("remove_map_event", args);
+		return successResult(result);
 	} catch (error: any) {
-		return {
-			success: false,
-			error: error.message
-		};
+		return errorResult(error.message || "Failed to remove map event");
+	}
+}
+
+/**
+ * List all map events
+ */
+export async function listMapEvents(args: unknown) {
+	try {
+		const result = await invokeTool("list_map_events", args);
+		return successResult(result);
+	} catch (error: any) {
+		return errorResult(error.message || "Failed to list map events");
 	}
 }
 
@@ -117,5 +106,15 @@ export const mapEventTools = [
 			required: ["eventId"]
 		},
 		handler: removeMapEvent
+	},
+	{
+		name: "list_map_events",
+		description: "获取当前地图中所有地图事件的列表。返回所有地图事件的完整信息，包括 ID、名称、类型、描述、图标ID和效果代码。",
+		inputSchema: {
+			type: "object",
+			properties: {},
+			required: []
+		},
+		handler: listMapEvents
 	}
 ];

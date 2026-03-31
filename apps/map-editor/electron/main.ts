@@ -359,8 +359,16 @@ ipcMain.handle("start-mcp-server", async (event) => {
 		// 设置 IPC bridge 以便 MCP 工具可以与渲染进程通信
 		const ipcBridge: IPCBridge = {
 			invokeTool: async (toolName, args) => {
+				const invokeId = Math.random().toString(36).substring(7);
+				const startTime = Date.now();
+
+				console.log(`[MCP IPC] → Sending to renderer: ${toolName} [${invokeId}]`);
+				console.log(`[MCP IPC] → Request payload:`, JSON.stringify(args, null, 2));
+
 				return new Promise((resolve) => {
 					const timeout = setTimeout(() => {
+						const duration = Date.now() - startTime;
+						console.error(`[MCP IPC] ⏱️ Timeout: ${toolName} [${invokeId}] (${duration}ms)`);
 						resolve({ success: false, error: "Tool invocation timeout" });
 					}, 10000); // 10 second timeout
 
@@ -368,6 +376,18 @@ ipcMain.handle("start-mcp-server", async (event) => {
 					const responseHandler = (_event: any, data: any) => {
 						clearTimeout(timeout);
 						ipcMain.removeListener("mcp-tool-response", responseHandler);
+
+						const duration = Date.now() - startTime;
+
+						// Log response from renderer
+						if (data.success !== false) {
+							console.log(`[MCP IPC] ← Response received: ${toolName} [${invokeId}] (${duration}ms)`);
+							console.log(`[MCP IPC] ← Response data:`, JSON.stringify(data, null, 2));
+						} else {
+							console.error(`[MCP IPC] ← Error response: ${toolName} [${invokeId}] (${duration}ms)`);
+							console.error(`[MCP IPC] ← Error data:`, JSON.stringify(data, null, 2));
+						}
+
 						resolve(data);
 					};
 
@@ -378,17 +398,23 @@ ipcMain.handle("start-mcp-server", async (event) => {
 						win.webContents.send("mcp-invoke-tool", { toolName, args });
 					} else {
 						clearTimeout(timeout);
+						console.error(`[MCP IPC] ❌ No window available for ${toolName} [${invokeId}]`);
 						resolve({ success: false, error: "No window available" });
 					}
 				});
 			},
 			sendMessage: (channel, data) => {
 				if (win) {
+					console.log(`[MCP IPC] → Sending message: ${channel}`, data);
 					win.webContents.send(channel, data);
 				}
 			},
 			onMessage: (channel, callback) => {
-				ipcMain.on(channel, (event, data) => callback(data));
+				console.log(`[MCP IPC] ← Registering listener: ${channel}`);
+				ipcMain.on(channel, (event, data) => {
+					console.log(`[MCP IPC] ← Message received: ${channel}`, data);
+					callback(data);
+				});
 			},
 		};
 

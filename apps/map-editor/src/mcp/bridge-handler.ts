@@ -2,8 +2,7 @@
  * MCP Bridge Handler for Renderer Process
  *
  * This file handles MCP tool invocations from the main process.
- * Note: Most map content operations now use Service Layer directly.
- * This handler only handles: map event linking, and resource management.
+ * All MCP tools now route through this handler to access Pinia stores.
  */
 
 import { useMapDataStore, useResourceStore, useEditorStore } from "@src/stores";
@@ -12,17 +11,39 @@ import { eventBus } from "@src/utils/event-bus";
 import { mapContentService } from "@src/services";
 
 // Define MCP tool names locally
-// Only remaining functionality: resources, and map event linking
-// Game phases and extra libs now use Service Layer directly
 type MCPToolName =
-	// Map event tools (for linking events to items)
+	// Chance card tools
+	| "add_chance_card"
+	| "update_chance_card"
+	| "remove_chance_card"
+	| "list_chance_cards"
+	// Map event tools
+	| "add_map_event"
+	| "update_map_event"
+	| "remove_map_event"
 	| "get_map_event_by_id"
+	| "list_map_events"
+	// Role tools
+	| "add_role"
+	| "update_role"
+	| "remove_role"
+	| "list_roles"
+	// Game phase tools
+	| "get_phases"
+	| "add_phase"
+	| "remove_phase"
+	| "update_phase"
+	// Extra libs tools
+	| "get_extra_libs"
+	| "update_extra_libs"
 	// Resource tools
 	| "list_models"
 	| "list_images"
 	| "get_resource_by_id"
 	| "add_temp_model"
-	| "add_temp_image";
+	| "add_temp_image"
+	// System tools
+	| "check_mcp_connection";
 
 /**
  * Send MCP operation feedback event
@@ -69,21 +90,139 @@ export async function handleToolInvocation(toolName: MCPToolName, args: any): Pr
 	const resourceStore = useResourceStore();
 	const editorStore = useEditorStore();
 
+	const startTime = Date.now();
+	console.log(`[MCP Bridge] 🚀 Tool invoked: ${toolName}`);
+	console.log(`[MCP Bridge] 📥 Arguments:`, JSON.stringify(args, null, 2));
+
 	try {
+		let result: any;
+
 		switch (toolName) {
-			// Map Event Tools (for linking only)
+			// Chance Card Tools
+			case "add_chance_card": {
+				const serviceResult = await mapContentService.addChanceCard(args);
+				result = toPlain(serviceResult);
+				break;
+			}
+
+			case "update_chance_card": {
+				const serviceResult = await mapContentService.updateChanceCard(args);
+				result = toPlain(serviceResult);
+				break;
+			}
+
+			case "remove_chance_card": {
+				await mapContentService.removeChanceCard(args.cardId);
+				result = { success: true };
+				break;
+			}
+
+			case "list_chance_cards": {
+				result = toPlain(mapDataStore.chanceCards);
+				break;
+			}
+
+			// Map Event Tools
+			case "add_map_event": {
+				const serviceResult = await mapContentService.addMapEvent(args);
+				result = toPlain(serviceResult);
+				break;
+			}
+
+			case "update_map_event": {
+				const serviceResult = await mapContentService.updateMapEvent(args);
+				result = toPlain(serviceResult);
+				break;
+			}
+
+			case "remove_map_event": {
+				await mapContentService.removeMapEvent(args.eventId);
+				result = { success: true };
+				break;
+			}
+
 			case "get_map_event_by_id": {
 				const event = mapDataStore.findMapEventById(args.eventId);
 				if (!event) throw new Error(`MapEvent with ID ${args.eventId} not found`);
-				return toPlain(event);
+				result = toPlain(event);
+				break;
+			}
+
+			case "list_map_events": {
+				result = toPlain(mapDataStore.mapEvents);
+				break;
+			}
+
+			// Role Tools
+			case "add_role": {
+				const serviceResult = await mapContentService.addRole(args);
+				result = toPlain(serviceResult);
+				break;
+			}
+
+			case "update_role": {
+				const serviceResult = await mapContentService.updateRole(args);
+				result = toPlain(serviceResult);
+				break;
+			}
+
+			case "remove_role": {
+				await mapContentService.removeRole(args.roleId);
+				result = { success: true };
+				break;
+			}
+
+			case "list_roles": {
+				result = toPlain(mapDataStore.roles);
+				break;
+			}
+
+			// Game Phase Tools
+			case "get_phases": {
+				const serviceResult = await mapContentService.getPhases();
+				result = toPlain(serviceResult);
+				break;
+			}
+
+			case "add_phase": {
+				const serviceResult = await mapContentService.addPhase(args);
+				result = toPlain(serviceResult);
+				break;
+			}
+
+			case "update_phase": {
+				const serviceResult = await mapContentService.updatePhase(args);
+				result = toPlain(serviceResult);
+				break;
+			}
+
+			case "remove_phase": {
+				await mapContentService.removePhase(args.phaseId, args.phaseType);
+				result = { success: true };
+				break;
+			}
+
+			// Extra Libs Tools
+			case "get_extra_libs": {
+				const serviceResult = await mapContentService.getExtraLibs();
+				result = toPlain(serviceResult);
+				break;
+			}
+
+			case "update_extra_libs": {
+				await mapContentService.updateExtraLibs(args.code);
+				result = { success: true };
+				break;
 			}
 
 			// Resource Tools
 			case "list_models":
-				return toPlain(resourceStore.models);
+				result = toPlain(resourceStore.models);
+				break;
 
 			case "list_images":
-				return toPlain(resourceStore.images);
+				result = toPlain(resourceStore.images);
+				break;
 
 			case "get_resource_by_id": {
 				// Try to find as image first, then as model
@@ -92,24 +231,55 @@ export async function handleToolInvocation(toolName: MCPToolName, args: any): Pr
 					resource = resourceStore.models.find(m => m.id === args.resourceId);
 				}
 				if (!resource) throw new Error(`Resource not found: ${args.resourceId}`);
-				return toPlain(resource);
+				result = toPlain(resource);
+				break;
 			}
 
 			case "add_temp_model": {
 				const tempModel = await resourceStore.addTempModel();
-				return toPlain(tempModel);
+				result = toPlain(tempModel);
+				break;
 			}
 
 			case "add_temp_image": {
 				const tempImage = await resourceStore.addTempImage();
-				return toPlain(tempImage);
+				result = toPlain(tempImage);
+				break;
+			}
+
+			// System Tools
+			case "check_mcp_connection": {
+				result = {
+					success: true,
+					connected: true,
+					message: "MCP connection is active",
+					timestamp: new Date().toISOString(),
+					server: "minemonopoly-map-editor",
+					version: "1.0.0"
+				};
+				break;
 			}
 
 			default:
 				throw new Error(`Unknown tool: ${toolName}`);
 		}
+
+		// Log success
+		const duration = Date.now() - startTime;
+		console.log(`[MCP Bridge] ✅ Tool succeeded: ${toolName} (${duration}ms)`);
+		console.log(`[MCP Bridge] 📤 Result:`, JSON.stringify(result, null, 2));
+
+		return result;
 	} catch (error: any) {
-		sendMCPFeedback(toolName, false, `操作失败: ${error.message}`, { error: error.message });
+		const duration = Date.now() - startTime;
+		console.error(`[MCP Bridge] ❌ Tool failed: ${toolName} (${duration}ms)`);
+		console.error(`[MCP Bridge] 🔴 Error:`, error.message);
+		console.error(`[MCP Bridge] 📚 Stack:`, error.stack);
+
+		sendMCPFeedback(toolName, false, `操作失败: ${error.message}`, {
+			error: error.message,
+			stack: error.stack
+		});
 		throw error;
 	}
 }
