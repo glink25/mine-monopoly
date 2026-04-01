@@ -637,11 +637,11 @@ export class GameRenderer {
 			}
 			case "ToProperty": {
 				// 地皮
-				const gameData = useGameData();
+				const mapInfo = useMapData();
 				for (const propertyId of targetIdList) {
-					const property = gameData.getPropertyById(propertyId);
-					if (property) {
-						const mapItem = this.getMapItem(property.positionIndex);
+					const mapItemData = mapInfo.getMapItemByPropertyId(propertyId);
+					if (mapItemData) {
+						const mapItem = this.mapItemsInScene.get(mapItemData.id);
 						if (mapItem) {
 							positions.push(mapItem.position.clone());
 						}
@@ -762,7 +762,8 @@ export class GameRenderer {
 
 		// 创建动画时间线
 		const timeline = gsap.timeline({
-			onComplete: async () => {
+			onComplete: () => {
+				void (async () => {
 				// 动画完成后清理
 				card3d.dispose();
 				this.activeChanceCard3Ds = this.activeChanceCard3Ds.filter(c => c !== card3d);
@@ -784,6 +785,7 @@ export class GameRenderer {
 						ease: "power2.inOut",
 					}),
 				]);
+			})();
 			},
 		});
 
