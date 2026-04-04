@@ -40,7 +40,7 @@ function getInitForm() {
 	const initForm = {
 		id: crypto.randomUUID(),
 		name: "",
-		color: "",
+		color: "#" + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, "0"),
 		description: "",
 		type: TargetSelectType.ToSelf,
 		effectCode: "",
