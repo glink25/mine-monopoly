@@ -3,6 +3,7 @@ import { ref, computed } from "vue";
 import { message } from "ant-design-vue";
 import { CustomUI, UITemplate } from "@mine-monopoly/types";
 import { useMapDataStore } from "@src/stores";
+import { generateShortId } from "@src/utils/short-id";
 
 // 组件引入
 import UiSelector from "./ui-selector.vue";
@@ -27,23 +28,17 @@ const sortedTemplates = computed(() =>
 	[...mapStore.uiTemplates].sort((a, b) => a.name.localeCompare(b.name, "zh-CN"))
 );
 
-// 工具函数：生成UUID
-function generateUUID() {
-	if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
-	return URL.createObjectURL(new Blob([])).slice(-36);
-}
-
 /**
  * --- 组件库管理 (Templates) ---
  */
 function handleCreateTemplate() {
 	// 1. 初始化一个新的 UITemplate 结构
 	const newTemplate: UITemplate = {
-		id: generateUUID(),
+		id: generateShortId('ui-template'),
 		name: "新组件_" + Math.floor(Math.random() * 1000),
 		slug: "",
 		template: {
-			id: generateUUID(),
+			id: generateShortId('ui-element'),
 			type: "div", // 根节点类型
 			children: [],
 			style: {
@@ -92,7 +87,7 @@ function handleMapCreate(layout: { x: number; y: number; width: number; height: 
 	}
 
 	const tempInstance: CustomUI = {
-		id: generateUUID(),
+		id: generateShortId('custom-ui'),
 		name: "新建实例",
 		layout,
 		uiSchema: mapStore.uiTemplates[0]?.id || "", // 默认选中第一个模板ID

@@ -1,4 +1,5 @@
 import { GamePhaseInfo } from "@mine-monopoly/types";
+import { generateShortId } from "@src/utils/short-id";
 import { GamePhaseMark } from "@mine-monopoly/types/enums/game/game-process";
 import GameInitedPhaseDefault from "../default-code/game-inited-phase.txt?raw";
 import GameOverRuleDefault from "../default-code/game-over-rule.txt?raw";
@@ -40,7 +41,7 @@ export function getInitPhase() {
 }
 
 const gameOverRulePhase: GamePhaseInfo = {
-	id: crypto.randomUUID(),
+	id: generateShortId('phase'),
 	name: "游戏结束判定规则",
 	description: "游戏结束判定规则, 返回一个布尔值, 当返回值为true时游戏结束",
 	from: "系统",
@@ -49,7 +50,7 @@ const gameOverRulePhase: GamePhaseInfo = {
 };
 
 const gameInitedPhase: GamePhaseInfo = {
-	id: crypto.randomUUID(),
+	id: generateShortId('phase'),
 	name: "游戏初始化结束",
 	description: "游戏初始化结束阶段",
 	from: "系统",
@@ -58,7 +59,7 @@ const gameInitedPhase: GamePhaseInfo = {
 };
 
 const gameRoundStartPhase: GamePhaseInfo = {
-	id: crypto.randomUUID(),
+	id: generateShortId('phase'),
 	name: "轮次开始",
 	description: "轮次开始阶段",
 	from: "系统",
@@ -67,7 +68,7 @@ const gameRoundStartPhase: GamePhaseInfo = {
 };
 
 const playerRoundStartPhase: GamePhaseInfo = {
-	id: crypto.randomUUID(),
+	id: generateShortId('phase'),
 	name: "玩家回合开始",
 	description: "玩家回合开始阶段",
 	from: "系统",
@@ -76,7 +77,7 @@ const playerRoundStartPhase: GamePhaseInfo = {
 };
 
 const rollDicePhase: GamePhaseInfo = {
-	id: crypto.randomUUID(),
+	id: generateShortId('phase'),
 	name: "玩家操作",
 	description: "玩家操作阶段",
 	from: "系统",
@@ -85,7 +86,7 @@ const rollDicePhase: GamePhaseInfo = {
 };
 
 const playerMovePhase: GamePhaseInfo = {
-	id: crypto.randomUUID(),
+	id: generateShortId('phase'),
 	name: "玩家移动",
 	description: "玩家移动阶段",
 	from: "系统",
@@ -94,7 +95,7 @@ const playerMovePhase: GamePhaseInfo = {
 };
 
 const arrivedEventPhase: GamePhaseInfo = {
-	id: crypto.randomUUID(),
+	id: generateShortId('phase'),
 	name: "到达事件",
 	description: "到达事件阶段",
 	from: "系统",
@@ -103,7 +104,7 @@ const arrivedEventPhase: GamePhaseInfo = {
 };
 
 const playerRoundEndPhase: GamePhaseInfo = {
-	id: crypto.randomUUID(),
+	id: generateShortId('phase'),
 	name: "玩家回合结束",
 	description: "玩家回合结束阶段",
 	from: "系统",
@@ -112,7 +113,7 @@ const playerRoundEndPhase: GamePhaseInfo = {
 };
 
 const gameRoundEndPhase: GamePhaseInfo = {
-	id: crypto.randomUUID(),
+	id: generateShortId('phase'),
 	name: "轮次结束",
 	description: "轮次结束阶段",
 	from: "系统",
@@ -121,7 +122,7 @@ const gameRoundEndPhase: GamePhaseInfo = {
 };
 
 const playerPreInitPhase: GamePhaseInfo = {
-	id: crypto.randomUUID(),
+	id: generateShortId('phase'),
 	name: "玩家预初始化",
 	description: "玩家预初始化阶段（在玩家初始化之前运行）",
 	from: "系统",
@@ -129,7 +130,7 @@ const playerPreInitPhase: GamePhaseInfo = {
 };
 
 const propertyPreInitPhase: GamePhaseInfo = {
-	id: crypto.randomUUID(),
+	id: generateShortId('phase'),
 	name: "地皮预初始化",
 	description: "地皮预初始化阶段（在地皮初始化之前运行）",
 	from: "系统",

@@ -6,6 +6,7 @@ import { computed, ref } from "vue";
 import { useMapDataStore } from "@src/stores";
 import { GamePhaseInfo } from "@mine-monopoly/types";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import { generateShortId } from "@src/utils/short-id";
 
 
 const model = defineModel({ default: false });
@@ -34,7 +35,7 @@ const currentPhase = computed<GamePhaseInfo | null>({
 
 function addPhase(group: PhaseGroupKey, insertIndex: number) {
 	const newPhase: GamePhaseInfo = {
-		id: crypto.randomUUID(),
+		id: generateShortId('phase'),
 		name: "新阶段",
 		description: "新阶段",
 		from: undefined, // 用户添加的阶段不设置 from，这样可以被删除

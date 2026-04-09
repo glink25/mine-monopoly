@@ -7,6 +7,7 @@ import { useEditorStore, useMapDataStore } from "@src/stores";
 import EffectEditor from "./effect-editor.vue";
 import BuildingModelSeletor from "../../components/building-model-seletor.vue";
 import { clone } from "lodash";
+import { generateShortId } from "@src/utils/short-id";
 
 const editorStore = useEditorStore();
 const mapDataStore = useMapDataStore();
@@ -17,7 +18,7 @@ const formRef = ref<FormInstance>();
 const submitting = ref(false);
 
 const createDefaultData = (): PropertyInfo => ({
-	id: crypto.randomUUID(),
+	id: generateShortId('property'),
 	name: "",
 	sellCost: 0,
 	buildCost: 0,

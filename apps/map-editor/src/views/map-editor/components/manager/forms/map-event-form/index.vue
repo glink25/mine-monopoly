@@ -11,6 +11,7 @@ import { ResourcePicker } from "@src/components/resource-picker";
 import { addNewImage } from "@src/utils/file";
 import { cloneDeep } from "lodash";
 import { mapContentService } from "@src/services";
+import { generateShortId } from "@src/utils/short-id";
 
 // 事件类型选项
 const eventTypeOptions = [
@@ -41,7 +42,7 @@ watch(
 
 function getInitForm() {
 	const initForm = {
-		id: crypto.randomUUID(),
+		id: generateShortId('event'),
 		name: "",
 		description: "",
 		type: MapEventType.ArrivedEvent,

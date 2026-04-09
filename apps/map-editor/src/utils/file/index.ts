@@ -4,6 +4,7 @@ import { useEditorStore, useMapDataStore, useResourceStore } from "@src/stores";
 import { eventBus } from "@src/utils/event-bus";
 import { getInitPhase } from "@src/views/map-editor/components/manager/process-manager/utils/init-phase";
 import { message } from "ant-design-vue";
+import { generateShortId } from "@src/utils/short-id";
 
 export function getFileName(path: string): string {
 	return path.split(/[/\\]/).pop() || "";
@@ -115,7 +116,7 @@ export async function loadMapDataFromPath(path: string) {
 
 export function createDefaultMapData(): GameMap {
 	return {
-		id: crypto.randomUUID(),
+		id: generateShortId('map', 12),
 		info: {
 			name: "",
 			author: "",
@@ -219,7 +220,7 @@ export async function readBufferToFile(buffer: Uint8Array, filePath: string) {
 }
 
 export async function readFileToTempDir(filePath: string, type: "model" | "image", fileName?: string) {
-	const id = `${type}-${crypto.randomUUID()}`;
+	const id = generateShortId(type);
 	filePath = convertFpUrlToPath(filePath);
 	const { filePath: newFilePath, fileType } = await window.electronAPI.copyFile(filePath, "", fileName || id);
 	return { newFilePath, id, fileType };

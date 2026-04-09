@@ -6,6 +6,7 @@
  */
 
 import { useMapDataStore, useResourceStore } from "@src/stores";
+import { generateShortId } from "@src/utils/short-id";
 import { eventBus } from "@src/utils/event-bus";
 import { z } from "zod";
 import { AddChanceCardSchema, UpdateChanceCardSchema, RemoveChanceCardSchema } from "./validators/chance-card-validators";
@@ -51,7 +52,7 @@ export class MapContentService {
 
 		// 4. Construct data object with generated ID
 		const newCard: ChanceCard = {
-			id: `card-${crypto.randomUUID()}`,
+			id: generateShortId('card'),
 			name: validated.name,
 			type: validated.type,
 			description: validated.description,
@@ -179,7 +180,7 @@ export class MapContentService {
 
 		// 4. Construct data object with generated ID
 		const newRole: Role = {
-			id: `role-${crypto.randomUUID()}`,
+			id: generateShortId('role'),
 			name: validated.name,
 			description: validated.description || "",
 			color: validated.color || "#000000",
@@ -295,7 +296,7 @@ export class MapContentService {
 
 		// 4. Construct data object with generated ID
 		const newEvent: MapEvent = {
-			id: `event-${crypto.randomUUID()}`,
+			id: generateShortId('event'),
 			name: validated.name,
 			type: validated.type,
 			description: validated.description || "",

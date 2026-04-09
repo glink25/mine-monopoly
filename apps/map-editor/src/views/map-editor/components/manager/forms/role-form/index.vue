@@ -9,6 +9,7 @@ import templateText from "./template-text?raw";
 import { Role } from "@mine-monopoly/types";
 import { ResourcePicker } from "@src/components/resource-picker";
 import { mapContentService } from "@src/services";
+import { generateShortId } from "@src/utils/short-id";
 
 const { role } = defineProps<{ role: Role | undefined }>();
 
@@ -37,15 +38,21 @@ interface FormState {
 	initCode: string;
 }
 const roleForm = reactive<FormState>({
-	id: "",
+	id: generateShortId('role'),
 	name: "",
 	description: "",
 	color: "#000000",
 	imageId: "",
 	initCode: "",
 });
+const roleIdSuffix = ref(role ? role.id.replace(/^role-/, '') : '');
 
 const emits = defineEmits(["submit"]);
+
+async function copyToClipboard(text: string) {
+	await navigator.clipboard.writeText(text);
+	message.success("已复制");
+}
 
 function handleSubmit() {
 	if (role) {
@@ -127,7 +134,17 @@ function handleClose() {
 			<div class="form-content">
 				<a-form @finish="handleSubmit" :model="roleForm" name="basic" autocomplete="off">
 					<a-form-item label="ID">
-						<a-alert style="word-break: break-all" :message="roleForm.id" type="info" />
+						<div style="display: flex; gap: 4px">
+							<a-input
+								v-model:value="roleIdSuffix"
+								placeholder="自定义后缀（留空自动生成）"
+								allow-clear
+								@input="roleForm.id = $event.target.value ? `role-${$event.target.value}` : generateShortId('role')"
+							>
+								<template #prefix><span style="color: #999">role-</span></template>
+							</a-input>
+							<a-button @click="copyToClipboard(roleForm.id)">复制</a-button>
+						</div>
 					</a-form-item>
 
 					<a-form-item label="角色名称" name="name" :rules="[{ required: true, message: '请输入角色名称' }]">

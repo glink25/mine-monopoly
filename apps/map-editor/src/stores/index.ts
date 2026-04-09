@@ -12,6 +12,7 @@ import {
 } from "@mine-monopoly/types/interfaces/game/item";
 import { eventBus } from "@src/utils/event-bus";
 import { createDefaultMapData } from "../utils/file/index";
+import { generateShortId } from "../utils/short-id";
 import { cloneDeep } from "lodash";
 
 export const useMapDataStore = defineStore("MapData", {
@@ -405,7 +406,7 @@ export const useResourceStore = defineStore("Resources", {
 		 * @returns 新创建的模型资源
 		 */
 		async addTempModel(): Promise<ResourcesType> {
-			const id = `model-${crypto.randomUUID()}`;
+			const id = generateShortId('model');
 
 			// 使用 electronAPI 复制 empty.glb 到 temp 目录
 			const result = await window.electronAPI.copyEmptyResource("model");
@@ -425,7 +426,7 @@ export const useResourceStore = defineStore("Resources", {
 		 * @returns 新创建的图片资源
 		 */
 		async addTempImage(): Promise<ResourcesType> {
-			const id = `image-${crypto.randomUUID()}`;
+			const id = generateShortId('image');
 
 			// 使用 electronAPI 复制 empty.png 到 temp 目录
 			const result = await window.electronAPI.copyEmptyResource("image");

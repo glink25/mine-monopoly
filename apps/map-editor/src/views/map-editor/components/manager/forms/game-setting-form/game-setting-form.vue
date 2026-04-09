@@ -4,6 +4,7 @@ import { useMapDataStore } from "@src/stores";
 import { message } from "ant-design-vue";
 import { clone } from "lodash";
 import { ref } from "vue";
+import { generateShortId } from "@src/utils/short-id";
 
 // 编辑器内部维护的数据
 const schemaList = ref<FormSchema[]>(clone(useMapDataStore().gameSettingForm));
@@ -11,7 +12,7 @@ const schemaList = ref<FormSchema[]>(clone(useMapDataStore().gameSettingForm));
 // 添加新字段
 const addField = (type: "number-input" | "select") => {
 	schemaList.value.push({
-		id: crypto.randomUUID(),
+		id: generateShortId('form-field'),
 		key: type === "number-input" ? `num_field` : `sel_field`,
 		type,
 		label: type === "number-input" ? "数字输入项" : "下拉选择项",

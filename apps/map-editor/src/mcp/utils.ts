@@ -3,10 +3,15 @@
  */
 
 /**
- * Generate a unique ID
+ * Generate a unique short ID
  */
-export function generateId(): string {
-	return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+export function generateId(prefix = 'item'): string {
+	const CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789';
+	let id = '';
+	for (let i = 0; i < 6; i++) {
+		id += CHARS[Math.floor(Math.random() * CHARS.length)];
+	}
+	return `${prefix}-${id}`;
 }
 
 /**

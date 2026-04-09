@@ -11,6 +11,7 @@ import { ChanceCard } from "@mine-monopoly/ui";
 import { ResourcePicker } from "@src/components/resource-picker";
 import { addNewImage, convertToFpUrl } from "@src/utils/file";
 import { mapContentService } from "@src/services";
+import { generateShortId } from "@src/utils/short-id";
 
 const props = defineProps<{ chanceCard: ChanceCardInfo | undefined }>();
 const emits = defineEmits(["close"]);
@@ -38,7 +39,7 @@ const targetTypeMap: Record<TargetSelectType, string> = {
 
 function getInitForm() {
 	const initForm = {
-		id: crypto.randomUUID(),
+		id: generateShortId('card'),
 		name: "",
 		color: "#" + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, "0"),
 		description: "",
@@ -53,6 +54,7 @@ function getInitForm() {
 const chanceCardForm = reactive<ChanceCardInfo & { tempFilePath?: string }>(
 	props.chanceCard ? JSON.parse(JSON.stringify(props.chanceCard)) : getInitForm(),
 );
+const chanceCardIdSuffix = ref(props.chanceCard ? chanceCardForm.id.replace(/^card-/, '') : '');
 
 watch(
 	() => chanceCardForm.type,
@@ -103,6 +105,11 @@ const chanceCardIconPreview = computed(() => {
 	return imageResource?.url || "";
 });
 
+async function copyToClipboard(text: string) {
+	await navigator.clipboard.writeText(text);
+	message.success("已复制");
+}
+
 const iconRule = async (_rule: Rule, value: string) => {
 	if (!chanceCardForm.iconId) {
 		return Promise.reject("请选择图片");
@@ -124,7 +131,17 @@ const iconRule = async (_rule: Rule, value: string) => {
 				/>
 				<a-form @finish="handleAddChanceCard" :model="chanceCardForm" name="map-event" autocomplete="off">
 					<a-form-item label="ID">
-						<a-alert size="small" style="word-break: break-all" :message="chanceCardForm.id" type="info" />
+						<div style="display: flex; gap: 4px">
+							<a-input
+								v-model:value="chanceCardIdSuffix"
+								placeholder="自定义后缀（留空自动生成）"
+								allow-clear
+								@input="chanceCardForm.id = $event.target.value ? `card-${$event.target.value}` : generateShortId('card')"
+							>
+								<template #prefix><span style="color: #999">card-</span></template>
+							</a-input>
+							<a-button @click="copyToClipboard(chanceCardForm.id)">复制</a-button>
+						</div>
 					</a-form-item>
 					<a-form-item label="机会卡名称" name="name" :rules="[{ required: true, message: '请输入机会卡名称' }]">
 						<a-input v-model:value="chanceCardForm.name" />

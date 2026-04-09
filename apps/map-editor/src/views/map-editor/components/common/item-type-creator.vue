@@ -4,6 +4,7 @@ import { useMapDataStore, useResourceStore } from "@src/stores"; // 注意 store
 import { computed, reactive, watch } from "vue"; // 引入 watch
 import { randomHEXColor } from "@mine-monopoly/utils";
 import { message, SelectProps } from "ant-design-vue";
+import { generateShortId } from "@src/utils/short-id";
 
 const mapDataStore = useMapDataStore();
 const visible = defineModel({ default: false });
@@ -40,7 +41,7 @@ function handleCreateMapItemType() {
 	}
 
 	const newMapItemType: MapItemType = {
-		id: crypto.randomUUID(),
+		id: generateShortId('map-item-type'),
 		name: createMapItemTypeForm.name,
 		modelId: createMapItemTypeForm.modelId,
 		color: randomHEXColor(),
