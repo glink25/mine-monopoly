@@ -2,7 +2,6 @@
 import { ref, watch } from "vue";
 import { message } from "ant-design-vue"; // 假设使用了 ant-design-vue 的 message
 import { useMapDataStore } from "@src/stores";
-import libContent from "./editor-lib.d.ts?raw";
 import CodeEditor from "@src/components/code-editor/index.vue";
 
 const visible = defineModel({ default: false });
