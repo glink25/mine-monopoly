@@ -90,15 +90,12 @@ const formattedDescription = computed(() => {
 	justify-content: center;
 	align-items: center;
 	background-color: #e4e4e4;
-	padding: 0.5rem;
+	padding: 1rem;
 	box-sizing: border-box;
 
 	.role-image {
 		display: block;
-		width: auto;
-		height: auto;
-		object-fit: contain;
-		max-width: 100%;
+		width: 100%;
 		max-height: 100%;
 		object-fit: contain;
 		margin: auto;
