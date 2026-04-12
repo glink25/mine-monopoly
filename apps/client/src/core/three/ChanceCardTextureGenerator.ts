@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { createApp } from "vue";
 import { ChanceCard } from "@mine-monopoly/ui";
-import html2canvas from "html2canvas";
+import { toCanvas } from "html-to-image";
 import { ChanceCardInfo } from "@mine-monopoly/types";
 
 /**
@@ -39,7 +39,14 @@ export class ChanceCardTextureGenerator {
 			texture.minFilter = THREE.LinearFilter;
 			texture.magFilter = THREE.LinearFilter;
 
-			// 3. 缓存纹理
+			// 3. 缓存纹理（超出上限时淘汰最早的）
+			if (this.textureCache.size >= this.MAX_CACHE_SIZE) {
+				const firstKey = this.textureCache.keys().next().value;
+				if (firstKey !== undefined) {
+					this.textureCache.get(firstKey)?.dispose();
+					this.textureCache.delete(firstKey);
+				}
+			}
 			this.textureCache.set(cacheKey, texture);
 
 			return texture;
@@ -78,7 +85,6 @@ export class ChanceCardTextureGenerator {
 			const app = createApp(ChanceCard, {
 				chanceCard: card,
 				iconUrl: iconUrl,
-				disable: true,
 			});
 
 			// 2. 挂载到容器
@@ -103,42 +109,59 @@ export class ChanceCardTextureGenerator {
 			wrapper.style.overflow = "hidden";
 			wrapper.style.boxSizing = "border-box";
 
+			// 隐藏内部滚动条（html-to-image 会正确渲染滚动条）
+			const scrollbarStyle = document.createElement("style");
+			scrollbarStyle.textContent = "* { scrollbar-width: none !important; } *::-webkit-scrollbar { display: none !important; }";
+			wrapper.appendChild(scrollbarStyle);
+
 			container.appendChild(wrapper);
 
-			const instance = app.mount(wrapper);
+			app.mount(wrapper);
 
 			// 3. 等待组件完全渲染（包括图片加载）
+			let settled = false;
+			const cleanup = () => {
+				if (settled) return;
+				settled = true;
+				app.unmount();
+				if (container.contains(wrapper)) {
+					container.removeChild(wrapper);
+				}
+			};
+
+			const timeout = setTimeout(() => {
+				cleanup();
+				reject(new Error("渲染超时：requestAnimationFrame 未触发"));
+			}, 5000);
+
 			requestAnimationFrame(async () => {
+				clearTimeout(timeout);
 				try {
 					// 额外等待确保图片加载完成
 					await this.waitForImages(wrapper);
 
-					// 4. 使用html2canvas转换为Canvas
-					const canvas = await html2canvas(wrapper, {
-						backgroundColor: null,
-						scale: 2, // ⭐ 降低scale到2倍（因为wrapper已经使用正确的rem尺寸）
-						logging: false,
-						useCORS: true, // 支持跨域图片
-						allowTaint: false,
-						// ⭐ 添加更多选项确保正确渲染
-						x: 0,           // canvas x坐标
-						y: 0,           // canvas y坐标
-						width: wrapper.clientWidth,   // 使用wrapper的实际宽度
-						height: wrapper.clientHeight, // 使用wrapper的实际高度
+					// 隐藏描述区域的滚动条
+					wrapper.querySelectorAll(".describe").forEach(el => {
+						(el as HTMLElement).style.overflow = "hidden";
 					});
 
-					// 5. 清理DOM
-					app.unmount();
-					container.removeChild(wrapper);
+					// 4. 使用 html-to-image 转换为Canvas
+					const canvas = await toCanvas(wrapper, {
+						backgroundColor: null,
+						pixelRatio: 2,
+						canvasWidth: wrapper.clientWidth,
+						canvasHeight: wrapper.clientHeight,
+						style: {
+							transform: "none",
+							transformOrigin: "top left",
+						},
+					});
 
 					resolve(canvas);
 				} catch (error) {
-					// 清理DOM
-					app.unmount();
-					if (container.contains(wrapper)) {
-						container.removeChild(wrapper);
-					}
 					reject(error);
+				} finally {
+					cleanup();
 				}
 			});
 		});
@@ -155,7 +178,10 @@ export class ChanceCardTextureGenerator {
 			}
 			return new Promise<void>((resolve) => {
 				img.onload = () => resolve();
-				img.onerror = () => resolve(); // 即使失败也继续
+				img.onerror = () => {
+					console.warn(`[ChanceCardTextureGenerator] 图片加载失败: ${img.src}`);
+					resolve();
+				};
 				// 超时保护
 				setTimeout(() => resolve(), 1000);
 			});
@@ -200,15 +226,13 @@ export class ChanceCardTextureGenerator {
 		let completed = 0;
 		let index = 0;
 
-		const self = this;
-
-		async function processNext(): Promise<void> {
+		const processNext = async (): Promise<void> => {
 			while (index < cards.length) {
 				const currentIndex = index++;
 				const { card, iconUrl } = cards[currentIndex];
 
 				try {
-					await self.generateTexture(card, iconUrl);
+					await this.generateTexture(card, iconUrl);
 					console.log(`[ChanceCardTextureGenerator] 预加载进度: ${completed + 1}/${total} - ${card.name}`);
 				} catch (error) {
 					console.error(`[ChanceCardTextureGenerator] 预加载失败: ${card.name}`, error);
