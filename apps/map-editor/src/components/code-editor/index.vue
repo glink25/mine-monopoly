@@ -104,6 +104,11 @@ onMounted(async () => {
 	editorInstance = result.editor;
 	modelInstance = result.model;
 
+	// 修复竞态：initEditor 是 async 的，等待期间 code.value 可能已被父组件更新
+	if (code.value && code.value !== editorInstance.getValue()) {
+		editorInstance.setValue(code.value);
+	}
+
 	// 一次性注入类型库
 	if (!props.skipTypeLibs) {
 	refreshTypeLibs({
