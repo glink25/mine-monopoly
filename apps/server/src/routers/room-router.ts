@@ -2,6 +2,8 @@ import { Router } from "express";
 import { createRecord } from "../db/api/game-record";
 import { ResInterface } from "../interfaces/res";
 import { User } from "../interfaces/bace";
+import { verToken } from "../utils/token";
+import { generateIceServers } from "../utils/turn-credentials";
 
 type RoomMapItem = {
 	roomId: string;
@@ -32,6 +34,20 @@ setInterval(() => {
 
 roomRouter.get("/join", async (req, res, next) => {
 	const { roomId } = req.query as { roomId: string; hostName: string; hostId: string };
+
+	// 尝试解析 JWT 获取 userId，用于生成 TURN 凭证（游客模式无 token 则跳过）
+	let userId: string | undefined;
+	const token = req.headers.authorization;
+	if (token) {
+		try {
+			const tokenInfo = verToken(token);
+			if (tokenInfo) userId = tokenInfo.userId;
+		} catch {
+			// token 无效时静默忽略，不阻断加入房间流程
+		}
+	}
+	const iceServers = generateIceServers(userId);
+
 	if (roomId && roomId.length < 13) {
 		if (roomMap.has(roomId)) {
 			//有roomId的话
@@ -39,7 +55,7 @@ roomRouter.get("/join", async (req, res, next) => {
 			if (room && room.hostPeerId !== null) {
 				const resMsg: ResInterface = {
 					status: 200,
-					data: { hostPeerId: room.hostPeerId, needCreate: false },
+					data: { hostPeerId: room.hostPeerId, needCreate: false, iceServers },
 				};
 				res.status(resMsg.status).json(resMsg);
 			} else {
@@ -64,7 +80,7 @@ roomRouter.get("/join", async (req, res, next) => {
 			});
 			const resMsg: ResInterface = {
 				status: 200,
-				data: { hostPeerId: "", needCreate: true, deleteIntervalMs: heartContinuationTimeMs },
+				data: { hostPeerId: "", needCreate: true, deleteIntervalMs: heartContinuationTimeMs, iceServers },
 			};
 			res.status(resMsg.status).json(resMsg);
 		}

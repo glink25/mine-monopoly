@@ -41,6 +41,7 @@ export class MonopolyClient {
 	private peerClient: PeerClient | null = null;
 	private conn: DataConnection | null = null;
 	private isOnline = false;
+	private currentIceServers: RTCIceServer[] = [];
 
 	private sendHeartTime = 0;
 	private intervalList: any[] = [];
@@ -83,15 +84,17 @@ export class MonopolyClient {
 			const userStore = useUserInfo();
 			let hostPeerId = data.hostPeerId;
 
+			this.currentIceServers = data.iceServers;
+
 			if (data.needCreate) {
 				useLoading().showLoading("正在创建主机...");
 				if (this.gameHost) throw Error("你已经是主机了,为什么要再次创建房间!!!");
-				// 创建一个临时的 URL 指向 Blob 数据
 				this.gameHost = await MonopolyHost.create(
 					roomId,
 					this.iceServerHost,
 					this.iceServerPort,
 					data.deleteIntervalMs,
+					this.currentIceServers,
 				);
 				this.gameHost.addDestoryListener(() => {
 					this.gameHost = null;
@@ -124,7 +127,7 @@ export class MonopolyClient {
 			this.intervalList = [];
 
 			if (!this.peerClient) {
-				this.peerClient = await PeerClient.create(this.iceServerHost, this.iceServerPort);
+				this.peerClient = await PeerClient.create(this.iceServerHost, this.iceServerPort, this.currentIceServers);
 			}
 			const { conn, peer } = await this.peerClient.linkToHost(hostPeerId);
 			this.conn = conn;

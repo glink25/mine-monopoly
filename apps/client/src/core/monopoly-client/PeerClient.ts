@@ -35,7 +35,7 @@ export class PeerClient {
 		return { conn: this.conn, peer: this.peer };
 	}
 
-	public static async create(host: string, port: number) {
+	public static async create(host: string, port: number, iceServers: RTCIceServer[]) {
 		//向服务器和获取自己的peerId
 		const peer = await new Promise<Peer>((resolve, reject) => {
 			const isHTTP = __PROTOCOL__ === "http";
@@ -46,18 +46,7 @@ export class PeerClient {
 							host,
 							path: `/${__ICE_SERVER_PATH__}`,
 							secure: true,
-							config: {
-								iceServers: [
-									{
-										urls: "stun:fatpaper.site:3478", // STUN 服务器
-									},
-									{
-										urls: "turn:fatpaper.site:5349", // TURN 服务器
-										username: "fatpaper",
-										credential: "turn_password",
-									},
-								],
-							},
+							config: { iceServers },
 					  }
 			);
 			peer.addListener("open", (id) => {

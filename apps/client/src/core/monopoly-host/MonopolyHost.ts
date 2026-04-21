@@ -202,7 +202,7 @@ export class MonopolyHost {
 		});
 	}
 
-	public static async create(roomId: string, host: string, port: number, heartContinuationTimeMs: number) {
+	public static async create(roomId: string, host: string, port: number, heartContinuationTimeMs: number, iceServers: RTCIceServer[]) {
 		const peer = await new Promise<Peer>((resolve) => {
 			const isHTTP = __PROTOCOL__ === "http";
 			const peer = new Peer(
@@ -212,18 +212,7 @@ export class MonopolyHost {
 							host,
 							path: `/${__ICE_SERVER_PATH__}`,
 							secure: true,
-							config: {
-								iceServers: [
-									{
-										urls: "stun:fatpaper.site:3478", // STUN 服务器
-									},
-									{
-										urls: "turn:fatpaper.site:5349", // TURN 服务器
-										username: "fatpaper",
-										credential: "turn_password",
-									},
-								],
-							},
+							config: { iceServers },
 						},
 			);
 			peer.on("open", () => {

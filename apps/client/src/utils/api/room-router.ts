@@ -2,10 +2,12 @@ import apiClient from "./index";
 import { env } from "@mine-monopoly/env";
 
 export async function joinRoomApi(roomId: string) {
-	const response = await apiClient.get<{ hostPeerId: string; needCreate: boolean; deleteIntervalMs: number }>(
-		`/room-router/join`,
-		{ params: { roomId } }
-	);
+	const response = await apiClient.get<{
+		hostPeerId: string;
+		needCreate: boolean;
+		deleteIntervalMs: number;
+		iceServers: RTCIceServer[];
+	}>(`/room-router/join`, { params: { roomId } });
 	return response;
 }
 
