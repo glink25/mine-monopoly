@@ -255,6 +255,15 @@ importers:
 
   apps/server:
     dependencies:
+      '@mine-monopoly/env':
+        specifier: workspace:*
+        version: link:../../packages/env
+      '@mine-monopoly/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      axios:
+        specifier: 1.11.0
+        version: 1.11.0
       body-parser:
         specifier: ^1.20.1
         version: 1.20.4
@@ -267,9 +276,9 @@ importers:
       cos-nodejs-sdk-v5:
         specifier: ^2.13.4
         version: 2.15.4
-      express-jwt:
-        specifier: ^8.2.0
-        version: 8.5.1
+      express:
+        specifier: 4.18.2
+        version: 4.18.2
       jsonwebtoken:
         specifier: ^9.0.0
         version: 9.0.3
@@ -282,9 +291,6 @@ importers:
       node-vibrant:
         specifier: ^3.2.1-alpha.1
         version: 3.2.1-alpha.1
-      nodemon:
-        specifier: ^2.0.20
-        version: 2.0.22
       path-to-regexp:
         specifier: ^6.2.1
         version: 6.3.0
@@ -294,25 +300,16 @@ importers:
       reflect-metadata:
         specifier: ^0.1.13
         version: 0.1.14
-      rollup:
-        specifier: ^4.21.3
-        version: 4.60.0
-      rollup-plugin-typescript2:
-        specifier: ^0.36.0
-        version: 0.36.0(rollup@4.60.0)(typescript@5.9.2)
       typeorm:
         specifier: ^0.3.11
         version: 0.3.28(mysql2@2.3.3)(ts-node@10.9.2(@types/node@18.19.130)(typescript@5.9.2))
       winston:
         specifier: ^3.8.2
         version: 3.19.0
+      ws:
+        specifier: ^8.11.0
+        version: 8.20.0
     devDependencies:
-      '@mine-monopoly/env':
-        specifier: workspace:*
-        version: link:../../packages/env
-      '@mine-monopoly/types':
-        specifier: workspace:*
-        version: link:../../packages/types
       '@types/body-parser':
         specifier: ^1.19.2
         version: 1.19.6
@@ -322,9 +319,6 @@ importers:
       '@types/express':
         specifier: ^4.17.15
         version: 4.17.15
-      '@types/express-jwt':
-        specifier: ^7.4.2
-        version: 7.4.4
       '@types/jsonwebtoken':
         specifier: ^8.5.9
         version: 8.5.9
@@ -340,12 +334,12 @@ importers:
       '@types/ws':
         specifier: ^8.5.3
         version: 8.18.1
+      nodemon:
+        specifier: ^2.0.20
+        version: 2.0.22
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@18.19.130)(typescript@5.9.2)
-      ws:
-        specifier: ^8.11.0
-        version: 8.20.0
 
   packages/components/login:
     dependencies:
@@ -919,10 +913,6 @@ packages:
   '@protobufjs/utf8@1.1.0':
     resolution: {integrity: sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==}
 
-  '@rollup/pluginutils@4.2.1':
-    resolution: {integrity: sha512-iKnFXr7NkdZAIHiIWE+BX5ULi/ucVFYWD6TbAV+rZctiRTY2PL6tsIKhoIOaoskiWAkgu+VsbXgUVDNLHf+InQ==}
-    engines: {node: '>= 8.0.0'}
-
   '@rollup/pluginutils@5.3.0':
     resolution: {integrity: sha512-5EdhGZtnu3V88ces7s53hhfK5KSASnJZv8Lulpc04cWO3REESroJXg73DFsOmgbU2BhwV0E20bu2IDZb3VKW4Q==}
     engines: {node: '>=14.0.0'}
@@ -1136,10 +1126,6 @@ packages:
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
-  '@types/express-jwt@7.4.4':
-    resolution: {integrity: sha512-F0f+zvdAT6gBOtMf0XTkNTvwiqXv0JjW0yj6nZM1Q03P8cCoA0+zrg+JeFv+AyaJ50qJJadBpbqOSdr4kYjuyg==}
-    deprecated: This is a stub types definition. express-jwt provides its own type definitions, so you do not need this installed.
-
   '@types/express-serve-static-core@4.19.8':
     resolution: {integrity: sha512-02S5fmqeoKzVZCHPZid4b8JH2eM5HzQLZWN2FohQEy/0eXTq8VXZfSN6Pcr3F6N9R/vNrj7cpgbhjie6m/1tCA==}
 
@@ -1160,9 +1146,6 @@ packages:
 
   '@types/jsonwebtoken@8.5.9':
     resolution: {integrity: sha512-272FMnFGzAVMGtu9tkr29hRL6bZj4Zs1KZNeHLnKqAvp06tAIcarTMwOh8/8bz4FmKRcMxZhZNeUAQsNLoiPhg==}
-
-  '@types/jsonwebtoken@9.0.10':
-    resolution: {integrity: sha512-asx5hIG9Qmf/1oStypjanR7iKTv0gXQ1Ov/jfrX6kS/EO0OFni8orbmGCn0672NHR3kXHwpAwR+B368ZGN/2rA==}
 
   '@types/keyv@3.1.4':
     resolution: {integrity: sha512-BQ5aZNSCpj7D6K2ksrRCTmKRLEpnPvWDiLPfoGyhZ++8YtiK9d/3DBKPJgry359X/P1PfruyYwvnvwFjuEiEIg==}
@@ -1759,9 +1742,6 @@ packages:
     resolution: {integrity: sha512-KRs7WVDKg86PWiuAqhDrAQnTXZKraVcCc6vFdL14qrZ/DcWwuRo7VoiYXalXO7S5GKpqYiVEwCbgFDfxNHKJBQ==}
     engines: {node: ^12.20.0 || >=14}
 
-  commondir@1.0.1:
-    resolution: {integrity: sha512-W9pAhw0ja1Edb5GVdIF1mjZw/ASI0AlShXM83UUGe2DVr5TdAPEA1OA8m/g8zWp9x6On7gqufY+FatDbC3MDQg==}
-
   compare-version@0.1.2:
     resolution: {integrity: sha512-pJDh5/4wrEnXX/VWRZvruAGHkzKdr46z11OlTPN+VrATlWWhSKewNCJ1futCO5C7eJB3nPMFZA1LeYtcFboZ2A==}
     engines: {node: '>=0.10.0'}
@@ -2184,18 +2164,11 @@ packages:
   exponential-backoff@3.1.3:
     resolution: {integrity: sha512-ZgEeZXj30q+I0EN+CbSSpIyPaJ5HVQD18Z1m+u1FXbAeT94mr1zw50q4q6jiiC447Nl/YTcIYSAftiGqetwXCA==}
 
-  express-jwt@8.5.1:
-    resolution: {integrity: sha512-Dv6QjDLpR2jmdb8M6XQXiCcpEom7mK8TOqnr0/TngDKsG2DHVkO8+XnVxkJVN7BuS1I3OrGw6N8j5DaaGgkDRQ==}
-    engines: {node: '>= 8.0.0'}
-
   express-rate-limit@8.3.1:
     resolution: {integrity: sha512-D1dKN+cmyPWuvB+G2SREQDzPY1agpBIcTa9sJxOPMCNeH3gwzhqJRDWCXW3gg0y//+LQ/8j52JbMROWyrKdMdw==}
     engines: {node: '>= 16'}
     peerDependencies:
       express: '>= 4.11'
-
-  express-unless@2.1.3:
-    resolution: {integrity: sha512-wj4tLMyCVYuIIKHGt0FhCtIViBcwzWejX0EjNxveAa6dG+0XBCQhMbx+PnkLkFCxLC69qoFrxds4pIyL88inaQ==}
 
   express@4.18.2:
     resolution: {integrity: sha512-5/PsL6iGPdfQ/lKM1UuielYgv3BUoJfz1aUwU9vHZ+J7gyvwdQXFEBIEIaxeGf0GIcreATNyBExtalisDbuMqQ==}
@@ -2290,10 +2263,6 @@ packages:
   finalhandler@2.1.1:
     resolution: {integrity: sha512-S8KoZgRZN+a5rNwqTxlZZePjT/4cnm0ROV70LedRHZ0p8u9fRID0hJUZQpkKLzro8LfmC8sx23bY6tVNxv8pQA==}
     engines: {node: '>= 18.0.0'}
-
-  find-cache-dir@3.3.2:
-    resolution: {integrity: sha512-wXZV5emFEjrridIgED11OoUKLxiYjAcqot/NJdAkOhlJ+vGzwhOAfcG5OX1jP+S0PcjEn8bdMJv+g2jwQ3Onig==}
-    engines: {node: '>=8'}
 
   find-up@3.0.0:
     resolution: {integrity: sha512-1yD6RmLI1XBfxugvORwlck6f75tYL+iR0jqwsOrOxMZyGYqUuDhJ0l4AXdO1iX/FTs9cBAMEk1gWSEx1kSbylg==}
@@ -3398,10 +3367,6 @@ packages:
     resolution: {integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==}
     engines: {node: '>=16.20.0'}
 
-  pkg-dir@4.2.0:
-    resolution: {integrity: sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ==}
-    engines: {node: '>=8'}
-
   pkg-types@1.3.1:
     resolution: {integrity: sha512-/Jm5M4RvtBFVkKWRu2BLUTNP8/M2a+UwuAX+ae4770q1qVGtfjG+WTCupoZixokjmHiry8uI+dlY8KXYV5HVVQ==}
 
@@ -3630,12 +3595,6 @@ packages:
     resolution: {integrity: sha512-RXlupZrmn97AaaS5dWnktkjM+Iy+od0E+8L0mUkMIs3iuoUXNJebueQocQKV7Ircd54fSGGmkBaXwNzY05J1yQ==}
     peerDependencies:
       rollup: ^2.25.0 || ^3.3.0 || ^4.1.4
-
-  rollup-plugin-typescript2@0.36.0:
-    resolution: {integrity: sha512-NB2CSQDxSe9+Oe2ahZbf+B4bh7pHwjV5L+RSYpCu7Q5ROuN94F9b6ioWwKfz3ueL3KTtmX4o2MUH2cgHDIEUsw==}
-    peerDependencies:
-      rollup: '>=1.26.3'
-      typescript: '>=2.4.0'
 
   rollup-plugin-visualizer@5.12.0:
     resolution: {integrity: sha512-8/NU9jXcHRs7Nnj07PF2o4gjxmm9lXIrZ8r175bT9dK8qoLlvKTwRMArRCMgpMGlq8CTLugRvEmyMeMXIU2pNQ==}
@@ -5175,11 +5134,6 @@ snapshots:
 
   '@protobufjs/utf8@1.1.0': {}
 
-  '@rollup/pluginutils@4.2.1':
-    dependencies:
-      estree-walker: 2.0.2
-      picomatch: 2.3.2
-
   '@rollup/pluginutils@5.3.0(rollup@4.60.0)':
     dependencies:
       '@types/estree': 1.0.8
@@ -5331,10 +5285,6 @@ snapshots:
 
   '@types/estree@1.0.8': {}
 
-  '@types/express-jwt@7.4.4':
-    dependencies:
-      express-jwt: 8.5.1
-
   '@types/express-serve-static-core@4.19.8':
     dependencies:
       '@types/node': 18.19.130
@@ -5361,11 +5311,6 @@ snapshots:
 
   '@types/jsonwebtoken@8.5.9':
     dependencies:
-      '@types/node': 18.19.130
-
-  '@types/jsonwebtoken@9.0.10':
-    dependencies:
-      '@types/ms': 2.1.0
       '@types/node': 18.19.130
 
   '@types/keyv@3.1.4':
@@ -6164,8 +6109,6 @@ snapshots:
   commander@9.5.0:
     optional: true
 
-  commondir@1.0.1: {}
-
   compare-version@0.1.2: {}
 
   compute-scroll-into-view@1.0.20: {}
@@ -6607,18 +6550,10 @@ snapshots:
 
   exponential-backoff@3.1.3: {}
 
-  express-jwt@8.5.1:
-    dependencies:
-      '@types/jsonwebtoken': 9.0.10
-      express-unless: 2.1.3
-      jsonwebtoken: 9.0.3
-
   express-rate-limit@8.3.1(express@5.2.1):
     dependencies:
       express: 5.2.1
       ip-address: 10.1.0
-
-  express-unless@2.1.3: {}
 
   express@4.18.2:
     dependencies:
@@ -6786,12 +6721,6 @@ snapshots:
       statuses: 2.0.2
     transitivePeerDependencies:
       - supports-color
-
-  find-cache-dir@3.3.2:
-    dependencies:
-      commondir: 1.0.1
-      make-dir: 3.1.0
-      pkg-dir: 4.2.0
 
   find-up@3.0.0:
     dependencies:
@@ -7882,10 +7811,6 @@ snapshots:
 
   pkce-challenge@5.0.1: {}
 
-  pkg-dir@4.2.0:
-    dependencies:
-      find-up: 4.1.0
-
   pkg-types@1.3.1:
     dependencies:
       confbox: 0.1.8
@@ -8146,16 +8071,6 @@ snapshots:
       is-reference: 3.0.3
       magic-string: 0.30.21
       rollup: 4.60.0
-
-  rollup-plugin-typescript2@0.36.0(rollup@4.60.0)(typescript@5.9.2):
-    dependencies:
-      '@rollup/pluginutils': 4.2.1
-      find-cache-dir: 3.3.2
-      fs-extra: 10.1.0
-      rollup: 4.60.0
-      semver: 7.7.4
-      tslib: 2.8.1
-      typescript: 5.9.2
 
   rollup-plugin-visualizer@5.12.0(rollup@4.60.0):
     dependencies:
