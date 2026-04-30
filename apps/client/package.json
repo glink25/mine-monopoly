@@ -22,7 +22,8 @@
 		"eventemitter3": "^5.0.0",
 		"howler": "^2.2.4",
 		"jsencrypt": "^3.3.2",
-		"peerjs": "^1.5.4"
+		"peerjs": "^1.5.4",
+		"vue-advanced-cropper": "^2.8.9"
 	},
 	"devDependencies": {
 		"@types/howler": "^2.2.12",

@@ -4,6 +4,7 @@ import { ref, reactive, onBeforeMount } from "vue";
 import { FPMessage } from "@mine-monopoly/ui";
 import { getEncryption } from "@src/utils/encryption";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import AvatarCropper from "./AvatarCropper.vue";
 
 onBeforeMount(() => {
 	getPublicKey();
@@ -11,6 +12,8 @@ onBeforeMount(() => {
 
 const isLoading = ref(false);
 const avatarFile = ref<File | undefined>();
+const showCropper = ref(false);
+const cropperSrc = ref("");
 const colorInputRef = ref<HTMLInputElement | null>(null);
 const emit = defineEmits(["success", "error", "close"]);
 
@@ -33,14 +36,29 @@ function handleFileChange(event: Event) {
 	const file = target.files?.[0];
 
 	if (file) {
-		avatarFile.value = file;
-		const reader = new FileReader();
-		reader.onload = (e) => {
-			registerForm.avatar = (e.target?.result as string) || "";
-		};
-		reader.readAsDataURL(file);
-	} else {
-		registerForm.avatar = "";
+		// Create object URL for cropper
+		cropperSrc.value = URL.createObjectURL(file);
+		showCropper.value = true;
+	}
+}
+
+function handleCropConfirm(file: File) {
+	avatarFile.value = file;
+	const reader = new FileReader();
+	reader.onload = (e) => {
+		registerForm.avatar = (e.target?.result as string) || "";
+	};
+	reader.readAsDataURL(file);
+	showCropper.value = false;
+}
+
+function handleCropCancel() {
+	showCropper.value = false;
+	cropperSrc.value = "";
+	// Reset file input
+	const fileInput = document.getElementById("avatar") as HTMLInputElement;
+	if (fileInput) {
+		fileInput.value = "";
 	}
 }
 
@@ -214,6 +232,13 @@ function handleColorClick() {
 			<span v-else>注册</span>
 		</button>
 	</div>
+
+	<AvatarCropper
+		v-model:visible="showCropper"
+		:src="cropperSrc"
+		@confirm="handleCropConfirm"
+		@cancel="handleCropCancel"
+	/>
 </template>
 
 <style lang="scss" scoped>
