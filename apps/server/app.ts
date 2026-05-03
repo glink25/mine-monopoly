@@ -63,10 +63,8 @@ async function bootstrap() {
 		});
 
 		const iceServerPort = env<number>("ICE_SERVER_PORT");
-		const icePrefix = env("ICE_BASE_PREFIX", "") || env("API_BASE_PREFIX", "");
 		const peerServer = PeerServer({
 			port: iceServerPort,
-			...(icePrefix ? { path: icePrefix } : {}),
 		}, () => {
 			serverLog(`${chalk.bold.bgGreen(` ICE服务启动成功 ${iceServerPort}端口`)}`);
 		});
