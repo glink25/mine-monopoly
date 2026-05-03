@@ -102,6 +102,8 @@ $text-base: #303030;
 
   --shadow-depth: 0 0.25rem 0 rgba(0, 0, 0, 0.15); // 布料厚度 (外凸)
   --shadow-inset: inset 0 0.15rem 0.1rem rgba(0, 0, 0, 0.15); // 剪裁凹陷 (内凹)
+  --shadow-card: var(--shadow-depth),
+    0 0 0 3px rgba(0, 0, 0, 0.05);
 
   --text-shadow-embroider: 0 1px 1px rgba(255, 255, 255, 0.4); // 刺绣高光
   --text-shadow-pressed: 0 -1px 0 rgba(0, 0, 0, 0.2); // 压印凹陷
@@ -116,8 +118,7 @@ $text-base: #303030;
   box-sizing: border-box;
   border-radius: 0.8rem;
   box-shadow:
-    var(--shadow-depth),
-    0 0 0 3px rgba(0, 0, 0, 0.05);
+    var(--shadow-card);
   position: relative;
   padding: calc($offset + 0.5rem);
 

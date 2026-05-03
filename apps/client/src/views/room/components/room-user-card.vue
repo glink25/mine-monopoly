@@ -113,7 +113,8 @@ $top-bar-height: 2.8rem;
 
 // 定义跳动动画
 @keyframes bounce {
-	0%, 100% {
+	0%,
+	100% {
 		transform: translateY(0);
 	}
 	50% {
@@ -275,7 +276,6 @@ $top-bar-height: 2.8rem;
 		$avatar-size: 3rem;
 
 		& > .avatar {
-			@include felt-patch(#ffffff);
 			min-width: $avatar-size;
 			min-height: $avatar-size;
 			width: $avatar-size;
@@ -293,6 +293,8 @@ $top-bar-height: 2.8rem;
 			display: flex;
 			justify-content: center;
 			align-items: center;
+			box-shadow: var(--shadow-card);
+			border-radius: 0.8rem;
 
 			& > img {
 				width: $avatar-size;

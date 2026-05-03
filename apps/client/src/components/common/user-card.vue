@@ -38,7 +38,7 @@ const avatarSrc = computed(() => {
 	border-radius: 1.8rem;
 
 	& > .avatar {
-		@include felt-patch(#ffffff);
+		// @include felt-patch(#ffffff);
 		$icon-size: 5rem;
 		width: $icon-size;
 		height: $icon-size;
@@ -46,6 +46,7 @@ const avatarSrc = computed(() => {
 		min-height: $icon-size;
 		line-height: $icon-size;
 		text-align: center;
+		border: 0.3rem solid #ffffff;
 		border-radius: 50%;
 		font-size: 2.5rem;
 		color: #ffffff;
@@ -53,6 +54,9 @@ const avatarSrc = computed(() => {
 		display: flex;
 		justify-content: center;
 		align-items: center;
+		box-shadow:
+			0 0.25rem 0 rgba(0, 0, 0, 0.15),
+			0 0 0 3px rgba(0, 0, 0, 0.05);
 
 		& > img {
 			width: calc($icon-size - 0.5rem);
