@@ -87,84 +87,110 @@ onBeforeUnmount(() => {
 		<div v-if="!metrics && !error && loading" class="loading">加载中...</div>
 
 		<div v-if="metrics" class="monitor-content">
-			<div class="stats-cards">
-				<div class="stat-card">
-					<div class="stat-label">活跃分配</div>
-					<div class="stat-value">{{ metrics.allocations.total }}</div>
-				</div>
-				<div class="stat-card">
-					<div class="stat-label">累计流量</div>
-					<div class="stat-value">{{ totalTraffic }}</div>
-				</div>
-				<div class="stat-card">
-					<div class="stat-label">丢包率</div>
-					<div class="stat-value">{{ packetRate }}</div>
-				</div>
-			</div>
+			<a-row :gutter="12" class="stats-cards">
+				<a-col :xs="24" :md="8">
+					<div class="stat-card">
+						<div class="stat-label">活跃分配</div>
+						<div class="stat-value">{{ metrics.allocations.total }}</div>
+					</div>
+				</a-col>
+				<a-col :xs="24" :md="8">
+					<div class="stat-card">
+						<div class="stat-label">累计流量</div>
+						<div class="stat-value">{{ totalTraffic }}</div>
+					</div>
+				</a-col>
+				<a-col :xs="24" :md="8">
+					<div class="stat-card">
+						<div class="stat-label">丢包率</div>
+						<div class="stat-value">{{ packetRate }}</div>
+					</div>
+				</a-col>
+			</a-row>
 
 			<div class="detail-section">
 				<h5>分配类型</h5>
-				<div class="allocation-types">
-					<div v-for="item in allocationTypes" :key="item.type" class="type-item">
-						<span class="type-dot" :style="{ backgroundColor: item.color }"></span>
-						<span class="type-name">{{ item.type }}</span>
-						<span class="type-value">{{ item.value }}</span>
-					</div>
-				</div>
+				<a-row :gutter="[12, 8]">
+					<a-col :xs="12" :sm="6" v-for="item in allocationTypes" :key="item.type">
+						<div class="type-item">
+							<span class="type-dot" :style="{ backgroundColor: item.color }"></span>
+							<span class="type-name">{{ item.type }}</span>
+							<span class="type-value">{{ item.value }}</span>
+						</div>
+					</a-col>
+				</a-row>
 			</div>
 
 			<div class="detail-section">
 				<h5>流量明细</h5>
-				<div class="traffic-grid">
-					<div class="traffic-item">
-						<span class="traffic-label">接收</span>
-						<span class="traffic-value">{{ formatBytes(metrics.traffic.receivedBytes) }}</span>
-					</div>
-					<div class="traffic-item">
-						<span class="traffic-label">发送</span>
-						<span class="traffic-value">{{ formatBytes(metrics.traffic.sentBytes) }}</span>
-					</div>
-					<div class="traffic-item">
-						<span class="traffic-label">Peer 接收</span>
-						<span class="traffic-value">{{ formatBytes(metrics.traffic.peerReceivedBytes) }}</span>
-					</div>
-					<div class="traffic-item">
-						<span class="traffic-label">Peer 发送</span>
-						<span class="traffic-value">{{ formatBytes(metrics.traffic.peerSentBytes) }}</span>
-					</div>
-				</div>
+				<a-row :gutter="12">
+					<a-col :xs="24" :md="12" :lg="6">
+						<div class="data-item">
+							<span class="data-label">接收</span>
+							<span class="data-value">{{ formatBytes(metrics.traffic.receivedBytes) }}</span>
+						</div>
+					</a-col>
+					<a-col :xs="24" :md="12" :lg="6">
+						<div class="data-item">
+							<span class="data-label">发送</span>
+							<span class="data-value">{{ formatBytes(metrics.traffic.sentBytes) }}</span>
+						</div>
+					</a-col>
+					<a-col :xs="24" :md="12" :lg="6">
+						<div class="data-item">
+							<span class="data-label">Peer 接收</span>
+							<span class="data-value">{{ formatBytes(metrics.traffic.peerReceivedBytes) }}</span>
+						</div>
+					</a-col>
+					<a-col :xs="24" :md="12" :lg="6">
+						<div class="data-item">
+							<span class="data-label">Peer 发送</span>
+							<span class="data-value">{{ formatBytes(metrics.traffic.peerSentBytes) }}</span>
+						</div>
+					</a-col>
+				</a-row>
 			</div>
 
 			<div class="detail-section">
 				<h5>STUN 统计</h5>
-				<div class="stun-grid">
-					<div class="stun-item">
-						<span class="stun-label">绑定请求</span>
-						<span class="stun-value">{{ metrics.stun.bindingRequests }}</span>
-					</div>
-					<div class="stun-item">
-						<span class="stun-label">绑定响应</span>
-						<span class="stun-value">{{ metrics.stun.bindingResponses }}</span>
-					</div>
-					<div class="stun-item">
-						<span class="stun-label">绑定错误</span>
-						<span class="stun-value error-text">{{ metrics.stun.bindingErrors }}</span>
-					</div>
-				</div>
+				<a-row :gutter="12">
+					<a-col :xs="24" :md="8">
+						<div class="data-item">
+							<span class="data-label">绑定请求</span>
+							<span class="data-value">{{ metrics.stun.bindingRequests }}</span>
+						</div>
+					</a-col>
+					<a-col :xs="24" :md="8">
+						<div class="data-item">
+							<span class="data-label">绑定响应</span>
+							<span class="data-value">{{ metrics.stun.bindingResponses }}</span>
+						</div>
+					</a-col>
+					<a-col :xs="24" :md="8">
+						<div class="data-item">
+							<span class="data-label">绑定错误</span>
+							<span class="data-value error-text">{{ metrics.stun.bindingErrors }}</span>
+						</div>
+					</a-col>
+				</a-row>
 			</div>
 
 			<div class="detail-section">
 				<h5>包处理</h5>
-				<div class="packet-grid">
-					<div class="packet-item">
-						<span class="packet-label">已处理</span>
-						<span class="packet-value">{{ metrics.packets.processed }}</span>
-					</div>
-					<div class="packet-item">
-						<span class="packet-label">已丢弃</span>
-						<span class="packet-value error-text">{{ metrics.packets.dropped }}</span>
-					</div>
-				</div>
+				<a-row :gutter="12">
+					<a-col :xs="24" :md="12">
+						<div class="data-item">
+							<span class="data-label">已处理</span>
+							<span class="data-value">{{ metrics.packets.processed }}</span>
+						</div>
+					</a-col>
+					<a-col :xs="24" :md="12">
+						<div class="data-item">
+							<span class="data-label">已丢弃</span>
+							<span class="data-value error-text">{{ metrics.packets.dropped }}</span>
+						</div>
+					</a-col>
+				</a-row>
 			</div>
 		</div>
 	</div>
@@ -212,28 +238,22 @@ onBeforeUnmount(() => {
 		gap: 12px;
 	}
 
-	.stats-cards {
-		display: flex;
-		gap: 12px;
+	.stat-card {
+		background: #fff;
+		padding: 20px;
+		border-radius: 5px;
+		text-align: center;
 
-		.stat-card {
-			flex: 1;
-			background: #fff;
-			padding: 20px;
-			border-radius: 5px;
-			text-align: center;
+		.stat-label {
+			color: #999;
+			font-size: 13px;
+			margin-bottom: 8px;
+		}
 
-			.stat-label {
-				color: #999;
-				font-size: 13px;
-				margin-bottom: 8px;
-			}
-
-			.stat-value {
-				font-size: 28px;
-				font-weight: bold;
-				color: var(--color-primary);
-			}
+		.stat-value {
+			font-size: 28px;
+			font-weight: bold;
+			color: var(--color-primary);
 		}
 	}
 
@@ -249,48 +269,29 @@ onBeforeUnmount(() => {
 		}
 	}
 
-	.allocation-types {
+	.type-item {
 		display: flex;
-		gap: 20px;
+		align-items: center;
+		gap: 8px;
 
-		.type-item {
-			display: flex;
-			align-items: center;
-			gap: 8px;
+		.type-dot {
+			width: 10px;
+			height: 10px;
+			border-radius: 50%;
+		}
 
-			.type-dot {
-				width: 10px;
-				height: 10px;
-				border-radius: 50%;
-			}
+		.type-name {
+			color: #666;
+			font-size: 13px;
+		}
 
-			.type-name {
-				color: #666;
-				font-size: 13px;
-			}
-
-			.type-value {
-				font-weight: bold;
-				color: #333;
-			}
+		.type-value {
+			font-weight: bold;
+			color: #333;
 		}
 	}
 
-	.traffic-grid,
-	.stun-grid,
-	.packet-grid {
-		display: grid;
-		grid-template-columns: repeat(4, 1fr);
-		gap: 12px;
-	}
-
-	.packet-grid {
-		grid-template-columns: repeat(2, 1fr);
-	}
-
-	.traffic-item,
-	.stun-item,
-	.packet-item {
+	.data-item {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
@@ -298,16 +299,12 @@ onBeforeUnmount(() => {
 		background: var(--color-bg-light);
 		border-radius: 4px;
 
-		.traffic-label,
-		.stun-label,
-		.packet-label {
+		.data-label {
 			color: #666;
 			font-size: 13px;
 		}
 
-		.traffic-value,
-		.stun-value,
-		.packet-value {
+		.data-value {
 			font-weight: bold;
 			color: #333;
 		}

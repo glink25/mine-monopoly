@@ -50,17 +50,18 @@ onMounted(async () => {
 		</div>
 
 		<a-empty style="flex: 1" v-if="total === 0" description="没有数据" />
-		<div v-else class="map-item-container">
-			<map-item
-				@edit="handleGameMapEdit"
-				@deleted="updateList"
-				:map-info="mapInfo"
-				v-for="mapInfo in gameMapList"
-				:key="mapInfo.id"
-			/>
-		</div>
+		<a-row v-else :gutter="[12, 12]" class="map-item-container">
+			<a-col :xs="24" :sm="12" :lg="8" v-for="mapInfo in gameMapList" :key="mapInfo.id">
+				<map-item
+					@edit="handleGameMapEdit"
+					@deleted="updateList"
+					:map-info="mapInfo"
+				/>
+			</a-col>
+		</a-row>
 
 		<a-pagination
+			class="map-pagination"
 			v-model:current="currentPage"
 			:show-total="() => `${total} 个地图`"
 			:total="total"
@@ -73,7 +74,7 @@ onMounted(async () => {
 		@close="handleFormClose"
 		destroyOnClose
 		title="上传地图"
-		style="width: 30vw"
+		:width="'min(500px, 90vw)'"
 		v-model:open="formVisible"
 		:footer="null"
 	>
@@ -100,11 +101,11 @@ onMounted(async () => {
 
 	.map-item-container {
 		flex: 1;
-		display: grid;
-		grid-template-columns: repeat(3, 1fr); /* 3列，等宽 */
-		grid-template-rows: repeat(2, 1fr); /* 2行，等高 */
-		gap: 20px; /* 网格间隙 */
 		padding: 10px;
+	}
+
+	.map-pagination {
+		text-align: right;
 	}
 }
 </style>

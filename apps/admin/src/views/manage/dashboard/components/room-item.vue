@@ -33,8 +33,6 @@ const props = defineProps<{ room: RoomMapItem }>();
 <style lang="scss" scoped>
 .room-item {
 	border-radius: 8px;
-	margin: 10px;
-	margin-left: 5px;
 	padding: 20px;
 	box-sizing: border-box;
 	box-shadow: var(--el-box-shadow-light);

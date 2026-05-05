@@ -99,10 +99,8 @@ async function handleDelete() {
 }
 
 .cover-image {
-	max-width: 100%;
-	max-height: 100%;
-	width: auto;
-	height: auto;
+	width: 100%;
+	aspect-ratio: 16 / 9;
 	padding: 5px;
 	object-fit: contain;
 	display: block;

@@ -26,9 +26,11 @@ onBeforeUnmount(() => {
 		<div class="top-bar">
 			<h4>当前房间列表({{ roomList.length }})</h4>
 		</div>
-		<div class="room-list">
-			<RoomItem :room="room" v-for="room in roomList" :key="room.roomId" />
-		</div>
+		<a-row :gutter="[12, 12]" class="room-list">
+			<a-col :xs="24" :sm="12" :lg="8" v-for="room in roomList" :key="room.roomId">
+				<RoomItem :room="room" />
+			</a-col>
+		</a-row>
 	</div>
 </template>
 
@@ -49,11 +51,7 @@ onBeforeUnmount(() => {
 
 	.room-list {
 		flex: 1;
-		display: flex;
-		justify-content: flex-start;
-		align-content: flex-start;
 		overflow-y: scroll;
-		flex-wrap: wrap;
 	}
 }
 </style>

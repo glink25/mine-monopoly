@@ -2,8 +2,10 @@
 import { AdminUserListItem } from "@/interfaces/interfaces";
 import { ref, onMounted } from "vue";
 import { getUserList, deleteUser } from "@/utils/api/user";
+import { isMobileDevice } from "@/utils/index";
 import UserForm from "./components/user-form.vue";
 
+const isMobile = isMobileDevice();
 const userList = ref<AdminUserListItem[]>([]);
 const total = ref(0);
 const currentPage = ref(1);
@@ -82,7 +84,7 @@ onMounted(() => {
 			<div class="left">
 				<a-input-search
 					placeholder="搜索用户名或账号"
-					style="width: 260px"
+					class="search-input"
 					allow-clear
 					@change="(e: Event) => handleSearch((e.target as HTMLInputElement).value)"
 				/>
@@ -92,7 +94,8 @@ onMounted(() => {
 			</div>
 		</div>
 
-		<div class="user-list-container">
+		<!-- 桌面端：表格 -->
+		<div v-if="!isMobile" class="user-list-container">
 			<a-table
 				:columns="columns"
 				:data-source="userList"
@@ -138,13 +141,58 @@ onMounted(() => {
 				</template>
 			</a-table>
 		</div>
+
+		<!-- 手机端：卡片列表 -->
+		<div v-else class="user-card-list">
+			<a-empty v-if="userList.length === 0" description="没有数据" />
+			<div v-for="user in userList" :key="user.id" class="user-card">
+				<div class="user-card-header">
+					<a-avatar
+						v-if="user.avatar"
+						:src="user.avatar"
+						:size="40"
+						:style="{ border: `2px solid ${user.color}` }"
+					/>
+					<div v-else class="avatar-circle" :style="{ backgroundColor: user.color }">
+						{{ user.username?.charAt(0) }}
+					</div>
+					<div class="user-card-info">
+						<span class="user-card-name">{{ user.username }}</span>
+						<span class="user-card-account">{{ user.useraccount }}</span>
+					</div>
+					<a-tag :color="user.online ? 'green' : 'default'" class="user-card-tag">
+						{{ user.online ? "在线" : "离线" }}
+					</a-tag>
+				</div>
+				<div class="user-card-footer">
+					<div class="user-card-badges">
+						<a-tag v-if="user.isAdmin" color="blue">管理员</a-tag>
+					</div>
+					<a-space>
+						<a-button type="link" size="small" @click="handleEdit(user)">编辑</a-button>
+						<a-popconfirm title="确认删除该用户？" @confirm="handleDelete(user.id)">
+							<a-button type="link" danger size="small">删除</a-button>
+						</a-popconfirm>
+					</a-space>
+				</div>
+			</div>
+			<div class="user-card-pagination">
+				<a-pagination
+					show-less-items
+					v-model:current="currentPage"
+					:total="total"
+					:pageSize="pageSize"
+					@change="handlePageChange"
+				/>
+			</div>
+		</div>
 	</div>
 
 	<a-modal
 		@close="handleFormClose"
 		destroyOnClose
 		:title="currentUser ? '编辑用户' : '新增用户'"
-		style="width: 420px"
+		:width="'min(420px, 90vw)'"
 		v-model:open="formVisible"
 		:footer="null"
 	>
@@ -167,6 +215,11 @@ onMounted(() => {
 		background-color: #fff;
 		padding: 10px 20px;
 		border-radius: 5px;
+
+		.search-input {
+			flex: 1;
+			max-width: 260px;
+		}
 	}
 
 	.user-list-container {
@@ -187,6 +240,59 @@ onMounted(() => {
 		color: #fff;
 		font-size: 16px;
 		font-weight: bold;
+	}
+
+	.user-card-list {
+		flex: 1;
+		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		margin-top: 10px;
+
+		.user-card {
+			background: #fff;
+			border-radius: 5px;
+			padding: 12px 16px;
+
+			.user-card-header {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+
+				.user-card-info {
+					flex: 1;
+					display: flex;
+					flex-direction: column;
+					gap: 2px;
+
+					.user-card-name {
+						font-weight: bold;
+						color: #333;
+					}
+
+					.user-card-account {
+						font-size: 12px;
+						color: #999;
+					}
+				}
+			}
+
+			.user-card-footer {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-top: 10px;
+				padding-top: 10px;
+				border-top: 1px solid #f0f0f0;
+			}
+		}
+
+		.user-card-pagination {
+			display: flex;
+			justify-content: center;
+			padding: 10px 0;
+		}
 	}
 }
 </style>
