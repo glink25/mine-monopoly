@@ -11,8 +11,8 @@
 	"fileAssociations": [
 		{
 			"ext": ["fpmap"],
-			"name": "MineMonopoly Map File",
-			"description": "MineMonopoly Map File",
+			"name": "MineMonopoly Map Source File",
+			"description": "MineMonopoly Source Map File",
 			"icon": "build/fpmap.ico",
 			"role": "Editor",
 			"isPackage": true

@@ -17,6 +17,7 @@
 		"@mine-monopoly/types": "workspace:*",
 		"@mine-monopoly/ui": "workspace:*",
 		"@mine-monopoly/utils": "workspace:*",
+		"@mine-monopoly/env": "workspace:*",
 		"cannon-es": "^0.20.0",
 		"electron-updater": "^6.6.2",
 		"eventemitter3": "^5.0.0",

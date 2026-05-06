@@ -32,5 +32,5 @@ export const avatarMulter = createMulter({
 
 export const gameMapMulter = createMulter({
 	dest: "public/temp",
-	allowedExtensions: [".png", ".jpg", ".jpeg", ".fpmap"],
+	allowedExtensions: [".png", ".jpg", ".jpeg", ".fpmap", ".mmmap"],
 });

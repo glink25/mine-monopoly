@@ -2,9 +2,8 @@
 import { createGameMap, updateGameMap } from "@/utils/api/game-map";
 import { GameMapInDb } from "@mine-monopoly/types";
 import { FormInstance, message, UploadChangeParam, UploadFile, UploadProps } from "ant-design-vue";
-import { dataToProtoBuffer, loadFromProto, ProtoFileType } from "@mine-monopoly/utils";
 import { onMounted, reactive, ref, watch } from "vue";
-import { calculateFileHash, readMapFile, uint8ArrayToFile, uint8ArrayToObjectURL } from "@/utils/file";
+import { calculateFileHash, uint8ArrayToFile } from "@/utils/file";
 import { Rule } from "ant-design-vue/es/form";
 
 const { gameMap } = defineProps<{ gameMap: GameMapInDb | undefined }>();
@@ -41,27 +40,9 @@ async function handleFileChange(info: UploadChangeParam) {
 		message.error("获取文件对象失败");
 		return;
 	}
-	const { mapData, images } = await readMapFile(file);
-	formValue.name = mapData.info.name;
-	formValue.author = mapData.info.author;
-	formValue.version = mapData.info.version;
-	const coverImageId = mapData.info.coverImageId;
-	if (!coverImageId) {
-		message.error("该地图没有设置封面");
-		return;
-	}
-	const imageResource = images.find((i) => i.id === coverImageId);
-	if (!imageResource) {
-		message.error("匹配地图封面资源失败");
-		return;
-	}
-	const url = uint8ArrayToObjectURL(imageResource.buffer, imageResource.filetype);
-	coverImagePreview.value = url;
-	coverImageFile.value = uint8ArrayToFile(
-		imageResource.buffer,
-		`cover-image.${imageResource.filetype}`,
-		imageResource.filetype,
-	);
+
+	// .mmmap files are encrypted, skip metadata extraction
+	message.info("mmmap文件已选择，请手动填写地图信息");
 }
 
 async function onFinish() {
@@ -101,13 +82,13 @@ async function checkCoverImage(_rule: Rule, value: string) {
 <template>
 	<a-form :model="formValue" @finish="onFinish" ref="formRef">
 		<a-form-item label="地图名称" name="name" :rules="[{ required: true, message: '你的地图没有名称' }]">
-			<a-input disabled v-model:value="formValue.name"></a-input>
+			<a-input disabledv-model:value="formValue.name"></a-input>
 		</a-form-item>
 		<a-form-item label="地图作者" name="author" :rules="[{ required: true, message: '你的地图没有作者' }]">
-			<a-input disabled v-model:value="formValue.author"></a-input>
+			<a-input disabledv-model:value="formValue.author"></a-input>
 		</a-form-item>
 		<a-form-item label="地图版本" name="version" :rules="[{ required: true, message: '你的地图没有版本' }]">
-			<a-input disabled v-model:value="formValue.version"></a-input>
+			<a-input disabledv-model:value="formValue.version"></a-input>
 		</a-form-item>
 
 		<a-form-item label="地图封面" name="cover-image" :rules="[{ required: true, validator: checkCoverImage }]">
@@ -121,7 +102,7 @@ async function checkCoverImage(_rule: Rule, value: string) {
 		>
 			<a-upload
 				@change="handleFileChange"
-				accept=".fpmap"
+				accept=".mmmap"
 				v-model:file-list="gameMapfileList"
 				:max-count="1"
 				:customRequest="() => {}"

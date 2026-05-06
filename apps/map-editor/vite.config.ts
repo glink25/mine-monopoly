@@ -6,6 +6,7 @@ import Components from "unplugin-vue-components/vite";
 import { AntDesignVueResolver } from "unplugin-vue-components/resolvers";
 import monacoEditorPlugin from "vite-plugin-monaco-editor-esm";
 import generateMonacoDTS from "./plugins/vite-plugin-generate-monaco-dts";
+import { envPlugin } from "@mine-monopoly/env/vite-plugin";
 import pkg from "./package.json";
 
 export default defineConfig(({ command, mode }) => {
@@ -21,6 +22,10 @@ export default defineConfig(({ command, mode }) => {
 		plugins: [
 			vue(),
 			generateMonacoDTS(),
+			envPlugin({
+				exclude: ['MYSQL_PASSWORD', 'TC_KEY'],
+				envPath: '../../.env',
+			}),
 			Components({
 				resolvers: [
 					AntDesignVueResolver({

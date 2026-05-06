@@ -64,3 +64,6 @@ export async function loadFromProto(
 		imageFiles,
 	};
 }
+
+export { encodeProductMap, decodeProductMap } from "./product";
+export type { ProductMapData, ProductResourceItem } from "./product";

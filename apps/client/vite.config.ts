@@ -5,7 +5,7 @@ import viteCompression from "vite-plugin-compression";
 import electron from "vite-plugin-electron/simple";
 import pkg from "./package.json";
 import generateMonacoDTS from "./plugins/vite-plugin-generate-monaco-dts";
-import { envPlugin } from "../../packages/env/src/vite-plugin-env.ts";
+import { envPlugin } from "@mine-monopoly/env/vite-plugin";
 
 const APP_VERSION_SHORT = pkg.version.split(".").slice(0, 2).join(".");
 

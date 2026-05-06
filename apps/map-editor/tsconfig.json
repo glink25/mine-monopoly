@@ -6,11 +6,17 @@
 		"jsx": "preserve",
 		"resolveJsonModule": true,
 		"isolatedModules": true,
-		"lib": ["ESNext", "DOM"],
+		"lib": ["ESNext", "DOM", "DOM.Iterable"],
 		"noEmit": true,
+		"types": ["node", "vite/client"],
 		"typeRoots": ["./node_modules/@types", "../../node_modules/@types"],
 		"paths": {
-			"@src/*": ["./src/*"]
+			"@src/*": ["./src/*"],
+			"@mine-monopoly/types": ["../../packages/types/index.ts"],
+			"@mine-monopoly/types/*": ["../../packages/types/*"],
+			"@mine-monopoly/env": ["../../packages/env/src/browser.ts"],
+			"@mine-monopoly/ui": ["../../packages/components/src/index.ts"],
+			"@mine-monopoly/utils": ["../../packages/utils/src/index.ts"]
 		}
 	},
 	"include": ["src/**/*", "electron/**/*", "types/**/*", "env/*.d.ts"],

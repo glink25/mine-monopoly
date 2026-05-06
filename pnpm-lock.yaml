@@ -172,6 +172,9 @@ importers:
 
   apps/client:
     dependencies:
+      '@mine-monopoly/env':
+        specifier: workspace:*
+        version: link:../../packages/env
       '@mine-monopoly/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -218,6 +221,9 @@ importers:
 
   apps/map-editor:
     dependencies:
+      '@mine-monopoly/env':
+        specifier: workspace:*
+        version: link:../../packages/env
       '@mine-monopoly/types':
         specifier: workspace:*
         version: link:../../packages/types

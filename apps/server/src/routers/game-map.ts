@@ -49,7 +49,7 @@ gameMapRouter.post(
 		try {
 			const newFileName = randomString(16);
 			const coverImage = await validateAndRename(newFileName, files["cover-image"][0], [".png", ".jpg", ".jpeg"]);
-			const gameMap = await validateAndRename(newFileName, files["game-map"][0], [".fpmap"]);
+			const gameMap = await validateAndRename(newFileName, files["game-map"][0], [".fpmap", ".mmmap"]);
 
 			const storage = getStorage();
 			const [mapUrl, coverUrl] = await storage.uploadMany([
@@ -114,7 +114,7 @@ gameMapRouter.post(
 		try {
 			const newFileName = randomString(16);
 			const coverImage = await validateAndRename(newFileName, files["cover-image"][0], [".png", ".jpg", ".jpeg"]);
-			const gameMap = await validateAndRename(newFileName, files["game-map"][0], [".fpmap"]);
+			const gameMap = await validateAndRename(newFileName, files["game-map"][0], [".fpmap", ".mmmap"]);
 
 			const storage = getStorage();
 			const [mapUrl, coverUrl] = await storage.uploadMany([

@@ -143,7 +143,7 @@ async function handleUploadMap() {
 	const file = await new Promise<ArrayBuffer>((resolve) => {
 		const input = document.createElement("input");
 		input.type = "file";
-		input.accept = ".fpmap";
+		input.accept = ".fpmap,.mmmap";
 		input.onchange = async (e) => {
 			const file = (e.target as HTMLInputElement).files?.[0];
 			if (file) {
@@ -154,6 +154,7 @@ async function handleUploadMap() {
 		input.click();
 	});
 	if (!file) return;
+	if (!socketClient) return;
 	//传输需要将地图从ArrayBuffer编码为Base64字符串
 	socketClient.changeGameMap({ from: "custom", data: arrayBufferToBase64(file) });
 	useLoading().showLoading("等待其他玩家确认");

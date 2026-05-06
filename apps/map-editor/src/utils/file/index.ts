@@ -1,10 +1,12 @@
 import { GameMap } from "@mine-monopoly/types";
-import { dataToProtoBuffer, loadFromProto, ProtoFileType } from "@mine-monopoly/utils/protos";
+import { dataToProtoBuffer, loadFromProto, ProtoFileType, encodeProductMap } from "@mine-monopoly/utils/protos";
+import { encrypt } from "@mine-monopoly/utils/crypto";
 import { useEditorStore, useMapDataStore, useResourceStore } from "@src/stores";
 import { eventBus } from "@src/utils/event-bus";
 import { getInitPhase } from "@src/views/map-editor/components/manager/process-manager/utils/init-phase";
 import { message } from "ant-design-vue";
 import { generateShortId } from "@src/utils/short-id";
+import { __MAP_ENCRYPT_KEY__ } from "@src/global.config";
 
 export function getFileName(path: string): string {
 	return path.split(/[/\\]/).pop() || "";
@@ -116,7 +118,7 @@ export async function loadMapDataFromPath(path: string) {
 
 export function createDefaultMapData(): GameMap {
 	return {
-		id: generateShortId('map', 12),
+		id: generateShortId("map", 12),
 		info: {
 			name: "",
 			author: "",
@@ -309,4 +311,51 @@ export function convertFpUrlToPath(urlOrPath: string): string {
 		}
 	}
 	return decodeURIComponent(rawPath);
+}
+
+export async function exportGameMapToProductFile(mapId: string, filePath: string, mapData: GameMap): Promise<void> {
+	const fetchBuffer = async (url: string): Promise<Uint8Array> => {
+		const response = await fetch(url);
+		if (!response.ok) throw new Error(`资源加载失败: ${url}`);
+		const arrayBuffer = await response.arrayBuffer();
+		return new Uint8Array(arrayBuffer);
+	};
+
+	const resourceStore = useResourceStore();
+	const modelFiles: ProtoFileType[] = [];
+	// 加载模型:
+	for (const model of resourceStore.models) {
+		const tempModel: ProtoFileType = {
+			id: model.id,
+			name: model.name,
+			filetype: model.fileType,
+			buffer: await fetchBuffer(model.url),
+		};
+		modelFiles.push(tempModel);
+	}
+
+	const imageFiles: ProtoFileType[] = [];
+	// 加载图片:
+	for (const image of resourceStore.images) {
+		const tempImage: ProtoFileType = {
+			id: image.id,
+			name: image.name,
+			filetype: image.fileType,
+			buffer: await fetchBuffer(image.url),
+		};
+		imageFiles.push(tempImage);
+	}
+
+	const productData = {
+		mapId,
+		payload: JSON.stringify(mapData),
+		resources: [
+			...modelFiles.map((f) => ({ rid: f.id, label: f.name, ext: f.filetype, blob: f.buffer })),
+			...imageFiles.map((f) => ({ rid: f.id, label: f.name, ext: f.filetype, blob: f.buffer })),
+		],
+	};
+
+	const encoded = encodeProductMap(productData);
+	const encrypted = await encrypt(encoded, __MAP_ENCRYPT_KEY__);
+	await window.electronAPI.saveFile(filePath, encrypted);
 }

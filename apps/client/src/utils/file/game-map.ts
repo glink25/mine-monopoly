@@ -1,5 +1,7 @@
 import { GameMap, GameMapInDb, Role } from "@mine-monopoly/types";
-import { loadFromProto, ProtoFileType } from "@mine-monopoly/utils";
+import { loadFromProto, ProtoFileType, decodeProductMap } from "@mine-monopoly/utils";
+import { isProductFile, decrypt } from "@mine-monopoly/utils/crypto";
+import { env } from "@mine-monopoly/env";
 import { useLoading } from "@src/store";
 import { getGameMapById } from "../api/map";
 import { useMapData, useResourceStore } from "@src/store/game";
@@ -7,7 +9,49 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { getDracoLoader } from "../draco/draco";
 import { isMobile, isPC } from "../platform";
 
+async function loadFromProductFile(data: Uint8Array, key: string): Promise<{
+	id: string;
+	jsonData: string;
+	modelFiles: ProtoFileType[];
+	imageFiles: ProtoFileType[];
+}> {
+	// Decrypt the data
+	const decrypted = await decrypt(data, key);
+
+	// Parse the product protobuf
+	const productMap = decodeProductMap(decrypted);
+
+	// Convert ProductResourceItem[] to ProtoFileType[]
+	const modelFiles: ProtoFileType[] = [];
+	const imageFiles: ProtoFileType[] = [];
+
+	for (const resource of productMap.resources) {
+		const protoFile: ProtoFileType = {
+			id: resource.rid,
+			name: resource.label,
+			filetype: resource.ext,
+			buffer: new Uint8Array(resource.blob),
+		};
+
+		// Model files are .glb or .gltf
+		if (resource.ext === "glb" || resource.ext === "gltf") {
+			modelFiles.push(protoFile);
+		} else {
+			imageFiles.push(protoFile);
+		}
+	}
+
+	return {
+		id: productMap.mapId,
+		jsonData: productMap.payload,
+		modelFiles,
+		imageFiles,
+	};
+}
+
 export async function getGameMap(gameMapInfo: GameMapInDb) {
+	const encryptKey = env("MAP_ENCRYPT_KEY", "");
+
 	if (isPC() || isMobile()) {
 		let mapCache = await window.mapCacheLoader.load(gameMapInfo.id, gameMapInfo.hash);
 		if (!mapCache) {
@@ -16,13 +60,23 @@ export async function getGameMap(gameMapInfo: GameMapInDb) {
 			await window.mapCacheLoader.save(gameMapInfo.id, gameMapInfo.hash, arrayBuffer);
 			mapCache = arrayBuffer;
 		}
-		const mapData = await loadFromProto(new Uint8Array(mapCache));
-		return mapData;
+		const bytes = new Uint8Array(mapCache);
+		// Detect format: .mmmap (encrypted product file) or .fpmap (legacy)
+		if (isProductFile(bytes)) {
+			return await loadFromProductFile(bytes, encryptKey);
+		} else {
+			return await loadFromProto(bytes);
+		}
 	} else {
 		const response = await fetch(gameMapInfo.mapUrl);
 		const arrayBuffer = await response.arrayBuffer();
-		const mapData = await loadFromProto(new Uint8Array(arrayBuffer));
-		return mapData;
+		const bytes = new Uint8Array(arrayBuffer);
+		// Detect format: .mmmap (encrypted product file) or .fpmap (legacy)
+		if (isProductFile(bytes)) {
+			return await loadFromProductFile(bytes, encryptKey);
+		} else {
+			return await loadFromProto(bytes);
+		}
 	}
 }
 
@@ -45,7 +99,17 @@ export async function loadGameMapFromServer(mapId: string) {
 
 export async function loadGameMapFromFile(file: ArrayBuffer) {
 	useLoading().showLoading("正在读取地图...");
-	const mapData = await loadFromProto(new Uint8Array(file));
+	const bytes = new Uint8Array(file);
+	const encryptKey = env("MAP_ENCRYPT_KEY", "");
+
+	// Detect format: .mmmap (encrypted product file) or .fpmap (legacy)
+	let mapData;
+	if (isProductFile(bytes)) {
+		mapData = await loadFromProductFile(bytes, encryptKey);
+	} else {
+		mapData = await loadFromProto(bytes);
+	}
+
 	console.log("🚀 ~ loadGameMapFromFile ~ mapData:", mapData);
 	const gameMap = JSON.parse(mapData.jsonData) as GameMap;
 	useMapData().$patch(gameMap);

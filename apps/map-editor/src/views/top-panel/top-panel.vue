@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { message } from "ant-design-vue";
 import { useEditorStore, useMapDataStore, useResourceStore } from "@src/stores";
 import {
 	handleNewProtoFile,
 	handleOpenProtoFile,
 	handleSaveAsOtherProtoFile,
 	handleSaveProtoFile,
+	exportGameMapToProductFile,
 } from "@src/utils/file";
 import MCPControlPanel from "@src/components/mcp/MCPControlPanel.vue";
 import { eventBus } from "@src/utils/event-bus";
@@ -18,6 +20,7 @@ enum OperationType {
 	OPEN = "open",
 	SAVE = "save",
 	SAVEAS = "saveas",
+	EXPORT_MMMAP = "exportmmmap",
 }
 
 type MenuItem = { label: string; key: OperationType };
@@ -27,6 +30,7 @@ const menus: MenuItem[] = [
 	{ label: "打开", key: OperationType.OPEN },
 	{ label: `保存 (${modLabel}+S)`, key: OperationType.SAVE },
 	{ label: "另存为", key: OperationType.SAVEAS },
+	{ label: "导出 .mmmap", key: OperationType.EXPORT_MMMAP },
 ];
 
 const mcpPanelVisible = ref(false);
@@ -49,11 +53,38 @@ function handleMenuClick(key: OperationType) {
 		case OperationType.SAVEAS:
 			handleSaveAsOtherProtoFile();
 			break;
+
+		case OperationType.EXPORT_MMMAP:
+			handleExportMmmapFile();
+			break;
 	}
 }
 
 function openMCPPanel() {
 	mcpPanelVisible.value = true;
+}
+
+async function handleExportMmmapFile() {
+	const mapDataStore = useMapDataStore();
+	const editorStore = useEditorStore();
+
+	const res = await window.electronAPI.showSaveDialog({
+		title: "导出 .mmmap 产品文件",
+		filters: [{ name: "地图产品文件", extensions: ["mmmap"] }],
+	});
+
+	editorStore.setLoading(true);
+	const path = res.filePath;
+	if (path) {
+		try {
+			await exportGameMapToProductFile(mapDataStore.id, path, mapDataStore.$state);
+			message.success("导出 .mmmap 文件成功", 1);
+		} catch (error) {
+			console.error("导出 .mmmap 文件失败:", error);
+			message.error("导出 .mmmap 文件失败");
+		}
+	}
+	editorStore.setLoading(false);
 }
 
 function handleUndoDelete() {
@@ -114,6 +145,16 @@ function handleUndoDelete() {
 				type="text"
 			>
 				<span>另存为</span>
+			</a-button>
+
+			<!-- 导出 .mmmap -->
+			<a-button
+				@click="handleMenuClick(OperationType.EXPORT_MMMAP)"
+				class="menu-button"
+				size="small"
+				type="text"
+			>
+				<span>导出 .mmmap</span>
 			</a-button>
 
 			<!-- Divider -->

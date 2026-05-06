@@ -8,6 +8,16 @@
 			"url": "http://localhost:81/static/updates/monopoly/"
 		}
 	],
+	"fileAssociations": [
+		{
+			"ext": ["mmmap"],
+			"name": "MineMonopoly Map File",
+			"description": "MineMonopoly Map File",
+			"icon": "build/mmmap.ico",
+			"role": "Client",
+			"isPackage": true
+		}
+	],
 	"releaseInfo": {
 		"releaseNotesFile": "build/release-notes.md"
 	},
