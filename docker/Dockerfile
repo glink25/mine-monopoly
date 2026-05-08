@@ -62,6 +62,6 @@ COPY --from=builder /app/apps/server/public ./public
 # Copy admin frontend build output
 COPY --from=builder /app/apps/admin/dist ./admin-dist
 
-EXPOSE 8081 8082
+EXPOSE 8081 8082 8083
 
 CMD ["node", "server.js"]

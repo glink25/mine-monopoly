@@ -1,4 +1,6 @@
 import "reflect-metadata";
+import fs from "fs";
+import path from "path";
 import { AppDataSource } from "#src/db/dbConnecter";
 import express, { ErrorRequestHandler, RequestHandler } from "express";
 import cors from "cors";
@@ -89,19 +91,44 @@ async function bootstrap() {
 
 		const adminPort = env<number>("MONOPOLY_ADMIN_PORT");
 		const adminApp = express();
-		adminApp.use(express.static("admin-dist"));
+		adminApp.use(express.static("admin-dist", { index: false }));
 		// Inject runtime env vars for admin frontend
 		adminApp.get("/env.js", (req, res) => {
 			res.type("application/javascript");
 			res.send("window.__RUNTIME_ENV__=" + JSON.stringify({
-				PROTOCOL: process.env.PROTOCOL,
-				MONOPOLY_DOMAIN: process.env.MONOPOLY_DOMAIN,
-				SERVER_PORT: process.env.SERVER_PORT,
+				PROTOCOL: process.env.PROTOCOL || '',
+				MONOPOLY_DOMAIN: process.env.MONOPOLY_DOMAIN || '',
+				SERVER_PORT: process.env.SERVER_PORT || '',
+				ADMIN_BASE_PREFIX: process.env.ADMIN_BASE_PREFIX || '',
+				API_BASE_PREFIX: process.env.API_BASE_PREFIX || '',
 			}) + ";");
 		});
 
+		const adminBasePrefix = env("ADMIN_BASE_PREFIX", "");
+		if (adminBasePrefix && !/^\/[a-zA-Z0-9_-]+$/.test(adminBasePrefix)) {
+			throw new Error(`ADMIN_BASE_PREFIX must be a clean path like "/monopoly-admin", got: "${adminBasePrefix}"`);
+		}
+		let adminIndexHtml: string | null = null;
+
 		adminApp.get("*", (req, res) => {
-			res.sendFile("admin-dist/index.html", { root: process.cwd() });
+			res.type("text/html");
+			if (!adminIndexHtml) {
+				try {
+					adminIndexHtml = fs.readFileSync(path.join(process.cwd(), "admin-dist/index.html"), "utf-8");
+				} catch {
+					serverLog(`${chalk.bold.bgRed(" admin-dist/index.html not found ")}`, "error");
+					return res.status(500).send("Admin panel not available");
+				}
+			}
+			if (adminBasePrefix) {
+				const prefixed = adminIndexHtml
+					.replace(/(src|href)="\/(assets\/)/g, `$1="${adminBasePrefix}/$2`)
+					.replace('src="/env.js"', `src="${adminBasePrefix}/env.js"`)
+					.replace('href="/logo.ico"', `href="${adminBasePrefix}/logo.ico"`);
+				res.send(prefixed);
+			} else {
+				res.send(adminIndexHtml);
+			}
 		});
 		adminApp.listen(adminPort, () => {
 			serverLog(`${chalk.bold.bgGreen(` Admin服务启动成功 ${adminPort}端口`)}`);

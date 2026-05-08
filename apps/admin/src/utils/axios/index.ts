@@ -3,8 +3,15 @@ import router from "@/router";
 import { message } from "ant-design-vue";
 import { env } from "@mine-monopoly/env";
 
-const getApiBaseUrl = () =>
-	`${env("PROTOCOL")}://${env("MONOPOLY_DOMAIN")}:${env<number>("SERVER_PORT")}`;
+const getApiBaseUrl = () => {
+	const protocol = env("PROTOCOL");
+	const domain = env("MONOPOLY_DOMAIN");
+	const port = env<number>("SERVER_PORT");
+	const prefix = env("API_BASE_PREFIX", "");
+	return prefix
+		? `${protocol}://${domain}${prefix}`
+		: `${protocol}://${domain}:${port}`;
+};
 
 export const _axios = axios.create({
 	baseURL: getApiBaseUrl(),

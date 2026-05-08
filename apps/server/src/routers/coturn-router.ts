@@ -4,7 +4,7 @@ import { ResInterface } from "#src/interfaces/res";
 
 export const coturnRouter = Router();
 
-const COTURN_METRICS_URL = "http://monopoly-coturn:9641/metrics";
+const COTURN_METRICS_URL = process.env.COTURN_METRICS_URL || "http://monopoly-coturn:9641/metrics";
 const TIMEOUT_MS = 5000;
 
 function parsePrometheusText(body: string) {
@@ -65,7 +65,7 @@ function parsePrometheusText(body: string) {
 
 const getMetrics: RequestHandler = (req, res) => {
 	const url = new URL(COTURN_METRICS_URL);
-	http.get(
+	const request = http.get(
 		{
 			hostname: url.hostname,
 			port: url.port,
@@ -90,18 +90,17 @@ const getMetrics: RequestHandler = (req, res) => {
 				res.json(resContent);
 			});
 		},
-	).on("error", (err) => {
-		const resContent: ResInterface = {
-			status: 502,
-			msg: `无法连接 coturn: ${err.message}`,
-		};
-		res.status(502).json(resContent);
-	}).on("timeout", () => {
-		const resContent: ResInterface = {
-			status: 504,
-			msg: "coturn 响应超时",
-		};
-		res.status(504).json(resContent);
+	);
+	request.on("error", (err) => {
+		if (!res.headersSent) {
+			res.status(502).json({ status: 502, msg: `无法连接 coturn: ${err.message}` });
+		}
+	});
+	request.on("timeout", () => {
+		request.destroy();
+		if (!res.headersSent) {
+			res.status(504).json({ status: 504, msg: "coturn 响应超时" });
+		}
 	});
 };
 
