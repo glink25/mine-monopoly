@@ -64,7 +64,7 @@
 		"perMachine": false,
 		"allowToChangeInstallationDirectory": true,
 		"deleteAppDataOnUninstall": false,
-		"differentialPackage": false,
+		"differentialPackage": true,
 		"guid": "minemonopoly-client"
 	},
 	"linux": {
