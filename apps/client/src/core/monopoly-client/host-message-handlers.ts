@@ -234,7 +234,11 @@ const handleChangeMap: ServerMessageHandler<SocketMsgType.ChangeMap> = async (ms
 		}
 
 		//版本校验
-		const mapVersion = gameMap.info.editorVersion.split(".").slice(0, 2).join("."); //获取前两位版本号
+		const editorVersion = gameMap.info?.editorVersion;
+		if (!editorVersion) {
+			throw Error("地图数据缺少版本信息");
+		}
+		const mapVersion = editorVersion.split(".").slice(0, 2).join("."); //获取前两位版本号
 		const clientVersion = __COMPATIBLE_VERSION__;
 		if (mapVersion !== clientVersion) {
 			throw Error(`版本不匹配！地图编辑器版本: ${mapVersion}, 客户端版本: ${clientVersion}`);
@@ -255,7 +259,9 @@ const handleChangeMap: ServerMessageHandler<SocketMsgType.ChangeMap> = async (ms
 		useRoomInfo().roleList = tempRoleList;
 		useRoomInfo().gameSettingForm = gameMap.gameSettingForm;
 		// 初始随机选择一个角色
-		useMonopolyClient().changeRole(roles[Math.floor(Math.random() * roles.length)].id);
+		if (roles.length > 0) {
+				useMonopolyClient().changeRole(roles[Math.floor(Math.random() * roles.length)].id);
+			}
 		// 如果自己是房主,提交默认游戏设置(房间类里不解析游戏数据, 只能靠房主来传)
 		if (useRoomInfo().amIRoomOwner) {
 			const setting: GameSetting = {};
@@ -331,11 +337,13 @@ const handleGameInitFinished: ServerMessageHandler<SocketMsgType.GameInitFinishe
 };
 
 const handleGainMoney: ServerMessageHandler<SocketMsgType.GainMoney> = (msg) => {
+	if (!msg.data) return;
 	const { player, money, source } = msg.data;
 	useEventBus().emit(GameEventType.GainMoney + player.id, player, money, source);
 };
 
 const handleCostMoney: ServerMessageHandler<SocketMsgType.CostMoney> = (msg) => {
+	if (!msg.data) return;
 	const { player, money, target } = msg.data;
 	useEventBus().emit(GameEventType.CostMoney + player.id, player, money, target);
 };
@@ -366,6 +374,7 @@ const handleGameLog: ServerMessageHandler<SocketMsgType.GameLog> = (msg) => {
  * 处理倒计时剩余时间
  */
 const handleRemainingTime: ServerMessageHandler<SocketMsgType.RemainingTime> = (msg) => {
+	if (!msg.data) return;
 	const { remainingTime, totalTime } = msg.data;
 	const utilStore = useUtil();
 
@@ -382,6 +391,7 @@ const handleRemainingTime: ServerMessageHandler<SocketMsgType.RemainingTime> = (
  * 处理回合超时事件
  */
 const handleRoundTimeOut: ServerMessageHandler<SocketMsgType.RoundTimeOut> = (msg) => {
+	if (!msg.data) return;
 	const { playerId } = msg.data;
 	const utilStore = useUtil();
 	const currentUserId = useUserInfo().userId;
@@ -401,6 +411,7 @@ const handleRoundTimeOut: ServerMessageHandler<SocketMsgType.RoundTimeOut> = (ms
  * 处理当前事件名称
  */
 const handleCurrentEventName: ServerMessageHandler<SocketMsgType.CurrentEventName> = (msg) => {
+	if (!msg.data) return;
 	const { eventName, showCountdown = false } = msg.data;
 	const utilStore = useUtil();
 	utilStore.currentEventName = eventName;
@@ -411,6 +422,7 @@ const handleCurrentEventName: ServerMessageHandler<SocketMsgType.CurrentEventNam
 };
 
 const handleRoundTurn: ServerMessageHandler<SocketMsgType.RoundTurn> = (msg) => {
+	if (!msg.data) return;
 	const currentRoundPlayerId = msg.data;
 	const utilStore = useUtil();
 	const isMyTurn = currentRoundPlayerId === useUserInfo().userId;
@@ -436,6 +448,7 @@ const handleRollDiceAnimationPlay: ServerMessageHandler<SocketMsgType.RollDiceSt
 };
 
 const handleRollDiceResult: ServerMessageHandler<SocketMsgType.RollDiceResult> = (msg) => {
+	if (!msg.data) return;
 	const res = msg.data;
 	const utilStore = useUtil();
 	useEventBus().emit("dice-roll", res.rollDiceResult);
@@ -446,6 +459,7 @@ const handleRollDiceResult: ServerMessageHandler<SocketMsgType.RollDiceResult> =
 };
 
 const handleUsedChanceCard: ServerMessageHandler<SocketMsgType.UseChanceCard> = (msg) => {
+	if (!msg.data) return;
 	const { error, animationId, chanceCard, sourcePlayerId, targetIdList } = msg.data;
 	const utilStore = useUtil();
 	if (error) {
@@ -467,11 +481,13 @@ const handleUsedChanceCard: ServerMessageHandler<SocketMsgType.UseChanceCard> = 
 };
 
 const handlePlayerWalk: ServerMessageHandler<SocketMsgType.PlayerWalk> = (msg) => {
+	if (!msg.data) return;
 	const { playerId, step, walkId, totalSteps, startStep } = msg.data;
 	useEventBus().emit("player-walk", playerId, step, walkId, totalSteps, startStep);
 };
 
 const handlePlayerTp: ServerMessageHandler<SocketMsgType.PlayerTp> = (msg) => {
+	if (!msg.data) return;
 	const { playerId, positionIndex, walkId } = msg.data;
 	useEventBus().emit("player-tp", playerId, positionIndex, walkId);
 };
