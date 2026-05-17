@@ -1014,6 +1014,10 @@ export class MapRenderer {
 		this.itemTypesCache.clear();
 		this.linkLineGroup.clear();
 		this.mapEventGroup.clear();
+ 		this.mapItemsInScene.clear();
+ 		this.linkLineInScene.clear();
+ 		this.mapEventInScene.clear();
+ 		this.mapIndexLineGroup.clear();
 		const mapItemList = mapData.mapItems;
 		//加载MapItem
 		for (const mapItem of mapItemList) {
