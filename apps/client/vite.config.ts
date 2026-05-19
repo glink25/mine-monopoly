@@ -15,6 +15,7 @@ export default defineConfig(({ command, mode }) => {
 
 	return {
 		base: "./",
+		assetsInclude: ['**/*.d.ts'],
 		define: {
 			// 全局常量注入
 			__APP_VERSION__: JSON.stringify(pkg.version),

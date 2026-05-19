@@ -44,6 +44,7 @@ import {
 	ButtonStateChangedMessage,
 	ButtonRemoveMessage,
 } from "@mine-monopoly/types";
+import { allRuntimeEnums } from "./runtime-enums";
 import { ButtonController } from "./ButtonController";
 
 import { Player } from "./class/Player";
@@ -288,6 +289,10 @@ export class GameProcess implements IGameProcess {
 	private playerButtonListeners: Set<string> = new Set();
 	/** 按钮ID计数器 */
 	private buttonIdCounter: number = 0;
+	/** 缓存的 UI 替换规则（用于运行时动态创建的 modifier） */
+	private cachedUiReplacements: Array<{ token: string; json: string }> = [];
+	/** 缓存的 modifier 替换规则（用于运行时动态创建的 modifier） */
+	private cachedModReplacements: Array<{ token: string; json: string }> = [];
 
 	public gameOverRuleFunction = async (): Promise<string[] | true | false> => {
 		return false;
@@ -298,6 +303,12 @@ export class GameProcess implements IGameProcess {
 		this.gameSetting = gameSetting;
 		this.userList = userList;
 		(globalThis as any).gameProcess = this;
+
+		// 设置运行时可用的枚举（用于动态执行的代码）
+		// 从 runtime-enums.ts 统一加载，确保新增枚举时不会遗漏
+		for (const [name, value] of Object.entries(allRuntimeEnums)) {
+			(globalThis as any)[name] = value;
+		}
 
 
 		console.dir(gameSetting);
@@ -648,6 +659,9 @@ export class GameProcess implements IGameProcess {
 			}))
 			.sort((a, b) => b.token.length - a.token.length);
 
+		// 缓存替换规则，供运行时动态创建的 modifier 使用
+		this.cachedUiReplacements = uiReplacements;
+
 		// 预编译所有 modifier 模板的 effectCode：TypeScript → JavaScript
 		// 直接修改 mapData 中的模板，确保 initCode 和 restoreModifiers 都使用编译后的代码
 		if (modifierTemplates) {
@@ -663,6 +677,9 @@ export class GameProcess implements IGameProcess {
 				json: JSON.stringify(t),
 			}))
 			.sort((a, b) => b.token.length - a.token.length);
+
+		// 缓存替换规则，供运行时动态创建的 modifier 使用
+		this.cachedModReplacements = modReplacements;
 
 		/**
 		 * 核心处理函数：
@@ -711,6 +728,24 @@ export class GameProcess implements IGameProcess {
 				phase.initEventCode = processCode(phase.initEventCode);
 			}
 		});
+
+		// 处理 modifierTemplates 的 effectCode（已编译过，只需替换 $ui__）
+		// 注意：ModifiersManager 使用 "return " + effectCode，所以这里不包装 return
+		if (modifierTemplates) {
+			for (const t of modifierTemplates) {
+				let processedCode = t.effectCode;
+				// 执行 $ui__ 和 $mod__ 替换，不包装 return
+				for (const { token, json } of uiReplacements) {
+					processedCode = processedCode.split(token).join(json);
+				}
+				for (const { token, json } of modReplacements) {
+					processedCode = processedCode.split(token).join(json);
+				}
+				t.effectCode = processedCode;
+				// 标记为已处理，避免 ModifiersManager.add 重复处理
+				(t as { _uiProcessed?: true })._uiProcessed = true;
+			}
+		}
 	}
 
 	private initGameOverRuleFunction() {

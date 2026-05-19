@@ -1,5 +1,10 @@
 ﻿import { Buff, ICommand, ICommandMap, IModifier, IModifierManager, ModifierTiming, ConsumeResult, ModifierSnapshot, ModifierTemplate, ModifierDescriptor } from "@mine-monopoly/types";
 
+// 已处理的修饰器模板接口（用于避免重复处理 $ui__ 和 $mod__ 替换）
+interface ProcessedModifierTemplate extends ModifierTemplate {
+	_uiProcessed?: true;
+}
+
 let _instanceCounter = 0;
 function generateInstanceId(templateId: string): string {
 	return `${templateId}__inst_${++_instanceCounter}_${Date.now().toString(36)}`;
@@ -20,11 +25,31 @@ export class ModifierManager<C extends ICommandMap, K extends keyof C = keyof C>
 	): string {
 		const instanceId = generateInstanceId(template.id);
 
+		// 处理 effectCode 中的 $ui__ 和 $mod__ token（仅用于运行时动态创建的 modifier）
+		// 已在 preprocessingEffectCode 中处理的模板会有 _uiProcessed 标记
+		let effectCode = template.effectCode || "";
+		if (!(template as ProcessedModifierTemplate)._uiProcessed) {
+			const gameProcess = (globalThis as any).gameProcess;
+			if (gameProcess?.cachedUiReplacements && gameProcess?.cachedModReplacements) {
+				// 使用缓存的替换规则（性能优化：避免每次 add 都重新构建）
+				const uiReplacements = gameProcess.cachedUiReplacements;
+				const modReplacements = gameProcess.cachedModReplacements;
+
+				// 执行替换
+				for (const { token, json } of uiReplacements) {
+					effectCode = effectCode.split(token).join(json);
+				}
+				for (const { token, json } of modReplacements) {
+					effectCode = effectCode.split(token).join(json);
+				}
+			}
+		}
+
 		// Compile effectCode into executable function
 		// factory signature: (player, gameProcess, cmd, ctx) => { ... }
 		let factory: Function;
 		try {
-			factory = new Function("return " + template.effectCode)();
+			factory = new Function("return " + effectCode)();
 		} catch (e) {
 			console.error(`Modifier 编译失败 (templateId: ${template.id}, instanceId: ${instanceId}):`, e);
 			// 降级为空函数修饰器，不影响其他 modifier 运行
