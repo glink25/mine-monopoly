@@ -25,6 +25,7 @@ import { uiTemplateTools } from "./tools/ui-templates.js";
 import { customUITools } from "./tools/custom-uis.js";
 import { modifierTemplateTools } from "./tools/modifier-templates.js";
 import { validateEffectCodeTools } from "./tools/validate-effect-code.js";
+import { getCodeTemplateTools } from "./tools/get-code-template.js";
 
 /**
  * Convert Zod schema to JSON Schema format for MCP
@@ -126,6 +127,7 @@ const allTools = [
 	...customUITools,
 	...modifierTemplateTools,
 	...validateEffectCodeTools,
+	...getCodeTemplateTools,
 ];
 
 /**
