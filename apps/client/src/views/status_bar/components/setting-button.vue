@@ -1,215 +1,220 @@
 <script setup lang="ts">
-	import FpDialog from "@src/components/utils/fp-dialog/fp-dialog.vue";
-	import { useSettig } from "@src/store";
-	import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-	import { ref, watch, computed } from "vue";
-	import { useRoute } from "vue-router";
-	import useEventBus from "@src/utils/event-bus";
-	import FpMessage from "@mine-monopoly/ui/fp-message";
-	import { useAudioManager } from "@src/utils/audio";
-	import { FPMessageBox } from "@src/components/utils/fp-message-box";
-	import { useMonopolyClient } from "@src/core/monopoly-client/MonopolyClient";
-	import { useRoomInfo, useChat, useGameLog } from "@src/store";
-	import { useGameData } from "@src/store/game";
-	import router from "@src/router";
-	import LogPanel from "@src/components/log-panel";
+import FpDialog from "@src/components/utils/fp-dialog/fp-dialog.vue";
+import { useSettig } from "@src/store";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import { ref, watch, computed } from "vue";
+import { useRoute } from "vue-router";
+import useEventBus from "@src/utils/event-bus";
+import FpMessage from "@mine-monopoly/ui/fp-message";
+import { useAudioManager } from "@src/utils/audio";
+import { FPMessageBox } from "@src/components/utils/fp-message-box";
+import { useMonopolyClient } from "@src/core/monopoly-client/MonopolyClient";
+import { useRoomInfo, useChat, useGameLog } from "@src/store";
+import { useGameData } from "@src/store/game";
+import router from "@src/router";
+import LogPanel from "@src/components/log-panel";
 
-	const settingVisible = ref(false);
-	const logPanelVisible = ref(false);
+const settingVisible = ref(false);
+const logPanelVisible = ref(false);
 
-	// 暴露 window 对象给模板使用
-	const win = window as any;
+// 暴露 window 对象给模板使用
+const win = window as any;
 
-	const openInspector = () => {
-		window.electronAPI?.openInspector();
-	};
+const openInspector = () => {
+	window.electronAPI?.openInspector();
+};
 
-	const openLogsFolder = () => {
-		window.electronAPI?.openLogsFolder?.().then((path: string) => {
-			console.log('日志文件夹已打开:', path);
-		}).catch(() => {
-			FpMessage({ type: 'error', message: '无法打开日志文件夹' });
+const openLogsFolder = () => {
+	window.electronAPI
+		?.openLogsFolder?.()
+		.then((path: string) => {
+			console.log("日志文件夹已打开:", path);
+		})
+		.catch(() => {
+			FpMessage({ type: "error", message: "无法打开日志文件夹" });
 		});
-	};
+};
 
-	async function handleExitGame() {
-		const isOwner = useRoomInfo().amIRoomOwner;
-		const content = isOwner
-			? "你是房主，退出后游戏将解散，所有玩家将被送回大厅。确定退出？"
-			: "确定退出游戏？退出后将由 AI 托管继续游戏。";
+async function handleExitGame() {
+	const isOwner = useRoomInfo().amIRoomOwner;
+	const content = isOwner
+		? "你是房主，退出后游戏将解散，所有玩家将被送回大厅。确定退出？"
+		: "确定退出游戏？退出后将由 AI 托管继续游戏。";
 
-		try {
-			await FPMessageBox({
-				title: "退出游戏",
-				content,
-				confirmText: "确定退出",
-				cancelText: "取消",
-				showCancel: true,
-			});
+	try {
+		await FPMessageBox({
+			title: "退出游戏",
+			content,
+			confirmText: "确定退出",
+			cancelText: "取消",
+			showCancel: true,
+		});
 
-			settingVisible.value = false;
-			const socketClient = useMonopolyClient();
-			if (socketClient) {
-				socketClient.leaveRoom();
-			}
-			useGameData().$reset();
-			useRoomInfo().$reset();
-			useChat().$reset();
-			useGameLog().$reset();
-			router.replace({ name: "room-router" });
-		} catch {
-			// 用户取消
+		settingVisible.value = false;
+		const socketClient = useMonopolyClient();
+		if (socketClient) {
+			socketClient.leaveRoom();
 		}
+		useGameData().$reset();
+		useRoomInfo().$reset();
+		useChat().$reset();
+		useGameLog().$reset();
+		router.replace({ name: "room-router" });
+	} catch {
+		// 用户取消
+	}
+}
+
+const settingStore = useSettig();
+const route = useRoute();
+const eventBus = useEventBus();
+const audio = useAudioManager();
+
+// 画质标签映射
+const qualityLabels = {
+	low: "低",
+	medium: "中",
+	high: "高",
+};
+
+// 临时状态：用户选择但未应用
+const tempLockRole = ref(settingStore.lockRole);
+const tempGraphicQuality = ref<"low" | "medium" | "high">(settingStore.graphicQuality);
+const tempEnableShadow = ref(settingStore.enableShadow);
+const tempMasterVolume = ref(settingStore.masterVolume);
+const tempSFXVolume = ref(settingStore.sfxVolume);
+const tempMusicVolume = ref(settingStore.musicVolume);
+const tempMasterMuted = ref(settingStore.masterMuted);
+const tempSFXMuted = ref(settingStore.sfxMuted);
+const tempMusicMuted = ref(settingStore.musicMuted);
+
+// 监听设置面板打开，重置临时状态
+watch(settingVisible, (isOpen) => {
+	if (isOpen) {
+		tempLockRole.value = settingStore.lockRole;
+		tempGraphicQuality.value = settingStore.graphicQuality;
+		tempEnableShadow.value = settingStore.enableShadow;
+		tempMasterVolume.value = settingStore.masterVolume;
+		tempSFXVolume.value = settingStore.sfxVolume;
+		tempMusicVolume.value = settingStore.musicVolume;
+		tempMasterMuted.value = settingStore.masterMuted;
+		tempSFXMuted.value = settingStore.sfxMuted;
+		tempMusicMuted.value = settingStore.musicMuted;
+	}
+});
+
+// 检查是否有未应用的更改
+const hasChanges = computed(() => {
+	return (
+		tempLockRole.value !== settingStore.lockRole ||
+		tempGraphicQuality.value !== settingStore.graphicQuality ||
+		tempEnableShadow.value !== settingStore.enableShadow ||
+		tempMasterVolume.value !== settingStore.masterVolume ||
+		tempSFXVolume.value !== settingStore.sfxVolume ||
+		tempMusicVolume.value !== settingStore.musicVolume ||
+		tempMasterMuted.value !== settingStore.masterMuted ||
+		tempSFXMuted.value !== settingStore.sfxMuted ||
+		tempMusicMuted.value !== settingStore.musicMuted
+	);
+});
+
+// 调整音量
+const adjustVolume = (type: "master" | "sfx" | "music", delta: number) => {
+	const step = 0.1; // 10% 步幅
+	switch (type) {
+		case "master":
+			tempMasterVolume.value = Math.max(0, Math.min(1, tempMasterVolume.value + delta * step));
+			break;
+		case "sfx":
+			tempSFXVolume.value = Math.max(0, Math.min(1, tempSFXVolume.value + delta * step));
+			break;
+		case "music":
+			tempMusicVolume.value = Math.max(0, Math.min(1, tempMusicVolume.value + delta * step));
+			break;
+	}
+};
+
+// 切换静音
+const toggleMute = (type: "master" | "sfx" | "music") => {
+	switch (type) {
+		case "master":
+			tempMasterMuted.value = !tempMasterMuted.value;
+			break;
+		case "sfx":
+			tempSFXMuted.value = !tempSFXMuted.value;
+			break;
+		case "music":
+			tempMusicMuted.value = !tempMusicMuted.value;
+			break;
+	}
+};
+
+// 应用所有设置
+const applySettings = () => {
+	// 应用视角设置
+	if (tempLockRole.value !== settingStore.lockRole) {
+		settingStore.lockRole = tempLockRole.value;
+		eventBus.emit("graphics:lockRole:change", { lockRole: tempLockRole.value });
 	}
 
-	const settingStore = useSettig();
-	const route = useRoute();
-	const eventBus = useEventBus();
-	const audio = useAudioManager();
+	// 应用画质设置
+	if (tempGraphicQuality.value !== settingStore.graphicQuality) {
+		const quality = tempGraphicQuality.value;
 
-	// 画质标签映射
-	const qualityLabels = {
-		low: "低",
-		medium: "中",
-		high: "高",
-	};
-
-	// 临时状态：用户选择但未应用
-	const tempLockRole = ref(settingStore.lockRole);
-	const tempGraphicQuality = ref<"low" | "medium" | "high">(settingStore.graphicQuality);
-	const tempEnableShadow = ref(settingStore.enableShadow);
-	const tempMasterVolume = ref(settingStore.masterVolume);
-	const tempSFXVolume = ref(settingStore.sfxVolume);
-	const tempMusicVolume = ref(settingStore.musicVolume);
-	const tempMasterMuted = ref(settingStore.masterMuted);
-	const tempSFXMuted = ref(settingStore.sfxMuted);
-	const tempMusicMuted = ref(settingStore.musicMuted);
-
-	// 监听设置面板打开，重置临时状态
-	watch(settingVisible, (isOpen) => {
-		if (isOpen) {
-			tempLockRole.value = settingStore.lockRole;
-			tempGraphicQuality.value = settingStore.graphicQuality;
-			tempEnableShadow.value = settingStore.enableShadow;
-			tempMasterVolume.value = settingStore.masterVolume;
-			tempSFXVolume.value = settingStore.sfxVolume;
-			tempMusicVolume.value = settingStore.musicVolume;
-			tempMasterMuted.value = settingStore.masterMuted;
-			tempSFXMuted.value = settingStore.sfxMuted;
-			tempMusicMuted.value = settingStore.musicMuted;
-		}
-	});
-
-	// 检查是否有未应用的更改
-	const hasChanges = computed(() => {
-		return (
-			tempLockRole.value !== settingStore.lockRole ||
-			tempGraphicQuality.value !== settingStore.graphicQuality ||
-			tempEnableShadow.value !== settingStore.enableShadow ||
-			tempMasterVolume.value !== settingStore.masterVolume ||
-			tempSFXVolume.value !== settingStore.sfxVolume ||
-			tempMusicVolume.value !== settingStore.musicVolume ||
-			tempMasterMuted.value !== settingStore.masterMuted ||
-			tempSFXMuted.value !== settingStore.sfxMuted ||
-			tempMusicMuted.value !== settingStore.musicMuted
-		);
-	});
-
-	// 调整音量
-	const adjustVolume = (type: "master" | "sfx" | "music", delta: number) => {
-		const step = 0.1; // 10% 步幅
-		switch (type) {
-			case "master":
-				tempMasterVolume.value = Math.max(0, Math.min(1, tempMasterVolume.value + delta * step));
-				break;
-			case "sfx":
-				tempSFXVolume.value = Math.max(0, Math.min(1, tempSFXVolume.value + delta * step));
-				break;
-			case "music":
-				tempMusicVolume.value = Math.max(0, Math.min(1, tempMusicVolume.value + delta * step));
-				break;
-		}
-	};
-
-	// 切换静音
-	const toggleMute = (type: "master" | "sfx" | "music") => {
-		switch (type) {
-			case "master":
-				tempMasterMuted.value = !tempMasterMuted.value;
-				break;
-			case "sfx":
-				tempSFXMuted.value = !tempSFXMuted.value;
-				break;
-			case "music":
-				tempMusicMuted.value = !tempMusicMuted.value;
-				break;
-		}
-	};
-
-	// 应用所有设置
-	const applySettings = () => {
-		// 应用视角设置
-		if (tempLockRole.value !== settingStore.lockRole) {
-			settingStore.lockRole = tempLockRole.value;
-			eventBus.emit("graphics:lockRole:change", { lockRole: tempLockRole.value });
+		// 保存到 localStorage
+		try {
+			localStorage.setItem("graphicQuality", quality);
+			console.log("[画质设置] 已保存到 localStorage:", quality);
+		} catch (e) {
+			console.warn("[画质设置] localStorage 保存失败:", e);
 		}
 
-		// 应用画质设置
-		if (tempGraphicQuality.value !== settingStore.graphicQuality) {
-			const quality = tempGraphicQuality.value;
+		// 更新 store
+		settingStore.graphicQuality = quality;
 
-			// 保存到 localStorage
-			try {
-				localStorage.setItem("graphicQuality", quality);
-				console.log("[画质设置] 已保存到 localStorage:", quality);
-			} catch (e) {
-				console.warn("[画质设置] localStorage 保存失败:", e);
-			}
+		// 发送 EventBus 事件
+		eventBus.emit("graphics:quality:change", { quality });
 
-			// 更新 store
-			settingStore.graphicQuality = quality;
+		// 显示提示
+		console.log(`[画质设置] 画质已设置为：${qualityLabels[quality]}画质`);
+	}
 
-			// 发送 EventBus 事件
-			eventBus.emit("graphics:quality:change", { quality });
+	// 应用阴影设置
+	if (tempEnableShadow.value !== settingStore.enableShadow) {
+		settingStore.enableShadow = tempEnableShadow.value;
+		eventBus.emit("graphics:shadow:change", { enable: tempEnableShadow.value });
+		console.log(`[阴影设置] 阴影已${tempEnableShadow.value ? "开启" : "关闭"}`);
+	}
 
-			// 显示提示
-			console.log(`[画质设置] 画质已设置为：${qualityLabels[quality]}画质`);
-		}
+	console.log("🚀 ~ applySettings ~ tempMasterMuted.value:", tempMasterMuted.value);
+	// 应用音量设置
+	if (
+		tempMasterVolume.value !== settingStore.masterVolume ||
+		tempSFXVolume.value !== settingStore.sfxVolume ||
+		tempMusicVolume.value !== settingStore.musicVolume ||
+		tempMasterMuted.value !== settingStore.masterMuted ||
+		tempSFXMuted.value !== settingStore.sfxMuted ||
+		tempMusicMuted.value !== settingStore.musicMuted
+	) {
+		// 直接应用设置的音量和静音状态
+		settingStore.masterVolume = tempMasterVolume.value;
+		settingStore.sfxVolume = tempSFXVolume.value;
+		settingStore.musicVolume = tempMusicVolume.value;
+		settingStore.masterMuted = tempMasterMuted.value;
+		settingStore.sfxMuted = tempSFXMuted.value;
+		settingStore.musicMuted = tempMusicMuted.value;
+		// Store 的订阅会自动同步到 AudioManager
+	}
 
-		// 应用阴影设置
-		if (tempEnableShadow.value !== settingStore.enableShadow) {
-			settingStore.enableShadow = tempEnableShadow.value;
-			eventBus.emit("graphics:shadow:change", { enable: tempEnableShadow.value });
-			console.log(`[阴影设置] 阴影已${tempEnableShadow.value ? "开启" : "关闭"}`);
-		}
-
-		console.log("🚀 ~ applySettings ~ tempMasterMuted.value:", tempMasterMuted.value);
-		// 应用音量设置
-		if (
-			tempMasterVolume.value !== settingStore.masterVolume ||
-			tempSFXVolume.value !== settingStore.sfxVolume ||
-			tempMusicVolume.value !== settingStore.musicVolume ||
-			tempMasterMuted.value !== settingStore.masterMuted ||
-			tempSFXMuted.value !== settingStore.sfxMuted ||
-			tempMusicMuted.value !== settingStore.musicMuted
-		) {
-			// 直接应用设置的音量和静音状态
-			settingStore.masterVolume = tempMasterVolume.value;
-			settingStore.sfxVolume = tempSFXVolume.value;
-			settingStore.musicVolume = tempMusicVolume.value;
-			settingStore.masterMuted = tempMasterMuted.value;
-			settingStore.sfxMuted = tempSFXMuted.value;
-			settingStore.musicMuted = tempMusicMuted.value;
-			// Store 的订阅会自动同步到 AudioManager
-		}
-
-		FpMessage({ message: "所有设置已应用", type: "success" });
-		settingVisible.value = false;
-	};
+	FpMessage({ message: "所有设置已应用", type: "success" });
+	settingVisible.value = false;
+};
 </script>
 
 <template>
-	<button @click="settingVisible = true" class="setting-button btn-small" title="设置"><FontAwesomeIcon icon="gear" /></button>
+	<button @click="settingVisible = true" class="setting-button btn-small" title="设置">
+		<FontAwesomeIcon icon="gear" />
+	</button>
 	<FpDialog v-model:visible="settingVisible" hidden-footer>
 		<template #title>设置</template>
 		<div class="setting-container" style="user-select: none">
@@ -415,7 +420,9 @@
 					<div class="label">日志</div>
 					<div class="content log-actions">
 						<button @click="logPanelVisible = true" class="log-button">查看日志</button>
-						<button v-if="win.electronAPI?.openLogsFolder" @click="openLogsFolder" class="log-button">打开日志文件夹</button>
+						<button v-if="win.electronAPI?.openLogsFolder" @click="openLogsFolder" class="log-button">
+							打开日志文件夹
+						</button>
 					</div>
 				</div>
 
@@ -423,7 +430,7 @@
 				<div class="setting-item">
 					<div class="label">开发者</div>
 					<div class="content">
-						<button @click="openInspector" class="btn-purple">打开 GameProcess Inspector</button>
+						<button @click="openInspector" class="btn-purple">打开 游戏进程观察窗</button>
 					</div>
 				</div>
 
@@ -451,229 +458,229 @@
 </template>
 
 <style lang="scss" scoped>
-	.setting-button {
-		height: 2.5rem;
-		width: 2.5rem;
-		border-radius: 0.5rem;
-		font-size: 1.1rem;
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		gap: 0.4rem;
-	}
-	.setting-container {
-		display: flex;
-		align-items: center;
-		color: var(--fp-color-primary);
-		user-select: none; /* 防止文本被选中 */
+.setting-button {
+	height: 2.5rem;
+	width: 2.5rem;
+	border-radius: 0.5rem;
+	font-size: 1.1rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 0.4rem;
+}
+.setting-container {
+	display: flex;
+	align-items: center;
+	color: var(--fp-color-primary);
+	user-select: none; /* 防止文本被选中 */
 
-		& > .setting-list {
+	& > .setting-list {
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		gap: 0.8rem;
+
+		& > .setting-item {
 			display: flex;
-			flex-direction: column;
-			width: 100%;
-			gap: 0.8rem;
+			justify-content: center;
+			font-size: 1.1rem;
+			background-color: rgba(255, 255, 255, 0.75);
+			border-radius: 0.5rem;
+			padding: 0.8rem;
+			box-sizing: border-box;
+			box-shadow: var(--fp-shadow-md);
+			overflow: hidden;
+			position: relative;
 
-			& > .setting-item {
+			& > div {
+				display: inline-block;
+			}
+
+			& > .label {
+				width: 30%;
+				text-align: center;
 				display: flex;
+				align-items: center;
 				justify-content: center;
-				font-size: 1.1rem;
-				background-color: rgba(255, 255, 255, 0.75);
-				border-radius: 0.5rem;
-				padding: 0.8rem;
-				box-sizing: border-box;
-				box-shadow: var(--fp-shadow-md);
-				overflow: hidden;
-				position: relative;
+			}
+			& > .content {
+				flex: 1;
+				font-size: 1rem;
+				display: flex;
+				justify-content: space-around;
+				align-items: center;
 
-				& > div {
-					display: inline-block;
+				& input[type="radio"]:checked + label {
+					color: var(--fp-color-primary);
 				}
 
-				& > .label {
-					width: 30%;
-					text-align: center;
-					display: flex;
-					align-items: center;
-					justify-content: center;
-				}
-				& > .content {
-					flex: 1;
-					font-size: 1rem;
-					display: flex;
-					justify-content: space-around;
-					align-items: center;
-
-					& input[type="radio"]:checked + label {
-						color: var(--fp-color-primary);
-					}
-
-					& label {
-						padding: 0.2rem;
-						cursor: pointer;
-						color: var(--fp-color-tertiary);
-					}
-
-					// 日志按钮样式
-					&.log-actions {
-						gap: 0.5rem;
-
-						.log-button {
-							flex: 1;
-							background: var(--fp-color-secondary);
-							color: white;
-							border: none;
-							border-radius: 0.4rem;
-							padding: 0.5rem 0.8rem;
-							font-size: 0.9rem;
-							cursor: pointer;
-							transition: all 0.2s;
-
-							&:hover {
-								opacity: 0.9;
-								transform: translateY(-1px);
-							}
-						}
-					}
-
-					// 音量控制样式
-					&.volume-control {
-						gap: 0.2rem;
-						align-items: center;
-
-						& .control-icon {
-							font-size: 1.2rem;
-							cursor: pointer;
-							transition: all 0.2s;
-							padding: 0.4rem;
-							border-radius: 0.4rem;
-							background: rgba(255, 255, 255, 0.5);
-							flex-shrink: 0;
-							width: 2rem; /* 固定宽度 */
-							height: 2rem; /* 固定高度 */
-							display: inline-flex; /* 确保内容居中 */
-							align-items: center; /* 垂直居中 */
-							justify-content: center; /* 水平居中 */
-							outline: none; /* 移除 focus 边框 */
-							box-sizing: border-box; /* 确保内边距不影响总尺寸 */
-
-							/* 确保内部 SVG 图标不溢出 */
-							& :deep(svg) {
-								width: 1em;
-								height: 1em;
-								max-width: 1em;
-								max-height: 1em;
-								display: block;
-							}
-
-							&:hover:not(.disabled) {
-								transform: scale(1.15);
-								background: rgba(255, 255, 255, 0.8);
-								box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-							}
-
-							&:active:not(.disabled) {
-								transform: scale(1);
-							}
-
-							&.disabled {
-								opacity: 0.3;
-								cursor: not-allowed;
-								pointer-events: none; /* 禁用点击事件 */
-							}
-
-							&.decrease,
-							&.increase {
-								color: var(--fp-color-primary);
-							}
-
-							&.mute {
-								color: var(--fp-color-tertiary);
-								margin-left: 0.5rem; /* 静音图标稍微离远一点 */
-
-								&.muted {
-									color: #ff4d4f;
-								}
-
-								&:hover {
-									background: rgba(255, 77, 79, 0.1);
-								}
-							}
-						}
-
-						& .volume-value {
-							min-width: 3.5rem;
-							text-align: center;
-							font-weight: 500;
-							color: var(--fp-color-primary);
-							font-size: 1.1rem;
-							margin: 0 0.1rem;
-						}
-					}
+				& label {
+					padding: 0.2rem;
+					cursor: pointer;
+					color: var(--fp-color-tertiary);
 				}
 
-				// 音量设置项特殊样式
-				&.volume-setting {
-					.label {
-						gap: 0.2rem;
-					}
-				}
+				// 日志按钮样式
+				&.log-actions {
+					gap: 0.5rem;
 
-				.ban-mask {
-					position: absolute;
-					top: 0;
-					left: 0;
-					width: 100%;
-					height: 100%;
-					background-color: rgba(255, 255, 255, 0.75);
-					z-index: 100;
-					display: flex;
-					justify-content: center;
-					align-items: center;
-					color: #777777;
-				}
-
-				// 应用按钮项
-				&.apply-button-item {
-					background-color: transparent;
-					box-shadow: none;
-					padding: 0;
-
-					.apply-button {
-						width: 100%;
-						background: var(--fp-color-primary);
+					.log-button {
+						flex: 1;
+						background: var(--fp-color-secondary);
 						color: white;
 						border: none;
-						border-radius: 0.5rem;
-						padding: 0.8rem;
-						font-size: 1.1rem;
-						font-weight: bold;
+						border-radius: 0.4rem;
+						padding: 0.5rem 0.8rem;
+						font-size: 0.9rem;
 						cursor: pointer;
-						transition: all 0.3s;
+						transition: all 0.2s;
 
-						&:hover:not(:disabled) {
+						&:hover {
 							opacity: 0.9;
-							transform: translateY(-2px);
-							box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+							transform: translateY(-1px);
+						}
+					}
+				}
+
+				// 音量控制样式
+				&.volume-control {
+					gap: 0.2rem;
+					align-items: center;
+
+					& .control-icon {
+						font-size: 1.2rem;
+						cursor: pointer;
+						transition: all 0.2s;
+						padding: 0.4rem;
+						border-radius: 0.4rem;
+						background: rgba(255, 255, 255, 0.5);
+						flex-shrink: 0;
+						width: 2rem; /* 固定宽度 */
+						height: 2rem; /* 固定高度 */
+						display: inline-flex; /* 确保内容居中 */
+						align-items: center; /* 垂直居中 */
+						justify-content: center; /* 水平居中 */
+						outline: none; /* 移除 focus 边框 */
+						box-sizing: border-box; /* 确保内边距不影响总尺寸 */
+
+						/* 确保内部 SVG 图标不溢出 */
+						& :deep(svg) {
+							width: 1em;
+							height: 1em;
+							max-width: 1em;
+							max-height: 1em;
+							display: block;
 						}
 
-						&:active:not(:disabled) {
-							transform: translateY(0);
+						&:hover:not(.disabled) {
+							transform: scale(1.15);
+							background: rgba(255, 255, 255, 0.8);
+							box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 						}
 
-						&:disabled {
-							opacity: 0.4;
+						&:active:not(.disabled) {
+							transform: scale(1);
+						}
+
+						&.disabled {
+							opacity: 0.3;
 							cursor: not-allowed;
-							background: var(--fp-color-tertiary);
+							pointer-events: none; /* 禁用点击事件 */
 						}
+
+						&.decrease,
+						&.increase {
+							color: var(--fp-color-primary);
+						}
+
+						&.mute {
+							color: var(--fp-color-tertiary);
+							margin-left: 0.5rem; /* 静音图标稍微离远一点 */
+
+							&.muted {
+								color: #ff4d4f;
+							}
+
+							&:hover {
+								background: rgba(255, 77, 79, 0.1);
+							}
+						}
+					}
+
+					& .volume-value {
+						min-width: 3.5rem;
+						text-align: center;
+						font-weight: 500;
+						color: var(--fp-color-primary);
+						font-size: 1.1rem;
+						margin: 0 0.1rem;
+					}
+				}
+			}
+
+			// 音量设置项特殊样式
+			&.volume-setting {
+				.label {
+					gap: 0.2rem;
+				}
+			}
+
+			.ban-mask {
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background-color: rgba(255, 255, 255, 0.75);
+				z-index: 100;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				color: #777777;
+			}
+
+			// 应用按钮项
+			&.apply-button-item {
+				background-color: transparent;
+				box-shadow: none;
+				padding: 0;
+
+				.apply-button {
+					width: 100%;
+					background: var(--fp-color-primary);
+					color: white;
+					border: none;
+					border-radius: 0.5rem;
+					padding: 0.8rem;
+					font-size: 1.1rem;
+					font-weight: bold;
+					cursor: pointer;
+					transition: all 0.3s;
+
+					&:hover:not(:disabled) {
+						opacity: 0.9;
+						transform: translateY(-2px);
+						box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+					}
+
+					&:active:not(:disabled) {
+						transform: translateY(0);
+					}
+
+					&:disabled {
+						opacity: 0.4;
+						cursor: not-allowed;
+						background: var(--fp-color-tertiary);
 					}
 				}
 			}
 		}
-
-		// 设置面板中的按钮字体大小
-		.content .btn-purple,
-		.content .btn-red {
-			font-size: 0.9rem;
-		}
 	}
+
+	// 设置面板中的按钮字体大小
+	.content .btn-purple,
+	.content .btn-red {
+		font-size: 0.9rem;
+	}
+}
 </style>

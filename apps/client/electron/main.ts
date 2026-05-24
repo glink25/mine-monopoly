@@ -1,4 +1,14 @@
-import { app, ipcMain, BrowserWindow, Menu, dialog, OpenDialogOptions, SaveDialogOptions, protocol, net } from "electron";
+import {
+	app,
+	ipcMain,
+	BrowserWindow,
+	Menu,
+	dialog,
+	OpenDialogOptions,
+	SaveDialogOptions,
+	protocol,
+	net,
+} from "electron";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -110,7 +120,7 @@ function formatLogEntry(error: LogErrorData): string {
 	if (error.stack) {
 		// 改进堆栈格式化
 		log += `\n堆栈跟踪:\n`;
-		const lines = error.stack.split('\n');
+		const lines = error.stack.split("\n");
 		for (const line of lines) {
 			log += `  ${line}\n`;
 		}
@@ -228,11 +238,7 @@ function buildAppMenu() {
 		},
 		{
 			label: "Window",
-			submenu: [
-				{ role: "minimize" as any },
-				{ role: "zoom" as any },
-				{ role: "close" as any },
-			],
+			submenu: [{ role: "minimize" as any }, { role: "zoom" as any }, { role: "close" as any }],
 		},
 	];
 
@@ -258,9 +264,7 @@ function createWindow() {
 			autoplayPolicy: "no-user-gesture-required",
 		},
 		frame: false,
-		...(process.platform === "darwin"
-			? { titleBarStyle: "hiddenInset" }
-			: {}),
+		...(process.platform === "darwin" ? { titleBarStyle: "hiddenInset" } : {}),
 	});
 
 	if (!isProduction) win.webContents.openDevTools();
@@ -322,7 +326,7 @@ app.on("activate", () => {
 	}
 });
 
-// ===== GameProcess Inspector (dev only) =====
+// ===== 游戏进程观察窗 (dev only) =====
 let inspectorWin: BrowserWindow | null = null;
 
 ipcMain.handle("open-inspector", async () => {
@@ -334,7 +338,7 @@ ipcMain.handle("open-inspector", async () => {
 	inspectorWin = new BrowserWindow({
 		width: 900,
 		height: 700,
-		title: "GameProcess Inspector",
+		title: "游戏进程观察窗",
 		frame: false,
 		webPreferences: {
 			nodeIntegration: true,
@@ -362,30 +366,30 @@ ipcMain.handle("inspector:get-state", async () => {
 	try {
 		const result = await win.webContents.executeJavaScript(
 			"(function() {" +
-			"  const bridge = window.__gpBridge;" +
-			"  if (!bridge || typeof bridge.requestState !== 'function') {" +
-			"    return { __error: 'GameProcess not started yet' };" +
-			"  }" +
-			"  return new Promise((resolve) => {" +
-			"    const timeout = setTimeout(() => {" +
-			"      bridge.onState = null;" +
-			"      resolve({ __error: 'Timeout: Worker did not respond' });" +
-			"    }, 3000);" +
-			"    bridge.onState = (state) => {" +
-			"      clearTimeout(timeout);" +
-			"      bridge.onState = null;" +
-			"      resolve(state);" +
-			"    };" +
-			"    bridge.requestState();" +
-			"  });" +
-			"})()"
+				"  const bridge = window.__gpBridge;" +
+				"  if (!bridge || typeof bridge.requestState !== 'function') {" +
+				"    return { __error: 'GameProcess not started yet' };" +
+				"  }" +
+				"  return new Promise((resolve) => {" +
+				"    const timeout = setTimeout(() => {" +
+				"      bridge.onState = null;" +
+				"      resolve({ __error: 'Timeout: Worker did not respond' });" +
+				"    }, 3000);" +
+				"    bridge.onState = (state) => {" +
+				"      clearTimeout(timeout);" +
+				"      bridge.onState = null;" +
+				"      resolve(state);" +
+				"    };" +
+				"    bridge.requestState();" +
+				"  });" +
+				"})()",
 		);
 		return result;
 	} catch (e: any) {
 		return { __error: e.message };
 	}
 });
-// ===== End GameProcess Inspector =====
+// ===== End 游戏进程观察窗 =====
 
 app.whenReady().then(async () => {
 	protocol.handle("local", (request) => {
@@ -504,8 +508,8 @@ process.on("uncaughtException", async (err) => {
 		timestamp: new Date().toISOString(),
 		additionalData: {
 			process: "main",
-			uncaught: true
-		}
+			uncaught: true,
+		},
 	});
 });
 
@@ -522,8 +526,8 @@ process.on("unhandledRejection", async (reason) => {
 		timestamp: new Date().toISOString(),
 		additionalData: {
 			process: "main",
-			unhandledRejection: true
-		}
+			unhandledRejection: true,
+		},
 	});
 });
 
@@ -533,7 +537,7 @@ ipcMain.on("log-console", async (_event, data: { level: string; message: string;
 	const logEntry = `[${timestamp}] [Console.${data.level}] ${data.message}\n`;
 
 	if (data.stack) {
-		const lines = data.stack.split('\n');
+		const lines = data.stack.split("\n");
 		for (const line of lines) {
 			await writeLogEntry(`  ${line}\n`, false);
 		}
@@ -550,8 +554,8 @@ ipcMain.on("log-network", async (_event, data: { url: string; method: string; st
 		status: data.status,
 		timestamp: new Date().toISOString(),
 		additionalData: {
-			process: "renderer"
-		}
+			process: "renderer",
+		},
 	});
 });
 
