@@ -162,12 +162,12 @@ export const useMapDataStore = defineStore("MapData", {
 		addProperty(mapItemId: string, property: PropertyInfo) {
 			const mapItem = this.mapItems.find((m) => m.id === mapItemId);
 			if (!mapItem) throw Error("找不到目标地块");
-			mapItem.property = property;
+			mapItem.property = cloneDeep(property);
 		},
 		editProperty(mapItemId: string, property: PropertyInfo) {
 			const mapItem = this.mapItems.find((m) => m.id === mapItemId);
 			if (!mapItem) throw Error("找不到目标地块");
-			mapItem.property = property;
+			mapItem.property = cloneDeep(property);
 		},
 		removeProperty(mapItemId: string) {
 			const mapItem = this.mapItems.find((m) => m.id === mapItemId);

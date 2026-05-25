@@ -6,7 +6,7 @@ import { PropertyInfo, MapItem } from "@mine-monopoly/types";
 import { useEditorStore, useMapDataStore } from "@src/stores";
 import EffectEditor from "./effect-editor.vue";
 import BuildingModelSeletor from "../../components/building-model-seletor.vue";
-import { clone } from "lodash";
+import { cloneDeep } from "lodash";
 import { generateShortId } from "@src/utils/short-id";
 
 const editorStore = useEditorStore();
@@ -118,14 +118,23 @@ function initForm(itemId: string) {
 	formRef.value?.clearValidate();
 
 	const mapItem = useMapDataStore().findMapItemById(itemId);
+	const defaultData = createDefaultData();
 
 	if (mapItem && mapItem.property) {
 		const prop = mapItem.property;
-		Object.assign(formData, JSON.parse(JSON.stringify(mapItem.property)));
+		const sourceData = JSON.parse(JSON.stringify(mapItem.property));
+		// 先重置所有属性为默认值，确保清除未定义的属性
+		Object.keys(defaultData).forEach(key => {
+			(formData as any)[key] = (defaultData as any)[key];
+		});
+		// 然后从源数据覆盖
+		Object.assign(formData, sourceData);
 		isCustomProperty.value = !!prop.custom;
 	} else {
-		// 重置为默认值
-		Object.assign(formData, createDefaultData());
+		// 重置为默认值 - 必须逐个属性重置，不能使用 Object.assign
+		Object.keys(defaultData).forEach(key => {
+			(formData as any)[key] = (defaultData as any)[key];
+		});
 		isCustomProperty.value = false;
 	}
 
@@ -174,7 +183,7 @@ async function handleSubmit() {
 		}
 
 		// 提交数据 (toRaw 确保传入 Store 的是纯对象，非 Proxy，视 Store 实现而定)
-		mapDataStore.addProperty(currentMapItemId.value, clone(formData));
+		mapDataStore.addProperty(currentMapItemId.value, cloneDeep(formData));
 		message.success("保存地皮信息成功");
 	} catch (error) {
 		console.error(error);
