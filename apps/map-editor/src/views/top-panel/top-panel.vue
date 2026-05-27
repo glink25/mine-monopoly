@@ -16,24 +16,6 @@ import { eventBus } from "@src/utils/event-bus";
 const editorStore = useEditorStore();
 const modLabel = navigator.platform.startsWith("Mac") ? "⌘" : "Ctrl";
 
-enum OperationType {
-	NEW = "new",
-	OPEN = "open",
-	SAVE = "save",
-	SAVEAS = "saveas",
-	EXPORT_MMMAP = "exportmmmap",
-}
-
-type MenuItem = { label: string; key: OperationType };
-
-const menus: MenuItem[] = [
-	{ label: "新建", key: OperationType.NEW },
-	{ label: "打开", key: OperationType.OPEN },
-	{ label: `保存 (${modLabel}+S)`, key: OperationType.SAVE },
-	{ label: "另存为", key: OperationType.SAVEAS },
-	{ label: "导出 .mmmap", key: OperationType.EXPORT_MMMAP },
-];
-
 const mcpPanelVisible = ref(false);
 const mcpPanelRef = ref();
 
@@ -42,25 +24,23 @@ const exportProgressVisible = ref(false);
 const exportProgressPercent = ref(0);
 const exportProgressStage = ref("");
 
-function handleMenuClick(key: OperationType) {
+// 文件下拉菜单项点击处理
+type FileMenuKey = "new" | "open" | "save" | "saveas" | "exportmmmap";
+function handleFileMenuClick({ key }: { key: FileMenuKey }) {
 	switch (key) {
-		case OperationType.NEW:
+		case "new":
 			handleNewProtoFile();
 			break;
-
-		case OperationType.OPEN:
+		case "open":
 			handleOpenProtoFile();
 			break;
-
-		case OperationType.SAVE:
+		case "save":
 			handleSaveProtoFile();
 			break;
-
-		case OperationType.SAVEAS:
+		case "saveas":
 			handleSaveAsOtherProtoFile();
 			break;
-
-		case OperationType.EXPORT_MMMAP:
+		case "exportmmmap":
 			handleExportMmmapFile();
 			break;
 	}
@@ -116,33 +96,36 @@ async function handleExportMmmapFile() {
 function handleUndoDelete() {
 	eventBus.emit("undo-delete");
 }
+
+function handleReloadMap() {
+	const mapDataStore = useMapDataStore();
+	// 触发 map-loaded 事件，让渲染器重新加载当前地图数据
+	eventBus.emit("map-loaded", mapDataStore.$state);
+	message.success("地图已重新渲染");
+}
 </script>
 
 <template>
 	<div class="top-panel-container">
 		<div class="top-panel left">
-			<!-- File Operations -->
-			<!-- 新建 -->
-			<a-button
-				@click="handleMenuClick(OperationType.NEW)"
-				class="menu-button"
-				size="small"
-				type="text"
-			>
-				<span>新建</span>
-			</a-button>
+			<!-- 文件下拉菜单 -->
+			<a-dropdown trigger="['click']">
+				<a-button class="menu-button" size="small" type="text">
+					<span>文件</span>
+					<font-awesome-icon icon="fa-solid fa-chevron-down" style="font-size: 0.8em; margin-left: 4px;" />
+				</a-button>
+				<template #overlay>
+					<a-menu @click="handleFileMenuClick">
+						<a-menu-item key="new">新建</a-menu-item>
+						<a-menu-item key="open">打开</a-menu-item>
+						<a-menu-item key="save">保存 ({{ modLabel }}+S)</a-menu-item>
+						<a-menu-item key="saveas">另存为</a-menu-item>
+						<a-menu-item key="exportmmmap">导出 .mmmap</a-menu-item>
+					</a-menu>
+				</template>
+			</a-dropdown>
 
-			<!-- 打开 -->
-			<a-button
-				@click="handleMenuClick(OperationType.OPEN)"
-				class="menu-button"
-				size="small"
-				type="text"
-			>
-				<span>打开</span>
-			</a-button>
-
-			<!-- 恢复删除 (插入到"打开"和"保存"之间) -->
+			<!-- 恢复删除 -->
 			<a-button
 				v-if="editorStore.canUndoDelete"
 				@click="handleUndoDelete"
@@ -153,34 +136,14 @@ function handleUndoDelete() {
 				<span>恢复删除 ({{ modLabel }}+Z)</span>
 			</a-button>
 
-			<!-- 保存 -->
+			<!-- 重新渲染 -->
 			<a-button
-				@click="handleMenuClick(OperationType.SAVE)"
+				@click="handleReloadMap"
 				class="menu-button"
 				size="small"
 				type="text"
 			>
-				<span>保存 ({{ modLabel }}+S)</span>
-			</a-button>
-
-			<!-- 另存为 -->
-			<a-button
-				@click="handleMenuClick(OperationType.SAVEAS)"
-				class="menu-button"
-				size="small"
-				type="text"
-			>
-				<span>另存为</span>
-			</a-button>
-
-			<!-- 导出 .mmmap -->
-			<a-button
-				@click="handleMenuClick(OperationType.EXPORT_MMMAP)"
-				class="menu-button"
-				size="small"
-				type="text"
-			>
-				<span>导出 .mmmap</span>
+				<span>重新渲染</span>
 			</a-button>
 
 			<!-- Divider -->
@@ -243,6 +206,10 @@ function handleUndoDelete() {
 
 .menu-button {
 	margin-left: 5px;
+
+	&:first-child {
+		margin-left: 0;
+	}
 }
 
 .mcp-server-section {

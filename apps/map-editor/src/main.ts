@@ -52,6 +52,7 @@ import {
 	faCopy,
 	faObjectGroup,
 	faBoltLightning,
+	faChevronDown,
 } from "@fortawesome/free-solid-svg-icons";
 import { eventBus } from "./utils/event-bus";
 import { loadMapDataFromPath } from "@src/utils/file";
@@ -96,6 +97,7 @@ library.add(
 	faCopy,
 	faObjectGroup,
 	faBoltLightning,
+	faChevronDown,
 );
 
 eventBus.on("renderer-ready", () => {

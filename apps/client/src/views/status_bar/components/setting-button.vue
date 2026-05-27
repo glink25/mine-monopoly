@@ -81,6 +81,7 @@ const qualityLabels = {
 const tempLockRole = ref(settingStore.lockRole);
 const tempGraphicQuality = ref<"low" | "medium" | "high">(settingStore.graphicQuality);
 const tempEnableShadow = ref(settingStore.enableShadow);
+const tempEnableModelAnimation = ref(settingStore.enableModelAnimation);
 const tempMasterVolume = ref(settingStore.masterVolume);
 const tempSFXVolume = ref(settingStore.sfxVolume);
 const tempMusicVolume = ref(settingStore.musicVolume);
@@ -93,6 +94,7 @@ watch(settingVisible, (isOpen) => {
 	if (isOpen) {
 		tempLockRole.value = settingStore.lockRole;
 		tempGraphicQuality.value = settingStore.graphicQuality;
+		tempEnableModelAnimation.value = settingStore.enableModelAnimation;
 		tempEnableShadow.value = settingStore.enableShadow;
 		tempMasterVolume.value = settingStore.masterVolume;
 		tempSFXVolume.value = settingStore.sfxVolume;
@@ -109,6 +111,7 @@ const hasChanges = computed(() => {
 		tempLockRole.value !== settingStore.lockRole ||
 		tempGraphicQuality.value !== settingStore.graphicQuality ||
 		tempEnableShadow.value !== settingStore.enableShadow ||
+		tempEnableModelAnimation.value !== settingStore.enableModelAnimation ||
 		tempMasterVolume.value !== settingStore.masterVolume ||
 		tempSFXVolume.value !== settingStore.sfxVolume ||
 		tempMusicVolume.value !== settingStore.musicVolume ||
@@ -183,10 +186,14 @@ const applySettings = () => {
 	if (tempEnableShadow.value !== settingStore.enableShadow) {
 		settingStore.enableShadow = tempEnableShadow.value;
 		eventBus.emit("graphics:shadow:change", { enable: tempEnableShadow.value });
-		console.log(`[阴影设置] 阴影已${tempEnableShadow.value ? "开启" : "关闭"}`);
 	}
 
-	console.log("🚀 ~ applySettings ~ tempMasterMuted.value:", tempMasterMuted.value);
+	// 应用模型动画设置
+	if (tempEnableModelAnimation.value !== settingStore.enableModelAnimation) {
+			settingStore.enableModelAnimation = tempEnableModelAnimation.value;
+			eventBus.emit("graphics:animation:change", { enable: tempEnableModelAnimation.value });
+	}
+
 	// 应用音量设置
 	if (
 		tempMasterVolume.value !== settingStore.masterVolume ||
@@ -409,6 +416,41 @@ const applySettings = () => {
 							/>
 							<label for="shadow-mode-false">
 								<FontAwesomeIcon icon="square-check" v-if="!tempEnableShadow" />
+								关闭</label
+							>
+						</div>
+					</div>
+				</div>
+
+				<!-- 模型动画设置 -->
+				<div class="setting-item">
+					<div class="label">模型动画</div>
+					<div class="content">
+						<div>
+							<input
+								type="radio"
+								name="animation-mode"
+								:value="true"
+								id="animation-mode-true"
+								v-model="tempEnableModelAnimation"
+								hidden
+							/>
+							<label for="animation-mode-true">
+								<FontAwesomeIcon icon="square-check" v-if="tempEnableModelAnimation" />
+								开启</label
+							>
+						</div>
+						<div>
+							<input
+								type="radio"
+								name="animation-mode"
+								:value="false"
+								id="animation-mode-false"
+								v-model="tempEnableModelAnimation"
+								hidden
+							/>
+							<label for="animation-mode-false">
+								<FontAwesomeIcon icon="square-check" v-if="!tempEnableModelAnimation" />
 								关闭</label
 							>
 						</div>

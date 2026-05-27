@@ -34,7 +34,7 @@ import { ChanceCard3D } from "../three/ChanceCard3D";
 import { ChanceCardTextureGenerator } from "../three/ChanceCardTextureGenerator";
 import { useGameData, useMapData, useResourceStore } from "@src/store/game";
 import { getModelById } from "@src/utils/file/game-map";
-import { PlayerModel } from "@mine-monopoly/utils";
+import { PlayerModel, AnimationManager } from "@mine-monopoly/utils";
 import { DiceManager } from "./DiceManager";
 import { loadModel } from "@src/utils/three/model-loader";
 import { clone } from "lodash";
@@ -59,7 +59,11 @@ export class GameRenderer {
 	private controls: OrbitControls;
 
 	private mapContainer: THREE.Group = new THREE.Group();
-	private mapModules: Map<string, THREE.Group> = new Map<string, THREE.Group>();
+	private mapModules: Map<string, {
+		scene: THREE.Group;
+		gltf: any;
+		hasAnimations: boolean;
+	}> = new Map();
 	private mapItemsInScene: Map<string, THREE.Group> = new Map<string, THREE.Group>();
 
 	private playerEntities: Map<string, PlayerModel> = new Map<string, PlayerModel>();
@@ -112,6 +116,10 @@ export class GameRenderer {
 	private frameCount: number = 0;
 	private fpsUpdateInterval: number = 1000; // 每1秒更新一次FPS
 	private lastFpsUpdateTime: number = performance.now();
+
+	// GLB 模型动画管理
+	private animationManager: AnimationManager = new AnimationManager();
+	private clock: THREE.Clock = new THREE.Clock();
 
 	constructor(canvas: HTMLCanvasElement, container: HTMLDivElement, mapData: GameMap) {
 		this.mapData = mapData;
@@ -295,6 +303,11 @@ export class GameRenderer {
 
 		const loop = () => {
 			this.requestAnimationFrameId = requestAnimationFrame(loop);
+
+			// 更新 GLB 模型动画
+			const delta = this.clock.getDelta();
+			this.animationManager.update(delta);
+
 			this.handlePropertyRaycaster(propertyRaycaster, pointer);
 			this.handleMapEventRaycaster(propertyRaycaster, pointer);
 
@@ -359,9 +372,16 @@ export class GameRenderer {
 		const modelResourcesList = Array.from(useResourceStore().recourceMap.values()).filter((r) => r.type === "model");
 		const enableShadow = useSettig().enableShadow;
 		for await (const modelResource of modelResourcesList) {
-			const model = await getModelById(modelResource.id);
+			const gltf = await getModelById(modelResource.id);
+			const model = gltf.scene;
 			enableShadows(model, enableShadow);
-			this.mapModules.set(modelResource.id, model);
+
+			// Store model with animation info
+			this.mapModules.set(modelResource.id, {
+				scene: model,
+				gltf: gltf,
+				hasAnimations: gltf.animations && gltf.animations.length > 0
+			});
 		}
 	}
 
@@ -370,12 +390,32 @@ export class GameRenderer {
 
 		const mapItems = this.mapData.mapItems;
 		for (const mapItem of mapItems) {
-			const model = this.mapModules.get(mapItem.type.modelId);
-			if (!model) throw Error("加载MapItem时找不到模型");
-			const mapItemModel = new THREE.Group().copy(model);
-			// 保存原始模型的Y偏移，用于正确放置地皮
-			const originalY = model.position.y;
-			// mapItemModel.scale.set(0.5, 0.5, 0.5);
+			const modelData = this.mapModules.get(mapItem.type.modelId);
+			if (!modelData) throw Error("加载MapItem时找不到模型");
+
+			// Handle animated models differently
+			let mapItemModel: THREE.Group;
+			let originalY = 0;
+
+			if (modelData.hasAnimations) {
+				// Deep clone for animated models to preserve bone structure
+				mapItemModel = modelData.scene.clone(true) as THREE.Group;
+				originalY = mapItemModel.position.y;
+
+				// Only register animation if enabled in settings
+				if (useSettig().enableModelAnimation) {
+					const instanceId = `${mapItem.type.modelId}_${mapItem.id}`;
+					this.animationManager.registerModel(instanceId, modelData.gltf, mapItemModel, {
+						autoPlay: true,
+						loop: THREE.LoopRepeat
+					});
+				}
+			} else {
+				// Shallow copy for non-animated models
+				mapItemModel = new THREE.Group().copy(modelData.scene);
+				originalY = modelData.scene.position.y;
+			}
+
 			mapItemModel.userData["position"] = { x: mapItem.x, y: mapItem.y };
 			mapItemModel.userData["rotation"] = mapItem.rotation;
 			mapItemModel.userData["id"] = mapItem.id;
@@ -403,10 +443,12 @@ export class GameRenderer {
 					map: texture,
 					side: THREE.DoubleSide,
 					transparent: true,
+					depthTest: true,
 					depthWrite: false,
 				});
 				const iconPlane = new THREE.Mesh(planeGeometry, planeMaterial);
 				iconPlane.rotateX(-Math.PI / 2);
+				iconPlane.renderOrder = 1;
 				this.arrivedEventIcons.set(arrivedEvent.id, iconPlane);
 				this.mapContainer.add(iconPlane);
 
@@ -1043,6 +1085,12 @@ export class GameRenderer {
 			this.isLockingRoleFromSetting = lockRole;
 		});
 
+			// 监听模型动画变化事件
+			useEventBus().on("graphics:animation:change", ({ enable }: { enable: boolean }) => {
+				console.log("[动画设置] 接收到模型动画变化事件:", enable);
+				this.applyModelAnimationSetting(enable);
+			});
+
 		// 监听相机回归视角事件
 		useEventBus().on("camera:focus:self", () => {
 			this.focusOnSelf();
@@ -1287,8 +1335,9 @@ export class GameRenderer {
 		});
 		useEventBus().removeAll();
 		this.commonWatchers.forEach((f) => f());
-		this.diceManager && this.diceManager.dispose();
-		// 释放 THREE.js 场景资源
+			this.diceManager && this.diceManager.dispose();
+			// 释放动画管理器
+			this.animationManager.dispose();
 		this.scene.traverse((object) => {
 			if (object instanceof THREE.Mesh) {
 				object.geometry?.dispose();
@@ -1429,7 +1478,8 @@ export class GameRenderer {
 		if (!modelIdList || modelIdList.length === 0) return;
 		const getModel = (index: number) => {
 			const id = modelIdList[index];
-			return id ? this.mapModules.get(id) : undefined;
+			const modelData = id ? this.mapModules.get(id) : undefined;
+			return modelData?.scene;
 		};
 		const buildModel = getModel(newProperty.level) ?? getModel(modelIdList.length - 1);
 
@@ -2043,6 +2093,43 @@ export class GameRenderer {
 		});
 
 		console.log("[阴影设置] 阴影设置已应用");
+	}
+
+	/**
+	 * 应用模型动画设置
+	 * 动态注册或注销所有已加载模型的动画
+	 */
+	private applyModelAnimationSetting(enable: boolean) {
+		console.log("[动画设置] 应用模型动画设置:", enable ? "开启" : "关闭");
+
+		const mapData = useMapData();
+
+		for (const mapItem of mapData.mapItems) {
+			const modelData = this.mapModules.get(mapItem.type.modelId);
+			const mapItemModel = this.mapItemsInScene.get(mapItem.id);
+
+			if (!modelData || !mapItemModel) continue;
+			if (!modelData.hasAnimations) continue;
+
+			const instanceId = `${mapItem.type.modelId}_${mapItem.id}`;
+
+			if (enable) {
+				// 注册动画
+				if (!this.animationManager.hasAnimation(instanceId)) {
+					this.animationManager.registerModel(instanceId, modelData.gltf, mapItemModel, {
+						autoPlay: true,
+						loop: THREE.LoopRepeat
+					});
+				}
+			} else {
+				// 注销动画
+				if (this.animationManager.hasAnimation(instanceId)) {
+					this.animationManager.unregisterModel(instanceId);
+				}
+			}
+		}
+
+		console.log("[动画设置] 模型动画设置已应用");
 	}
 }
 

@@ -1,10 +1,11 @@
 import { GameMap } from "@mine-monopoly/types";
-import { debounce, ThreeSceneBase } from "@mine-monopoly/utils";
+import { debounce, ThreeSceneBase, AnimationManager } from "@mine-monopoly/utils";
 import { CameraMode, OperationMode } from "@src/enums";
 import { useEditorStore, useMapDataStore, useResourceStore } from "@src/stores";
 import { eventBus } from "@src/utils/event-bus";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { LoopRepeat, Clock } from "three";
 import gsap from "gsap";
 import { MapItem, MapItemType } from "@mine-monopoly/types/interfaces/game/item";
 import { applyOpacityToObject, createDynamicLine, createMultiLine, DynamicLine, getModelById } from "@src/utils/three";
@@ -41,6 +42,10 @@ export class MapRenderer {
 	private composer: EffectComposer;
 
 	private itemTypesCache: Map<string, MapItemTypeWithModel> = new Map();
+
+	// GLB 模型动画管理
+	private animationManager: AnimationManager | null = null;
+	private clock: Clock | null = null;
 
 	private raycaster: THREE.Raycaster = new THREE.Raycaster();
 	private point: THREE.Vector2 = new THREE.Vector2(0, 0);
@@ -158,9 +163,20 @@ export class MapRenderer {
 		this.initEventListeners();
 		eventBus.emit("renderer-ready");
 
+		// 初始化动画管理器
+		this.animationManager = new AnimationManager();
+		this.clock = new Clock();
+
 		// 渲染循环
 		const loop = () => {
 			this.requestAnimationFrameId = requestAnimationFrame(loop);
+
+			// 更新 GLB 模型动画
+			if (this.animationManager && this.clock) {
+				const delta = this.clock.getDelta();
+				this.animationManager.update(delta);
+			}
+
 			this.controls.update();
 			this.composer.render();
 		};
@@ -878,7 +894,7 @@ export class MapRenderer {
 	// 		const start = editorStore.currentMapItem;
 	// 		if (!start) throw Error("在链接模式时没有选中MapItem");
 	// 		const end = this.raycaster;
-	// 		console.log("🚀 ~ MapRenderer ~ handleLinkLine ~ end:", end);
+			//		console.log("🚀 ~ MapRenderer ~ handleLinkLine ~ end:", end);
 	// 	}
 	// }
 
@@ -999,14 +1015,44 @@ export class MapRenderer {
 
 	private async renderMapItemToMap(mapItem: MapItem) {
 		let itemTypeCache = this.itemTypesCache.get(mapItem.type.id);
+		let hasAnimations = false;
+
 		if (!itemTypeCache) {
-			const glft = await getModelById(mapItem.type.modelId);
-			const model = glft.scene;
-			itemTypeCache = { ...mapItem.type, model };
+			const gltf = await getModelById(mapItem.type.modelId);
+			const model = gltf.scene;
+			hasAnimations = gltf.animations && gltf.animations.length > 0;
+
+			itemTypeCache = {
+				...mapItem.type,
+				model,
+				gltf,  // Save full gltf for animations
+				hasAnimations
+			};
+
 			this.itemTypesCache.set(mapItem.type.id, itemTypeCache);
+		} else {
+			hasAnimations = itemTypeCache.hasAnimations || false;
 		}
-		const mapItemModel = new THREE.Object3D().copy(itemTypeCache.model);
-		// mapItemModel.scale.set(0.5, 0.5, 0.5);
+
+		// For animated models, use clone(true) deep copy to preserve bone structure
+		// Then register animation for each instance separately
+		let mapItemModel: THREE.Object3D;
+		if (hasAnimations && itemTypeCache.gltf) {
+			mapItemModel = itemTypeCache.model.clone(true);
+
+			// Register animation for this instance
+			if (this.animationManager) {
+				const instanceId = `${mapItem.type.modelId}_${mapItem.id}`;
+				this.animationManager.registerModel(instanceId, itemTypeCache.gltf, mapItemModel, {
+					autoPlay: true,
+					loop: LoopRepeat
+				});
+			}
+		} else {
+			// Non-animated model, use shallow copy
+			mapItemModel = new THREE.Object3D().copy(itemTypeCache.model);
+		}
+
 		mapItemModel.userData["position"] = { x: mapItem.x, y: mapItem.y };
 		mapItemModel.userData["rotation"] = mapItem.rotation;
 		mapItemModel.userData["id"] = mapItem.id;
@@ -1347,14 +1393,12 @@ export class MapRenderer {
 			
 			// 移除旧的事件图标
 			const existingIcon = this.mapEventInScene.get(id);
-			console.log("🚀 ~ MapRenderer ~ refreshMapEventIcons ~ existingIcon:", existingIcon)
 			if (existingIcon) {
 				console.log('[刷新图标] 移除旧图标:', id);
 				this.mapEventGroup.remove(existingIcon);
 				this.mapEventInScene.delete(id);
 			}
 			
-			console.log("🚀 ~ MapRenderer ~ refreshMapEventIcons ~ mapItem:", mapItem)
 			if (!mapItem || !mapItem.mapEventId) {
 				console.log('[刷新图标] 跳过，没有事件:', id);
 				continue;
@@ -1509,12 +1553,11 @@ export class MapRenderer {
 			map: texture,
 			side: THREE.DoubleSide,
 			transparent: true,
-			depthTest: false,
+			depthTest: true,
 			depthWrite: false,
 		});
 		const iconPlane = new THREE.Mesh(planeGeometry, planeMaterial);
 		iconPlane.rotateX(-Math.PI / 2);
-		iconPlane.renderOrder = 999;
 		this.mapEventInScene.set(mapItem.id, iconPlane);
 		this.mapEventGroup.add(iconPlane);
 
@@ -1597,8 +1640,7 @@ export class MapRenderer {
 			this.camera.near = 0.1;
 			this.camera.far = center.y + distance * 2;
 			this.camera.updateProjectionMatrix();
-		}
-		console.log("🚀 ~ MapRenderer ~ lookAtCenter ~ distance:", distance);
+			}
 
 		this.camera.position.set(center.x, center.y + Math.abs(distance) * 1.2, center.z);
 		// this.camera.up.set(0, 0, -1);
@@ -1639,6 +1681,9 @@ export class MapRenderer {
 	}
 
 	public destroy(): void {
+		// 释放动画管理器
+		this.animationManager?.dispose();
+
 		this.resizeObserver && this.resizeObserver.disconnect();
 		cancelAnimationFrame(this.requestAnimationFrameId);
 		this.scene.traverse((object) => {

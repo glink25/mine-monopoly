@@ -266,6 +266,7 @@ export const useSettig = defineStore("setting", {
 			graphicQuality: "medium" as "low" | "medium" | "high",
 			// 阴影开关
 			enableShadow: false,
+			enableModelAnimation: true,
 		};
 	},
 	actions: {

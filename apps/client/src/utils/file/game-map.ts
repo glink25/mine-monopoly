@@ -180,5 +180,5 @@ export async function getModelById(modelId: string) {
 	const modelInfo = useResourceStore().getRecourceById(modelId);
 	if (!modelInfo) throw Error(`找不到id为 ${modelId} 的模型资源`);
 	loader.setDRACOLoader(getDracoLoader());
-	return (await loader.loadAsync(modelInfo.url)).scene;
+	return await loader.loadAsync(modelInfo.url);
 }

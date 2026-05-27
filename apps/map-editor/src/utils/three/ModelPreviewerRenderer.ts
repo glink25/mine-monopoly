@@ -1,16 +1,19 @@
 import {
   AmbientLight, ArrowHelper, Box3, BoxGeometry, BoxHelper, Color,
   GridHelper, Group, MathUtils, Mesh, MeshBasicMaterial,
-  PerspectiveCamera, Vector3
+  PerspectiveCamera, Vector3, LoopRepeat, Clock
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { ThreeSceneBase } from "@mine-monopoly/utils";
+import { ThreeSceneBase, AnimationManager } from "@mine-monopoly/utils";
 import { getModelByUrl } from ".";
 
 export class ModelPreviewerRenderer extends ThreeSceneBase {
   private currentModel: Group | null = null;
   private isRunning = false;
   private controls: OrbitControls;
+  private animationManager: AnimationManager | null = null;
+  private clock: Clock | null = null;
+  private currentModelId: string | null = null;
 
   constructor(contianer: HTMLDivElement, showGuides = false) {
     super(contianer);
@@ -52,6 +55,9 @@ export class ModelPreviewerRenderer extends ThreeSceneBase {
     this.setLoadingMaskVisible(true);
 
     if (this.currentModel) {
+      if (this.currentModelId && this.animationManager) {
+        this.animationManager.unregisterModel(this.currentModelId);
+      }
       this.scene.remove(this.currentModel);
       this.currentModel = null;
     }
@@ -66,6 +72,21 @@ export class ModelPreviewerRenderer extends ThreeSceneBase {
     const model = gltf.scene;
     this.currentModel = model;
     this.scene.add(model);
+
+    // 初始化动画管理器
+    if (!this.animationManager) {
+      this.animationManager = new AnimationManager();
+      this.clock = new Clock();
+    }
+
+    // 生成唯一 ID
+    this.currentModelId = `preview_${Date.now()}`;
+
+    // 注册并自动播放动画
+    this.animationManager.registerModel(this.currentModelId, gltf, model, {
+      autoPlay: true,
+      loop: LoopRepeat
+    });
 
     const box = new Box3().setFromObject(model);
     const center = box.getCenter(new Vector3());
@@ -103,6 +124,13 @@ export class ModelPreviewerRenderer extends ThreeSceneBase {
     this.isRunning = true;
     const loop = () => {
       if (!this.isRunning) return;
+
+      // 更新动画
+      if (this.animationManager && this.clock) {
+        const delta = this.clock.getDelta();
+        this.animationManager.update(delta);
+      }
+
       this.controls.update();
       this.render();
       this.requestAnimationFrameId = requestAnimationFrame(loop);
@@ -117,6 +145,9 @@ export class ModelPreviewerRenderer extends ThreeSceneBase {
 
   public clear() {
     this.stopRenderLoop();
+    if (this.currentModelId && this.animationManager) {
+      this.animationManager.unregisterModel(this.currentModelId);
+    }
     if (this.currentModel) {
       this.scene.remove(this.currentModel);
       this.currentModel = null;
@@ -125,6 +156,7 @@ export class ModelPreviewerRenderer extends ThreeSceneBase {
   }
 
   public destroy() {
+    this.animationManager?.dispose();
     this.controls.dispose();
     super.destroy();
   }

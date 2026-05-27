@@ -20,6 +20,7 @@ const modeUiMap: Record<OperationMode, any> = {
 };
 
 const uiContent = computed(() => modeUiMap[editorStore.currentEditMode]);
+const isLoading = computed(() => editorStore.isLoading);
 </script>
 
 <template>
@@ -29,6 +30,12 @@ const uiContent = computed(() => modeUiMap[editorStore.currentEditMode]);
 			<component :is="uiContent" />
 		</div>
 		<canvas id="map-editor-canvas-container"> </canvas>
+		<transition name="fade">
+			<div v-if="isLoading" class="loading-mask">
+				<div class="spinner"></div>
+				<span>加载中...</span>
+			</div>
+		</transition>
 	</div>
 </template>
 
@@ -59,10 +66,56 @@ const uiContent = computed(() => modeUiMap[editorStore.currentEditMode]);
 		}
 	}
 }
+
 #map-editor-canvas-container {
 	width: 100%;
 	height: 100%;
 	display: block;
 	pointer-events: initial;
+}
+
+.loading-mask {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	background-color: rgba(0, 0, 0, 0.6);
+	z-index: 2000;
+
+	& > span {
+		margin-top: 1rem;
+		color: #ffffff;
+		font-size: 0.8rem;
+	}
+}
+
+.spinner {
+	width: 50px;
+	height: 50px;
+	border-radius: 50%;
+	border: 2px solid rgba(255, 255, 255, 0.3);
+	border-top-color: #ffffff;
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.fade-enter-active,
+.fade-leave-active {
+	transition: opacity 0.2s ease-in-out;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+	opacity: 0;
 }
 </style>
