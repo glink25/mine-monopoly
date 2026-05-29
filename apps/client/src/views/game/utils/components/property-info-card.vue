@@ -11,8 +11,17 @@ const _property = ref<PropertyInfo | null>(props.property);
 // 转换地产自定义效果描述中的 \n
 const formattedCustomDescription = computed(() => {
 	if (!_property.value?.custom?.description) return "";
-	return _property.value.custom.description.replace(/\\n/g, '\n');
+	return _property.value.custom.description.replace(/\\n/g, "\n");
 });
+
+// 当前过路费（根据等级）
+const currentToll = computed(() => {
+	if (!_property.value || _property.value.level == null) return null;
+	return _property.value.costList[_property.value.level];
+});
+
+// 是否有拥有者
+const hasOwner = computed(() => !!_property.value?.owner);
 
 watch(
 	() => props.property,
@@ -20,14 +29,6 @@ watch(
 		updateProperty(newProperty);
 	},
 );
-
-const _playerNameColor = computed(() => {
-	if (_property.value && _property.value.owner) {
-		return _property.value.owner.color;
-	} else {
-		return "#222222";
-	}
-});
 
 function updateProperty(newProperty: PropertyInfo | null) {
 	_property.value = newProperty;
@@ -46,90 +47,332 @@ defineExpose({ updateProperty });
 </script>
 
 <template>
-	<div class="property-info felt-card" v-if="_property">
+	<template v-if="_property">
+		<!-- 自定义 UI -->
 		<template v-if="_property.customUI">
-			<UiRenderer :schema="getUiTemplateById(_property.customUI)" :context="{ property: _property, exportData: useGameData().exportData }" />
+			<div class="property-info custom-ui">
+				<UiRenderer
+					:schema="getUiTemplateById(_property.customUI)"
+					:context="{ property: _property, exportData: useGameData().exportData }"
+				/>
+			</div>
 		</template>
 
-		<template v-else>
-			<div class="name">
-				<span class="data">{{ _property.name }}</span>
-			</div>
-			<div class="buildingLevel">
-				<span class="label">当前建筑等级</span><span class="data level">LV {{ _property.level }}</span>
+		<!-- 默认 UI -->
+		<div class="property-info" v-else>
+			<!-- 头部：名称和等级 -->
+			<div class="property-header">
+				<h2 class="property-name">{{ _property.name }}</h2>
+				<div class="badges-row">
+					<div class="property-badge level-badge">LV {{ _property.level }}</div>
+					<!-- 无主人时显示空地价格 -->
+					<div class="property-badge price-badge" v-if="!hasOwner">
+						<span class="badge-text">购买费用</span>
+						<span class="badge-divider">|</span>
+						<span class="badge-label">{{ _property.sellCost }}</span>
+					</div>
+					<!-- 有主人时显示当前过路费 -->
+					<div class="property-badge toll-badge" v-else-if="currentToll !== null">
+						<span class="badge-text">过路费</span>
+						<span class="badge-divider">|</span>
+						<span class="badge-label">{{ currentToll }}</span>
+					</div>
+				</div>
 			</div>
 
-			<template v-if="_property.custom">
-				<div class="data">{{ formattedCustomDescription }}</div>
-			</template>
+			<!-- 分隔线 -->
+			<div class="divider"></div>
 
+			<!-- 自定义描述区 -->
+			<div class="property-section custom-desc" v-if="_property.custom">
+				<div class="custom-description">{{ formattedCustomDescription }}</div>
+			</div>
+
+			<!-- 费用信息区 -->
 			<template v-else>
-				<div class="buildCost">
-					<span class="label">升级费用</span><span class="data">{{ _property.buildCost }}</span>
+				<div class="property-section">
+					<div class="section-title">费用信息</div>
+					<div class="cost-list">
+						<div class="cost-item">
+							<span class="cost-icon">🏷️</span>
+							<span class="cost-label">空地价格</span>
+							<span class="cost-value">{{ _property.sellCost }}</span>
+						</div>
+						<div class="cost-item">
+							<span class="cost-icon">🔨</span>
+							<span class="cost-label">升级费用</span>
+							<span class="cost-value">{{ _property.buildCost }}</span>
+						</div>
+					</div>
+					<div class="section-title toll-title">过路费</div>
+					<div class="toll-grid">
+						<div
+							class="toll-item"
+							v-for="(cost, index) in _property.costList"
+							:key="index"
+							:class="{ 'current-toll': index === _property.level }"
+						>
+							<span class="toll-level">LV{{ index }}</span>
+							<span class="toll-amount">{{ cost }}</span>
+						</div>
+					</div>
 				</div>
-				<div class="sellCost">
-					<span class="label">空地价格</span><span class="data">{{ _property.sellCost }}</span>
-				</div>
-				<div class="cost_item" v-for="(cost, index) in _property.costList">
-					<span class="label">LV{{ index }} 过路费</span><span class="data">{{ cost }}</span>
-				</div>
-				<div class="owner">
-					<span class="label">拥有人</span
-					><span class="data" :style="{ color: _playerNameColor }">{{
-						_property.owner ? _property.owner.username : "无"
-					}}</span>
+
+				<!-- 分隔线 -->
+				<div class="divider"></div>
+
+				<!-- 拥有者信息 -->
+				<div class="property-footer">
+					<span class="owner-label">拥有者</span>
+					<span
+						class="owner-value"
+						:class="{ 'no-owner': !_property.owner }"
+						:style="{ color: _property.owner ? _property.owner.color : undefined }"
+					>
+						{{ _property.owner ? _property.owner.username : "无" }}
+					</span>
 				</div>
 			</template>
-		</template>
-	</div>
+		</div>
+	</template>
 </template>
 
 <style lang="scss" scoped>
 @use "@src/assets/variables" as *;
 @use "@mine-monopoly/style/variables" as fp;
+@use "@mine-monopoly/style/mixins" as fp-mixins;
 
 .property-info {
-	min-width: 15rem;
+	@include fp-mixins.fp-felt-patch;
+	min-width: 16rem;
+	max-width: 20rem;
 	display: flex;
 	flex-direction: column;
-	justify-content: space-around;
-	align-items: center;
+	gap: 0.8rem;
+	padding: 1rem 1.5rem;
 
-	& > .name > .data {
-		text-align: center;
-		font-size: 1.2rem;
-		color: var(--fp-color-primary);
+	// 头部区域
+	.property-header {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
+		padding-bottom: 0.5rem;
+
+		.property-name {
+			font-size: 1.3rem;
+			// font-weight: bold;
+			color: var(--fp-color-primary);
+			text-align: center;
+			text-shadow: var(--fp-text-shadow-surround-white);
+			margin: 0;
+			margin-bottom: 0.3rem;
+		}
+
+		// 徽章行
+		.badges-row {
+			display: flex;
+			gap: 0.5rem;
+			align-items: center;
+		}
+
+		.level-badge {
+			padding: 0.25rem 0.75rem;
+			background: var(--fp-color-tertiary);
+			color: #fff;
+			border-radius: 1rem;
+			font-size: 0.85rem;
+			font-weight: bold;
+			box-shadow: 0 2px rgba(0, 0, 0, 0.15);
+		}
+
+		// 空地价格徽章
+		.price-badge {
+			padding: 0.25rem 0.75rem;
+			background: var(--fp-color-primary);
+			color: #fff;
+			border-radius: 1rem;
+			font-size: 0.9rem;
+			// font-weight: bold;
+			box-shadow: 0 2px rgba(0, 0, 0, 0.15);
+			display: flex;
+			align-items: center;
+			gap: 0.25rem;
+
+			.badge-text {
+				font-size: 0.8rem;
+			}
+
+			.badge-divider {
+				font-size: 0.7rem;
+				opacity: 0.6;
+			}
+
+			.badge-label {
+				font-size: 0.9rem;
+			}
+		}
+
+		// 过路费徽章
+		.toll-badge {
+			padding: 0.25rem 0.75rem;
+			background: #4caf50;
+			color: #fff;
+			border-radius: 1rem;
+			font-size: 0.9rem;
+			font-weight: bold;
+			box-shadow: 0 2px rgba(0, 0, 0, 0.15);
+			display: flex;
+			align-items: center;
+			gap: 0.25rem;
+
+			.badge-text {
+				font-size: 0.8rem;
+			}
+
+			.badge-divider {
+				font-size: 0.7rem;
+				opacity: 0.6;
+			}
+
+			.badge-label {
+				font-size: 0.9rem;
+			}
+		}
 	}
 
-	& > div {
+	// 分隔线
+	.divider {
+		height: 1px;
+		background: rgba(0, 0, 0, 0.1);
+	}
+
+	// 信息分组
+	.property-section {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+
+		.section-title {
+			font-size: 0.75rem;
+			color: var(--fp-color-text-secondary);
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+			opacity: 0.8;
+		}
+
+		.toll-title {
+			margin-top: 0.25rem;
+		}
+	}
+
+	// 费用列表
+	.cost-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+		box-sizing: border-box;
+
+		.cost-item {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+
+			.cost-icon {
+				font-size: 1rem;
+				width: 1.5rem;
+				text-align: center;
+			}
+
+			.cost-label {
+				flex: 1;
+				font-size: 0.85rem;
+				color: var(--fp-color-text-secondary);
+			}
+
+			.cost-value {
+				font-size: 0.9rem;
+				font-weight: 600;
+				color: var(--fp-color-secondary);
+				text-shadow: var(--fp-text-shadow-surround-white);
+			}
+		}
+	}
+
+	// 过路费网格
+	.toll-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.4rem;
+
+		.toll-item {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 0.3rem 0.5rem;
+			background: rgba(255, 255, 255, 0.5);
+			border-radius: 0.4rem;
+			font-size: 0.8rem;
+
+			.toll-level {
+				font-weight: 600;
+				color: var(--fp-color-primary);
+			}
+
+			.toll-amount {
+				color: var(--fp-color-secondary);
+				font-weight: 600;
+			}
+
+			// 当前等级过路费标记
+			&.current-toll {
+				background: rgba(76, 175, 80, 0.15);
+				border: 1px solid #4caf50;
+
+				.toll-level,
+				.toll-amount {
+					color: #4caf50;
+				}
+			}
+		}
+	}
+
+	// 自定义描述
+	.custom-desc {
+		.custom-description {
+			font-size: 0.85rem;
+			color: var(--fp-color-text-primary);
+			line-height: 1.5;
+			white-space: pre-wrap;
+			text-align: center;
+			padding: 0.5rem;
+		}
+	}
+
+	// 底部拥有者
+	.property-footer {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		font-size: 0.8rem;
-		width: 70%;
-		margin-bottom: 0.6rem;
-		text-shadow:
-			#fff -1px 0 0,
-			#fff 1px 0 0,
-			#fff 0 1px 0,
-			#fff 0 -1px 0;
+		padding: 0.5rem 0.75rem;
+		background: rgba(255, 255, 255, 0.3);
+		border-radius: 0.5rem;
+		margin-top: auto;
 
-		& > .label {
-			flex: 1;
-			text-align: center;
-			white-space: nowrap;
+		.owner-label {
+			font-size: 0.85rem;
+			color: var(--fp-color-text-secondary);
 		}
 
-		& > .data {
-			flex: 1;
-			text-align: center;
-			color: var(--fp-color-secondary);
-			white-space: pre-wrap; /* 保留换行和空格 */
+		.owner-value {
+			font-size: 0.95rem;
+			font-weight: bold;
+			text-shadow: var(--fp-text-shadow-surround-white);
 
-			&.level {
-				color: #1947e0;
+			&.no-owner {
+				color: var(--fp-color-text-secondary) !important;
+				font-style: italic;
 			}
-			// text-shadow: var(--fp-text-shadow);
 		}
 	}
 }
