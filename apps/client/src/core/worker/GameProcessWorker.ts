@@ -928,25 +928,9 @@ export class GameProcess implements IGameProcess {
 				this.gameDataBroadcast();
 				this.gameBroadcast(msg);
 
-				//在计划的动画完成事件后取消监听, 防止客户端因特殊情况没有发送动画完成的指令造成永久等待
-				const animationDuration = 2000;
-				let animationTimer = setTimeout(() => {
-					operationListener.emit(player.id, OperateType.Animation, walkId);
-				}, animationDuration);
+				// 等待动画完成
+				await this.waitForAnimationComplete(walkId, 2000);
 
-				//等待客户端完成动画发回指令
-				await new Promise((resolve) => {
-					listenAnimationCallback("");
-					function listenAnimationCallback(resAnimationId: string) {
-						if (resAnimationId !== walkId) {
-							operationListener.once(player.id, OperateType.Animation, listenAnimationCallback);
-						} else {
-							resolve("");
-						}
-					}
-				});
-
-				clearTimeout(animationTimer);
 				return payload;
 			});
 
@@ -1485,25 +1469,7 @@ export class GameProcess implements IGameProcess {
 		const animationDuration =
 			GameProcess.WALK_ANIMATION_BASE_DURATION * (Math.abs(steps) + GameProcess.WALK_ANIMATION_EXTRA_STEPS);
 
-		// 使用超时机制防止永久等待
-		const animationTimer = setTimeout(() => {
-			operationListener.emit(player.id, OperateType.Animation, walkId);
-		}, animationDuration);
-
-		// 等待匹配的 AnimationComplete
-		await new Promise<void>((resolve) => {
-			const checkAnimationId = (receivedWalkId: string) => {
-				if (receivedWalkId === walkId) {
-					clearTimeout(animationTimer);
-					resolve();
-				} else {
-					// walkId 不匹配，继续等待下一个事件
-					operationListener.once(player.id, OperateType.Animation, checkAnimationId as any);
-				}
-			};
-
-			operationListener.once(player.id, OperateType.Animation, checkAnimationId as any);
-		});
+		await this.waitForAnimationComplete(walkId, animationDuration);
 	}
 
 	private getPlayerById(id: string) {
