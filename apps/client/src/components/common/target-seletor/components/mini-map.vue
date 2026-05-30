@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MapItem, PlayerInfo } from "@mine-monopoly/types";
+import { MapItem, PlayerInfo, PropertyInfo } from "@mine-monopoly/types";
 import { useGameData, useMapData } from "@src/store/game";
 import { computed, toRaw } from "vue";
 
@@ -17,6 +17,19 @@ const gameDataStore = useGameData();
 const properties = gameDataStore.properties;
 const playerList = gameDataStore.players;
 const indexList = mapDataStore.mapIndex;
+
+// 创建 mapItemId -> PropertyInfo 的映射，用于快速查找实时数据
+const propertyMap = computed(() => {
+	const map = new Map<string, PropertyInfo>();
+	for (const prop of properties) {
+		// 通过 mapDataStore 找到对应的 mapItemId
+		const mapItem = mapDataStore.mapItems.find((item) => item.property?.id === prop.id);
+		if (mapItem) {
+			map.set(mapItem.id, prop);
+		}
+	}
+	return map;
+});
 
 const mapBounds = computed(() => {
 	const items = mapDataStore.mapItems;
@@ -54,6 +67,7 @@ type MapItemWithContext = MapItem & {
 	normalizedX: number;
 	normalizedY: number;
 	isDisabled: boolean;
+	property?: PropertyInfo;
 };
 
 const processedMapItems = computed<MapItemWithContext[]>(() => {
@@ -61,6 +75,7 @@ const processedMapItems = computed<MapItemWithContext[]>(() => {
 	if (!rawItems.length) return [];
 
 	const { minX, minY } = mapBounds.value;
+	const propMap = propertyMap.value;
 
 	return rawItems.map((item) => {
 		const newItem = { ...item } as MapItemWithContext;
@@ -71,18 +86,15 @@ const processedMapItems = computed<MapItemWithContext[]>(() => {
 		newItem.isDisabled = !props.highLightList.includes(item.id);
 		newItem.players = [];
 
-		// 绑定地皮信息
-		if (item.property) {
-			const clonedProperty = { ...item.property };
-
-			const liveProperty = properties.find((p) => p.id === item.property?.id);
-			if (liveProperty && liveProperty.owner) {
-				clonedProperty.owner = liveProperty.owner;
-			}
-
-			newItem.property = clonedProperty;
+		// 使用实时数据：从 propertyMap 获取最新的 PropertyInfo（包含 owner）
+		const liveProperty = propMap.get(item.id);
+		if (liveProperty) {
+			newItem.property = { ...liveProperty };
+		} else if (item.property) {
+			newItem.property = { ...item.property };
 		}
 
+		// 绑定玩家位置
 		for (const player of playerList) {
 			if (item.id === indexList[player.positionIndex]) {
 				newItem.players.push(player);
@@ -112,24 +124,38 @@ function handleMapItemClick(item: MapItemWithContext) {
 					'is-highlight': !mapItem.isDisabled,
 					'is-selected': props.selectedId === mapItem.id,
 					'is-road': indexList.includes(mapItem.id),
+					'has-owner': !!mapItem.property?.owner,
 				}"
 				:style="{
 					gridColumnStart: mapItem.normalizedX + 1,
 					gridRowStart: mapItem.normalizedY + 1,
-					color: mapItem.property?.owner?.color || '#ccc',
+					...(mapItem.property?.owner
+						? { backgroundColor: mapItem.property.owner.color, color: '#fff' }
+						: { color: '#ccc' }),
 				}"
 			>
-				<span class="owner-initial" v-if="mapItem.property?.owner">
-					{{ mapItem.property.owner.username?.[0] || "" }}
+				<span class="owner-initial" v-if="mapItem.property?.owner && mapItem.property.owner.username">
+					{{ mapItem.property.owner.username[0] }}
 				</span>
+			</div>
 
+			<!-- 玩家图标单独渲染层，不受 is-disabled 影响 -->
+			<div
+				v-for="mapItem in processedMapItems"
+				:key="'player-' + mapItem.id"
+				class="player-placeholder"
+				:style="{
+					gridColumnStart: mapItem.normalizedX + 1,
+					gridRowStart: mapItem.normalizedY + 1,
+				}"
+			>
 				<div
 					v-for="(player, index) in mapItem.players"
 					:key="player.id"
 					class="player-block"
 					:style="{
 						backgroundColor: player.user.color,
-						transform: mapItem.players.length > 1 ? `translate(${index * 4 - 2}px, ${index * 4 - 2}px)` : 'none',
+						transform: mapItem.players.length > 1 ? `translate(calc(-50% + ${index * 4 - 2}px), calc(-50% + ${index * 4 - 2}px))` : 'translate(-50%, -50%)',
 						zIndex: 10 + index,
 					}"
 				>
@@ -158,6 +184,31 @@ function handleMapItemClick(item: MapItemWithContext) {
 	gap: 4px;
 }
 
+.player-placeholder {
+	width: 100%;
+	height: 100%;
+	position: relative;
+	pointer-events: none;
+
+	.player-block {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 70%;
+		height: 70%;
+		border-radius: 50%;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		color: white;
+		font-size: 0.6rem;
+
+		border: 1.5px solid rgba(255, 255, 255, 0.8);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+	}
+}
+
 .map-item {
 	width: 100%;
 	height: 100%;
@@ -171,7 +222,6 @@ function handleMapItemClick(item: MapItemWithContext) {
 	position: relative;
 	transition: transform 0.2s;
 
-	// 【关键修改】默认无边框 (透明)，不再显示地皮颜色的边框
 	border: 2px solid transparent;
 
 	&.is-road {
@@ -184,7 +234,11 @@ function handleMapItemClick(item: MapItemWithContext) {
 		filter: grayscale(100%);
 	}
 
-	&.is-highlight {
+	&.has-owner {
+		// 背景色由内联样式设置（拥有者颜色）
+	}
+
+	&.is-highlight:not(.has-owner) {
 		cursor: pointer;
 		background-color: #fff;
 		border-color: #fff;
@@ -199,10 +253,21 @@ function handleMapItemClick(item: MapItemWithContext) {
 		}
 	}
 
+	&.is-highlight.has-owner {
+		cursor: pointer;
+		font-weight: bold;
+		animation: pulse 1.5s infinite alternate;
+
+		&:hover {
+			transform: scale(1.1);
+			z-index: 50;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+		}
+	}
+
 	&.is-selected {
 		z-index: 60;
 
-		// 选中框：绝对居中
 		&::after {
 			content: "";
 			position: absolute;
@@ -220,25 +285,9 @@ function handleMapItemClick(item: MapItemWithContext) {
 
 	.owner-initial {
 		z-index: 1;
-		font-family: monospace;
 		font-weight: bold;
-		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-	}
-
-	.player-block {
-		position: absolute;
-		width: 60%;
-		height: 60%;
-		border-radius: 50%;
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		color: white; // 玩家字母始终白色
-		font-size: 0.6rem;
-		font-weight: bold;
-
-		border: 1.5px solid rgba(255, 255, 255, 0.8);
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+		font-size: 1rem;
 	}
 }
 
