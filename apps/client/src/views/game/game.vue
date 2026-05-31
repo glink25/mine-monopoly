@@ -129,7 +129,10 @@
 				<UiRenderer
 					v-for="ui in mapDataStore.customUIs"
 					:schema="getUiTemplateById(ui.uiSchema)"
-					:context="gameDataState"
+					:context="{
+							...gameDataState,
+							currentPlayer: gameDataState.players?.find(p => p.id === gameDataState.myGameInfo?.id)
+						}"
 					:style="{
 						gridArea: `${ui.layout.y + 1} / ${ui.layout.x + 1} / span ${ui.layout.height} / span ${ui.layout.width}`,
 						zIndex: `var(--z-ui)`,
