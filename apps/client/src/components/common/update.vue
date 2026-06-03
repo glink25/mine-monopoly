@@ -14,6 +14,7 @@ const version = ref("");
 const releaseNote = ref("");
 const downloadPercent = ref(0);
 const errorMsg = ref("");
+const sourceName = ref<string>();
 
 let removeListener: (() => void) | null = null;
 
@@ -65,6 +66,7 @@ onMounted(() => {
 					status.value = "available";
 					version.value = data.info.version;
 					releaseNote.value = (data.info.releaseNotes as string) || "修复了一些已知问题，优化了游戏体验。";
+					sourceName.value = data.sourceName || undefined;
 					visible.value = true;
 					break;
 
@@ -85,6 +87,12 @@ onMounted(() => {
 					if (status.value === "downloading") {
 						status.value = "error";
 						errorMsg.value = "网络连接中断，请稍后重试。";
+					} else if (errorDetail.includes("所有更新源")) {
+						// 所有源均失败：在弹窗中展示完整信息
+						status.value = "error";
+						errorMsg.value = errorDetail;
+						sourceName.value = data.sourceName || undefined;
+						visible.value = true;
 					} else {
 						status.value = "error";
 						// 404 错误表示找不到更新文件，实事求是地显示
@@ -121,6 +129,7 @@ onUnmounted(() => {
 		<div class="update-content">
 			<div v-if="status === 'available'" class="scene-box">
 				<div class="version-tag">版本: {{ version }}</div>
+				<div v-if="sourceName" class="source-tag">通过 {{ sourceName }}</div>
 				<div class="note-box">
 					<div class="note-label">更新内容：</div>
 					<div class="note-text" v-html="releaseNote"></div>
@@ -187,6 +196,14 @@ onUnmounted(() => {
 		font-size: 0.9rem;
 		margin-bottom: 1rem;
 		box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+	}
+
+	.source-tag {
+		display: inline-block;
+		color: #888;
+		font-size: 0.75rem;
+		margin-bottom: 0.6rem;
+		margin-left: 0.2rem;
 	}
 
 	.note-box {

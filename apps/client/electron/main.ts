@@ -17,6 +17,14 @@ import fsSync from "fs";
 import url from "node:url";
 import { autoUpdater } from "electron-updater";
 import log from "electron-log";
+import { loadUpdateSources, type UpdateSource } from "./update-config.js";
+
+// ============================================================
+// 更新源配置
+// ============================================================
+const UPDATE_CHANNEL = "monopoly-client";
+let currentUpdateSource: UpdateSource | null = null;
+let isFallbackInProgress = false;
 
 // --------- 错误日志处理 ---------
 
@@ -174,6 +182,7 @@ async function writeErrorLog(error: LogErrorData): Promise<string | null> {
 }
 
 autoUpdater.logger = log;
+autoUpdater.channel = UPDATE_CHANNEL;
 autoUpdater.autoDownload = false; // 关键：设为 false，防止游戏过程中自动抢网速
 autoUpdater.autoInstallOnAppQuit = true; // 退出时自动安装
 
@@ -289,12 +298,20 @@ function createWindow() {
 	});
 
 	autoUpdater.on("update-available", (info) => {
-		win && win.webContents.send("update-status", { status: "available", info });
+		win && win.webContents.send("update-status", {
+			status: "available",
+			info,
+			sourceName: currentUpdateSource?.name,
+		});
 	});
 
 	// 已经是最新
 	autoUpdater.on("update-not-available", (info) => {
-		win && win.webContents.send("update-status", { status: "not-available", info });
+		win && win.webContents.send("update-status", {
+			status: "not-available",
+			info,
+			sourceName: currentUpdateSource?.name,
+		});
 	});
 
 	// 下载进度
@@ -307,8 +324,9 @@ function createWindow() {
 		win && win.webContents.send("update-status", { status: "downloaded", info });
 	});
 
-	// 错误
+	// 错误 — fallback 期间的错误静默处理，由 checkForUpdatesWithFallback 循环接管
 	autoUpdater.on("error", (err) => {
+		if (isFallbackInProgress) return;
 		win && win.webContents.send("update-status", { status: "error", error: err.message });
 	});
 }
@@ -477,10 +495,57 @@ ipcMain.handle("map-cache:load", async (_event, mapId: string, hash: string) => 
 	}
 });
 
+// ============================================================
+// 多源自动 fallback 更新检查
+// ============================================================
+async function checkForUpdatesWithFallback() {
+	const sources = loadUpdateSources(app.getPath("userData"));
+	if (sources.length === 0) {
+		win?.webContents.send("update-status", {
+			status: "error",
+			error: "没有可用的更新源，请联系客服",
+		});
+		return;
+	}
+
+	autoUpdater.channel = UPDATE_CHANNEL;
+	isFallbackInProgress = true;
+
+	let lastError: string | null = null;
+
+	for (const source of sources) {
+		try {
+			log.info(`[Updater] 尝试源: "${source.name}" (${source.url})`);
+			autoUpdater.setFeedURL(source.url);
+			currentUpdateSource = source;
+
+			const result = await autoUpdater.checkForUpdates();
+
+			// 成功：update-available 或 update-not-available 事件已在上面处理
+			isFallbackInProgress = false;
+			return result;
+		} catch (err: any) {
+			log.info(`[Updater] 源 "${source.name}" 失败: ${err.message}`);
+			lastError = err.message;
+			// 继续尝试下一个源
+		}
+	}
+
+	isFallbackInProgress = false;
+	currentUpdateSource = null;
+
+	// 所有源均失败
+	win?.webContents.send("update-status", {
+		status: "error",
+		error: `所有更新源均不可用（共 ${sources.length} 个）\n${lastError || "未知错误"}`,
+		sourceName: "无",
+	});
+}
+
 // A. 检查更新（可以由前端触发，也可以启动时触发）
 ipcMain.handle("check-for-update", () => {
 	if (!app.isPackaged) return "dev-mode"; // 开发环境不检查
-	return autoUpdater.checkForUpdates();
+	return checkForUpdatesWithFallback();
 });
 
 // B. 开始下载

@@ -14,6 +14,7 @@ const version = ref("");
 const releaseNote = ref("");
 const downloadPercent = ref(0);
 const errorMsg = ref("");
+const sourceName = ref<string>();
 
 let removeListener: (() => void) | null = null;
 
@@ -58,6 +59,7 @@ onMounted(() => {
 					status.value = "available";
 					version.value = data.info.version;
 					releaseNote.value = (data.info.releaseNotes as string) || "修复了一些已知问题，优化了游戏体验。";
+					sourceName.value = data.sourceName || undefined;
 					visible.value = true;
 					break;
 
@@ -78,6 +80,12 @@ onMounted(() => {
 					if (status.value === "downloading") {
 						status.value = "error";
 						errorMsg.value = "网络连接中断，请稍后重试。";
+					} else if (serverErrorMsg.includes("所有更新源")) {
+						// 所有源均失败：在弹窗中展示完整信息
+						status.value = "error";
+						errorMsg.value = serverErrorMsg;
+						sourceName.value = data.sourceName || undefined;
+						visible.value = true;
 					} else {
 						status.value = "error";
 						message.error(`检查更新失败: ${serverErrorMsg}`);
@@ -111,6 +119,9 @@ onUnmounted(() => {
 			<div v-if="status === 'available'" class="scene-box">
 				<div class="version-row">
 					<a-tag color="#6200ea">版本: {{ version }}</a-tag>
+				</div>
+				<div v-if="sourceName" class="source-row">
+					<a-tag color="#888">通过 {{ sourceName }}</a-tag>
 				</div>
 				<div class="note-box">
 					<div class="note-label">更新内容：</div>
@@ -178,6 +189,10 @@ $bg-color-light: #f5f5f5;
 	// 1. 版本信息样式
 	.version-row {
 		margin-bottom: 1rem;
+	}
+
+	.source-row {
+		margin-bottom: 0.6rem;
 	}
 
 	.note-box {
