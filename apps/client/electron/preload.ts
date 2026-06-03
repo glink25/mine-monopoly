@@ -46,8 +46,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	logConsole: (data: LogConsoleData) => ipcRenderer.send("log-console", data),
 	logNetwork: (data: LogNetworkData) => ipcRenderer.send("log-network", data),
 	openLogsFolder: () => ipcRenderer.invoke("open-logs-folder"),
-	// Inspector (dev only)
-	openInspector: () => ipcRenderer.invoke("open-inspector"),
+	// Inspector (dev only) — only exposed in dev mode
+	...(process.env.VITE_DEV_SERVER_URL ? { openInspector: () => ipcRenderer.invoke("open-inspector") } : {}),
 });
 
 contextBridge.exposeInMainWorld("mapCacheLoader", {

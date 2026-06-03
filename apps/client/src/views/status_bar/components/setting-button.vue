@@ -468,8 +468,8 @@ const applySettings = () => {
 					</div>
 				</div>
 
-				<!-- 开发者工具 -->
-				<div class="setting-item">
+				<!-- 开发者工具（仅开发模式） -->
+				<div v-if="win.electronAPI?.openInspector" class="setting-item">
 					<div class="label">开发者</div>
 					<div class="content">
 						<button @click="openInspector" class="btn-purple">打开 游戏进程观察窗</button>

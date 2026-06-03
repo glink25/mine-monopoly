@@ -330,6 +330,7 @@ app.on("activate", () => {
 let inspectorWin: BrowserWindow | null = null;
 
 ipcMain.handle("open-inspector", async () => {
+	if (app.isPackaged) return;
 	if (inspectorWin && !inspectorWin.isDestroyed()) {
 		inspectorWin.focus();
 		return;
