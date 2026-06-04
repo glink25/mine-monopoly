@@ -134,6 +134,7 @@ jobs:
   upload-r2:
     needs: build
     runs-on: ubuntu-latest
+    environment: build
 
     steps:
       - uses: actions/download-artifact@v4
