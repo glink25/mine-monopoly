@@ -50,19 +50,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	...(process.env.VITE_DEV_SERVER_URL ? { openInspector: () => ipcRenderer.invoke("open-inspector") } : {}),
 });
 
-contextBridge.exposeInMainWorld("mapCacheLoader", {
-	async save(mapId: string, hash: string, arrayBuffer: ArrayBuffer): Promise<void> {
-		await ipcRenderer.invoke("map-cache:save", mapId, hash, arrayBuffer);
-	},
-	async load(mapId: string, hash: string): Promise<ArrayBuffer | undefined> {
-		const buffer = await ipcRenderer.invoke("map-cache:load", mapId, hash);
-		if (buffer) {
-			return buffer;
-		}
-		return undefined;
-	},
-});
-
 contextBridge.exposeInMainWorld("updateAPI", {
 	// 触发操作
 	checkForUpdate: () => ipcRenderer.invoke("check-for-update"),

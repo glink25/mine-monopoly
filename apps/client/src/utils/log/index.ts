@@ -12,12 +12,14 @@ import type {
 } from './types';
 import { ErrorLevel, ErrorCategory } from './types';
 
+import { getPlatformType } from "@src/utils/platform";
+
 // 动态导入存储适配器
 let storageInstance: any = null;
 
 async function getStorage() {
   if (!storageInstance) {
-    const isElectron = !!window.electronAPI;
+    const isElectron = getPlatformType() === "electron";
     if (isElectron) {
       const module = await import('./storage-electron');
       storageInstance = new module.ElectronLogStorage();
@@ -104,8 +106,8 @@ class LogService implements ILogService {
     };
 
     // 同时发送到 Electron（如果可用）
-    if (window.electronAPI?.logError) {
-      window.electronAPI.logError({
+    if (window.platformAPI?.logError) {
+      window.platformAPI.logError({
         type: log.type || 'Runtime',
         message: log.message,
         stack: log.stack,
@@ -148,8 +150,8 @@ class LogService implements ILogService {
     };
 
     // 同时发送到 Electron（如果可用）
-    if (window.electronAPI?.logError) {
-      window.electronAPI.logError({
+    if (window.platformAPI?.logError) {
+      window.platformAPI.logError({
         type: log.type || 'Runtime',
         message: log.message,
         stack: log.stack,
@@ -188,8 +190,8 @@ class LogService implements ILogService {
     };
 
     // 同时发送到 Electron（如果可用）
-    if (window.electronAPI?.logError) {
-      window.electronAPI.logError({
+    if (window.platformAPI?.logError) {
+      window.platformAPI.logError({
         type: log.type || 'Runtime',
         message: log.message,
         timestamp: log.createdAt,

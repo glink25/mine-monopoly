@@ -6,8 +6,9 @@ import "@src/assets/ui.scss";
 import "@src/assets/font/font.css";
 import contentFontUrl from "./assets/font/ContentFont.woff2?url";
 import contentFontAllUrl from "./assets/font/ContentFont-all.woff2?url";
-import { isPC } from "./utils/platform";
+import { getPlatformType, isPC } from "./utils/platform";
 import App from "./App.vue";
+import { initPlatform } from "./platform";
 
 // 根据平台动态加载 ContentFont：Electron 使用 ContentFont-all，网页使用 ContentFont
 const fontStyle = document.createElement("style");
@@ -176,8 +177,11 @@ library.add(
 	faBoxOpen,
 	faTrashCan
 );
-const pinia = createPinia();
+// 在创建 Pinia / App 之前初始化平台 API，
+// 避免 top-level await 打断 app.mount → Pinia 安装时序
+await initPlatform();
 
+const pinia = createPinia();
 const app = createApp(App);
 
 app.use(pinia).use(router).component("font-awesome-icon", FontAwesomeIcon).directive("sound", soundDirective).mount("#app");
@@ -261,8 +265,8 @@ function initDeviceStatusListener() {
 		deviceStatus.isFullScreen = _isFullScreen();
 	});
 
-	if (isPC()) {
-		window.electronAPI.onFullScreenChange((isFull) => {
+	if (getPlatformType() === "electron") {
+		window.platformAPI?.onFullScreenChange?.((isFull) => {
 			deviceStatus.isFullScreen = isFull;
 		});
 	}
@@ -286,7 +290,7 @@ function initDeviceStatusListener() {
 
 // 日志查看位置提示
 function getLogLocationHint(): string {
-	if (window.electronAPI) {
+	if (window.platformAPI?.openLogsFolder) {
 		return "日志已保存，请在 logs 文件夹中查看";
 	}
 	return "请按 F12 打开浏览器控制台查看详细日志";
@@ -297,8 +301,8 @@ function formatErrorType(errorType: string): string {
 	return errorType;
 }
 
-// 记录错误到 Electron 日志（增强版）
-function logErrorToElectron(errorData: {
+// 记录错误到平台日志（增强版）
+function logErrorToPlatform(errorData: {
 	type: "Vue" | "Promise" | "Runtime" | "Worker" | "Network" | "Console";
 	message: string;
 	stack?: string;
@@ -312,14 +316,14 @@ function logErrorToElectron(errorData: {
 	timestamp?: string;
 	additionalData?: Record<string, any>;
 }) {
-	if (window.electronAPI?.logError) {
-		window.electronAPI.logError(errorData);
+	if (window.platformAPI?.logError) {
+		window.platformAPI.logError(errorData);
 	}
 }
 
 // 记录控制台输出
-function logConsoleToElectron(level: "error" | "warn" | "info", ...args: any[]) {
-	if (window.electronAPI?.logConsole) {
+function logConsoleToPlatform(level: "error" | "warn" | "info", ...args: any[]) {
+	if (window.platformAPI?.logConsole) {
 		const message = args
 			.map(arg => {
 				if (typeof arg === "object") {
@@ -334,7 +338,7 @@ function logConsoleToElectron(level: "error" | "warn" | "info", ...args: any[]) 
 			.join(" ");
 
 		const error = args.find(arg => arg instanceof Error);
-		window.electronAPI.logConsole({
+		window.platformAPI.logConsole({
 			level,
 			message,
 			stack: error?.stack
@@ -350,17 +354,17 @@ function interceptConsole() {
 
 	console.error = (...args) => {
 		originalError.apply(console, args);
-		logConsoleToElectron("error", ...args);
+		logConsoleToPlatform("error", ...args);
 	};
 
 	console.warn = (...args) => {
 		originalWarn.apply(console, args);
-		logConsoleToElectron("warn", ...args);
+		logConsoleToPlatform("warn", ...args);
 	};
 
 	console.info = (...args) => {
 		originalInfo.apply(console, args);
-		logConsoleToElectron("info", ...args);
+		logConsoleToPlatform("info", ...args);
 	};
 }
 
@@ -377,7 +381,7 @@ app.config.errorHandler = (err, instance, info) => {
 
 	FPMessage({ type: "error", message: `${formatErrorType("Vue 错误")}\n${getLogLocationHint()}` });
 
-	logErrorToElectron({
+	logErrorToPlatform({
 		type: "Vue",
 		message: err instanceof Error ? err.message : String(err),
 		stack: err instanceof Error ? err.stack : undefined,
@@ -438,7 +442,7 @@ window.addEventListener("unhandledrejection", (event) => {
 
 	FPMessage({ type: "error", message: `${formatErrorType("异步错误")}\n${getLogLocationHint()}` });
 
-	logErrorToElectron({
+	logErrorToPlatform({
 		type: "Promise",
 		message: errMessage,
 		stack: reason instanceof Error ? reason.stack : undefined,
@@ -455,7 +459,7 @@ window.addEventListener("error", (event) => {
 
 	FPMessage({ type: "error", message: `${formatErrorType("运行时错误")}\n${getLogLocationHint()}` });
 
-	logErrorToElectron({
+	logErrorToPlatform({
 		type: "Runtime",
 		message: event.message,
 		stack: event.error?.stack,

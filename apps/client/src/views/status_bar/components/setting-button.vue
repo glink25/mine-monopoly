@@ -21,11 +21,11 @@ const logPanelVisible = ref(false);
 const win = window as any;
 
 const openInspector = () => {
-	window.electronAPI?.openInspector();
+	window.platformAPI?.openInspector?.();
 };
 
 const openLogsFolder = () => {
-	window.electronAPI
+	window.platformAPI
 		?.openLogsFolder?.()
 		.then((path: string) => {
 			console.log("日志文件夹已打开:", path);
@@ -462,14 +462,14 @@ const applySettings = () => {
 					<div class="label">日志</div>
 					<div class="content log-actions">
 						<button @click="logPanelVisible = true" class="log-button">查看日志</button>
-						<button v-if="win.electronAPI?.openLogsFolder" @click="openLogsFolder" class="log-button">
+						<button v-if="win.platformAPI?.openLogsFolder" @click="openLogsFolder" class="log-button">
 							打开日志文件夹
 						</button>
 					</div>
 				</div>
 
 				<!-- 开发者工具（仅开发模式） -->
-				<div v-if="win.electronAPI?.openInspector" class="setting-item">
+				<div v-if="win.platformAPI?.openInspector" class="setting-item">
 					<div class="label">开发者</div>
 					<div class="content">
 						<button @click="openInspector" class="btn-purple">打开 游戏进程观察窗</button>

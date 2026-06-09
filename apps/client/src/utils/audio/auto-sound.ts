@@ -50,7 +50,8 @@ export function initAutoSound() {
 	}
 
 	// 检查是否是 Electron 环境
-	const isElectron = isPC() && typeof window.electronAPI !== "undefined";
+	// isPC() 内部已通过 electronAPI 完成 Electron 检测
+	const isElectron = isPC();
 
 	// Electron 环境：立即播放背景音乐（无需用户交互）
 	if (isElectron) {

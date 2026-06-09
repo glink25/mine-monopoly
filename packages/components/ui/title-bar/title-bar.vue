@@ -9,7 +9,7 @@ const props = defineProps<{
 const isMaximized = ref(false);
 
 const checkMaximized = async () => {
-	isMaximized.value = await window.electronAPI.isMaximized();
+	isMaximized.value = await window.platformAPI?.isMaximized?.() ?? false;
 };
 
 onMounted(() => {
@@ -17,25 +17,25 @@ onMounted(() => {
 });
 
 const minimizeWindow = () => {
-	window.electronAPI.minimize();
+	window.platformAPI?.minimize?.();
 };
 
 const toggleMaximize = () => {
-	window.electronAPI.maximize();
+	window.platformAPI?.maximize?.();
 	checkMaximized();
 };
 
 const handleMaximize = () => {
 	if (window.innerWidth === screen.width && window.innerHeight === screen.height) {
-		window.electronAPI.unmaximize();
+		window.platformAPI?.unmaximize?.();
 	} else {
-		window.electronAPI.maximize();
+		window.platformAPI?.maximize?.();
 	}
 	checkMaximized();
 };
 
 const closeWindow = () => {
-	window.electronAPI.close();
+	window.platformAPI?.close?.();
 };
 </script>
 

@@ -7,7 +7,6 @@ import { getGameMapById } from "../api/map";
 import { useMapData, useResourceStore } from "@src/store/game";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { getDracoLoader } from "../draco/draco";
-import { isMobile, isPC } from "../platform";
 
 async function loadFromProductFile(data: Uint8Array, key: string): Promise<{
 	id: string;
@@ -62,31 +61,14 @@ async function loadFromProductFile(data: Uint8Array, key: string): Promise<{
 export async function getGameMap(gameMapInfo: GameMapInDb) {
 	const encryptKey = env("MAP_ENCRYPT_KEY", "");
 
-	if (isPC() || isMobile()) {
-		let mapCache = await window.mapCacheLoader.load(gameMapInfo.id, gameMapInfo.hash);
-		if (!mapCache) {
-			const response = await fetch(gameMapInfo.mapUrl);
-			const arrayBuffer = await response.arrayBuffer();
-			await window.mapCacheLoader.save(gameMapInfo.id, gameMapInfo.hash, arrayBuffer);
-			mapCache = arrayBuffer;
-		}
-		const bytes = new Uint8Array(mapCache);
-		// Detect format: .mmmap (encrypted product file) or .fpmap (legacy)
-		if (isProductFile(bytes)) {
-			return await loadFromProductFile(bytes, encryptKey);
-		} else {
-			return await loadFromProto(bytes);
-		}
+	const response = await fetch(gameMapInfo.mapUrl);
+	const arrayBuffer = await response.arrayBuffer();
+	const bytes = new Uint8Array(arrayBuffer);
+	// Detect format: .mmmap (encrypted product file) or .fpmap (legacy)
+	if (isProductFile(bytes)) {
+		return await loadFromProductFile(bytes, encryptKey);
 	} else {
-		const response = await fetch(gameMapInfo.mapUrl);
-		const arrayBuffer = await response.arrayBuffer();
-		const bytes = new Uint8Array(arrayBuffer);
-		// Detect format: .mmmap (encrypted product file) or .fpmap (legacy)
-		if (isProductFile(bytes)) {
-			return await loadFromProductFile(bytes, encryptKey);
-		} else {
-			return await loadFromProto(bytes);
-		}
+		return await loadFromProto(bytes);
 	}
 }
 

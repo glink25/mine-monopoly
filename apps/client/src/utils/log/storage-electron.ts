@@ -119,10 +119,9 @@ export class ElectronLogStorage implements ILogStorage {
    * 新日志仍会同时写入文件（通过 logError IPC）和 IndexedDB
    */
   private async loadFromFileIfNeeded(): Promise<void> {
-    const api = window.electronAPI as any;
-    if (!this.loadedFromFile && api?.getLogs) {
+    if (!this.loadedFromFile && window.platformAPI?.getHistoryLogs) {
       try {
-        const fileLogs = await api.getLogs();
+        const fileLogs = await window.platformAPI.getHistoryLogs();
         for (const log of fileLogs) {
           await this.idb.add(log);
         }
