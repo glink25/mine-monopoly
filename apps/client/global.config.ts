@@ -1,13 +1,13 @@
 import { env } from "@mine-monopoly/env";
 
 // 基础环境变量
-export const __USERSERVERHOST__ = `http://localhost:${env<number>("SERVER_PORT")}`;
+export const __USERSERVERHOST__ = `http://localhost:${env<number>("SERVER_PORT", 81)}`;
 
 const prefix = env("API_BASE_PREFIX", "");
 const domain = env("MONOPOLY_DOMAIN");
 const protocol = env("PROTOCOL");
-const port = env<number>("SERVER_PORT");
-const adminPort = env<number>("MONOPOLY_ADMIN_PORT");
+const port = env<number>("SERVER_PORT", 81);
+const adminPort = env<number>("MONOPOLY_ADMIN_PORT", 83);
 const icePrefix = env("ICE_BASE_PREFIX", "") || prefix;
 const adminPrefix = env("ADMIN_BASE_PREFIX", "") || prefix;
 
@@ -15,8 +15,8 @@ const adminPrefix = env("ADMIN_BASE_PREFIX", "") || prefix;
 export const __MONOPOLYSERVERHOST__ = prefix
 	? `${domain}${prefix}`
 	: `${domain}:${port}`;
-export const __APIPORT__ = env<number>("SERVER_PORT");
-export const __ICE_SERVER_PORT__ = env<number>("ICE_SERVER_PORT");
+export const __APIPORT__ = env<number>("SERVER_PORT", 81);
+export const __ICE_SERVER_PORT__ = env<number>("ICE_SERVER_PORT", 3478);
 export const __MONOPOLYSERVER__ = prefix
 	? `${protocol}://${domain}${prefix}`
 	: `${protocol}://${domain}:${port}`;
