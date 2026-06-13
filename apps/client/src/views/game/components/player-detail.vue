@@ -149,7 +149,7 @@ const chanceCardVisible = computed(() => {
 				position: relative;
 
 				& > .properyies-list {
-					padding: 1.2rem;
+					padding: 1.8rem 1rem;
 					flex: 1;
 					display: flex;
 					flex-direction: column;
@@ -166,6 +166,7 @@ const chanceCardVisible = computed(() => {
 						border-radius: 0.4rem;
 						box-shadow: var(--fp-shadow-md);
 						box-sizing: border-box;
+						background-color: #ffffff;
 
 						& > .name {
 							color: var(--fp-color-secondary);

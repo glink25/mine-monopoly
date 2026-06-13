@@ -556,6 +556,7 @@ function toggleExpand(logId: string) {
 	gap: 0.5rem;
 	cursor: pointer;
 	flex-wrap: wrap;
+	align-items: flex-start;
 }
 
 .log-level {
