@@ -4,6 +4,7 @@ import { deleteRoom, emitRoomHeart } from "@src/utils/api/room-router";
 import { __ICE_SERVER_PATH__, __ICE_USE_PREFIX__, __FATPAPER_HOST__ } from "@src/../global.config";
 import { handleClientSocketMessage } from "./client-message-handlers";
 import { Room } from "./Room";
+import { connectionDiagnostics } from "@src/utils/connection-diagnostics";
 
 export class MonopolyHost {
 	private peer: Peer;
@@ -222,19 +223,30 @@ export class MonopolyHost {
 
 	public static async create(roomId: string, host: string, port: number, heartContinuationTimeMs: number, iceServers: RTCIceServer[]) {
 		const peer = await new Promise<Peer>((resolve) => {
-			const peer = new Peer(
-				__ICE_USE_PREFIX__
-					? {
-							host: __FATPAPER_HOST__,
-							path: __ICE_SERVER_PATH__,
-							secure: true,
-							config: { iceServers },
-						}
-					: { host, port }
-			);
+			const peerOptions = __ICE_USE_PREFIX__
+				? {
+						host: __FATPAPER_HOST__,
+						path: __ICE_SERVER_PATH__,
+						secure: true,
+						config: { iceServers },
+					}
+				: { host, port, config: { iceServers } };
+
+			connectionDiagnostics.logPeerEvent("Host.Peer.constructor", JSON.stringify({
+				mode: __ICE_USE_PREFIX__ ? "prefix" : "port",
+			}));
+
+			const peer = new Peer(peerOptions);
 			peer.on("open", () => {
 				console.info("MonopolyHost开启成功");
+				connectionDiagnostics.logPeerEvent("Host.Peer.open", `peerId=${peer.id}`);
 				resolve(peer);
+			});
+			peer.on("error", (e) => {
+				connectionDiagnostics.logPeerEvent("Host.Peer.error", `type=${e.type} message=${e.message}`);
+			});
+			peer.on("disconnected", () => {
+				connectionDiagnostics.logPeerEvent("Host.Peer.disconnected", "主机的信令服务器断开");
 			});
 		});
 		const room = new Room(roomId);

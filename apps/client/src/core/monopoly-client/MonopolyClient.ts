@@ -24,6 +24,7 @@ import { handleServerSocketMessage } from "./host-message-handlers";
 import router from "@src/router";
 import { debounce } from "@src/utils";
 import { arrayBufferToBase64 } from "@mine-monopoly/utils";
+import { connectionDiagnostics } from "@src/utils/connection-diagnostics";
 
 type MonopolyClientOptions = {
 	iceServer: {
@@ -82,8 +83,20 @@ export class MonopolyClient {
 	}
 
 	public async joinRoom(roomId: string) {
+		// 重置诊断数据
+		connectionDiagnostics.reset();
+		connectionDiagnostics.stageStart("joinRoom_Total");
+
 		try {
+			connectionDiagnostics.stageStart("HTTP_JoinRequest");
 			const res = await joinRoomApi(roomId);
+			connectionDiagnostics.stageEnd("HTTP_JoinRequest", {
+				roomId,
+				needCreate: res.data.needCreate,
+				hasHostPeerId: !!res.data.hostPeerId,
+				iceServerCount: res.data.iceServers?.length || 0,
+			});
+
 			const data = res.data;
 			const userStore = useUserInfo();
 			let hostPeerId = data.hostPeerId;
@@ -91,6 +104,7 @@ export class MonopolyClient {
 			this.currentIceServers = data.iceServers;
 
 			if (data.needCreate) {
+				connectionDiagnostics.stageStart("Host_Create");
 				useLoading().showLoading("正在创建主机...");
 				if (this.gameHost) throw Error("你已经是主机了,为什么要再次创建房间!!!");
 				this.gameHost = await MonopolyHost.create(
@@ -105,15 +119,26 @@ export class MonopolyClient {
 					this.peerClient = null;
 				});
 				hostPeerId = this.gameHost.getPeerId();
+				connectionDiagnostics.stageEnd("Host_Create", { hostPeerId });
+
+				connectionDiagnostics.stageStart("HTTP_EmitHost");
 				useLoading().showLoading("主机创建成功，正在和服务器报喜...");
 				await emitHostPeerId(roomId, hostPeerId, userStore.username, userStore.userId);
+				connectionDiagnostics.stageEnd("HTTP_EmitHost", { roomId, hostPeerId });
 			}
 			if (hostPeerId) {
+				connectionDiagnostics.stageStart("Client_LinkToHost");
 				useLoading().showLoading("连接主机中...");
 				await this.linkToGameHost(hostPeerId);
+				connectionDiagnostics.stageEnd("Client_LinkToHost", { hostPeerId });
 			}
+
+			connectionDiagnostics.stageEnd("joinRoom_Total");
 		} catch (e: any) {
-			FPMessage({ type: "error", message: e?.message || "服务器连接失败" });
+			const errMsg = e?.message || "服务器连接失败";
+			connectionDiagnostics.stageFail("joinRoom_Total", errMsg);
+			connectionDiagnostics.printSummary();
+			FPMessage({ type: "error", message: errMsg });
 		}
 	}
 
@@ -140,7 +165,9 @@ export class MonopolyClient {
 			this.intervalList = [];
 
 			if (!this.peerClient) {
+				connectionDiagnostics.stageStart("PeerClient_Create");
 				this.peerClient = await PeerClient.create(this.iceServerHost, this.iceServerPort, this.currentIceServers);
+				connectionDiagnostics.stageEnd("PeerClient_Create");
 			}
 			const { conn, peer } = await this.peerClient.linkToHost(hostPeerId);
 			this.conn = conn;
@@ -152,7 +179,10 @@ export class MonopolyClient {
 				avatar,
 				isReady: false,
 			};
+
+			connectionDiagnostics.stageStart("Send_JoinRoom");
 			this.sendMsg({ type: SocketMsgType.JoinRoom, source: SocketMsgSource.Client, data: user });
+			connectionDiagnostics.stageEnd("Send_JoinRoom");
 
 			FPMessage({
 				type: "success",
@@ -182,6 +212,7 @@ export class MonopolyClient {
 						});
 					} catch {
 						console.error("Failed to parse server message:", _data);
+						connectionDiagnostics.warn("收到无法解析的主机消息");
 						return;
 					}
 					if (data.msg) {
@@ -198,6 +229,7 @@ export class MonopolyClient {
 			});
 
 			this.conn.on("close", () => {
+				connectionDiagnostics.logPeerEvent("DataConnection.close", "连接关闭");
 				if (this.isOnline) {
 					this.isOnline = false;
 					this.startReconnection();
@@ -205,6 +237,7 @@ export class MonopolyClient {
 			});
 
 			this.conn.on("error", (err) => {
+				connectionDiagnostics.logPeerEvent("DataConnection.error", `type=${err.type} message=${err.message}`);
 				if (this.isOnline && err.type === "not-open-yet") {
 					this.isOnline = false;
 					this.startReconnection();
@@ -215,6 +248,9 @@ export class MonopolyClient {
 				this.peerClient.destory();
 				this.peerClient = null;
 			}
+			connectionDiagnostics.checkRelayCandidates();
+			connectionDiagnostics.error(`linkToGameHost 异常: ${e?.message || e}`);
+			connectionDiagnostics.printSummary();
 			FPMessage({ type: "error", message: e?.message || e });
 		}
 	}

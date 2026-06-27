@@ -12,11 +12,14 @@ function getStunUrl(): string {
 }
 
 function getTurnUrl(): string {
-	return `turn:${env<string>("TURN_URL")}:${env<number>("TURN_PORT")}`;
+	// 3G 网络下 UDP 可能被运营商限速/丢包，用 turns: (TLS over TCP) 更可靠
+	return `turns:${env<string>("TURN_URL")}:${env<number>("TURN_PORT")}`;
 }
 
 function generateTurnCredentials(userId: string): { username: string; credential: string } {
-	const ttl = env<number>("TURN_TTL");
+	// env() 返回字符串，TURN_TTL 不匹配 PORT 模式不会被自动转为 number
+	// 必须显式 Number() 否则数字+字符串会变成字符串拼接 → HMAC 永远不匹配
+	const ttl = Number(env("TURN_TTL"));
 	const secret = env<string>("TURN_SECRET");
 	const timestamp = Math.floor(Date.now() / 1000) + ttl;
 	const username = `${timestamp}:${userId}`;

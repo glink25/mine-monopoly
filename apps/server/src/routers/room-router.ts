@@ -49,6 +49,7 @@ roomRouter.get("/join", async (req, res, next) => {
 		}
 	}
 	const iceServers = generateIceServers(userId);
+	console.log(`[room-router] /join roomId=${roomId} userId=${userId || "guest"} iceServers=${JSON.stringify(iceServers.map(s => s.urls))}`);
 
 	if (roomId && roomId.length < 13) {
 		if (roomMap.has(roomId)) {

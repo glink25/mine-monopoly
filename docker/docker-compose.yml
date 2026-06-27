@@ -36,11 +36,13 @@ services:
       - "${TURN_PORT:-5349}:5349/udp" # TURN TLS UDP
     volumes:
       - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+      - ${COTURN_CERTS_PATH:-./coturn/certs}:/etc/coturn/certs:ro
     env_file:
       - .env
     command:
       - "-c"
       - "/etc/coturn/turnserver.conf"
+      - "--external-ip=${EXTERNAL_IP}"
       - "--prometheus"
       - "--prometheus-port=9641"
       - "--log-file=stdout"

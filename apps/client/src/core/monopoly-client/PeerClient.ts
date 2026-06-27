@@ -1,6 +1,7 @@
 import { useLoading } from "@src/store";
 import { __ICE_SERVER_PATH__, __ICE_USE_PREFIX__, __FATPAPER_HOST__ } from "@src/../global.config";
 import Peer, { DataConnection } from "peerjs";
+import { connectionDiagnostics } from "@src/utils/connection-diagnostics";
 
 export class PeerClient {
 	private peer: Peer;
@@ -17,19 +18,49 @@ export class PeerClient {
 			this.conn = null;
 		}
 
+		connectionDiagnostics.stageStart("DataConnection");
+
+		// 监听 ICE 连接状态（尝试访问底层 RTCPeerConnection）
+		this.monitorIceState();
+
 		const conn = await new Promise<DataConnection>((resolve, reject) => {
 			const timeOutId = setTimeout(() => {
-				reject("连接主机超时, 连不上主机捏😣");
-			}, 5000);
-			const conn = this.peer.connect(hostId);
+				const reason = "连接主机超时 (15s)";
+				connectionDiagnostics.stageFail("DataConnection", reason, {
+					hostId,
+					peerId: this.peer.id,
+					iceConnectionState: this.getIceConnectionState(),
+				});
+				connectionDiagnostics.checkRelayCandidates();
+				reject(reason + ", 连不上主机捏😣");
+			}, 15000);
+
+			const conn = this.peer.connect(hostId, {
+				reliable: true,
+			});
+
 			conn.on("open", () => {
 				clearTimeout(timeOutId);
+				connectionDiagnostics.stageEnd("DataConnection", {
+					hostId,
+					peerId: this.peer.id,
+					connectionId: conn.connectionId,
+				});
 				resolve(conn);
 			});
+
 			conn.on("error", (e) => {
 				clearTimeout(timeOutId);
+				connectionDiagnostics.stageFail("DataConnection", `连接错误: ${e.message || e}`, {
+					hostId,
+					peerId: this.peer.id,
+					errorType: e.type || "unknown",
+				});
 				reject(e);
 			});
+
+			// 监听 DataConnection 的 ICE 状态
+			this.patchDataConnectionForIceLogging(conn);
 		});
 
 		this.conn = conn;
@@ -37,31 +68,182 @@ export class PeerClient {
 	}
 
 	public static async create(host: string, port: number, iceServers: RTCIceServer[]) {
-		//向服务器和获取自己的peerId
+		connectionDiagnostics.stageStart("SignalingConnect");
+		connectionDiagnostics.setIceServers(iceServers);
+		connectionDiagnostics.setSignalingInfo(
+			__ICE_USE_PREFIX__ ? `${__FATPAPER_HOST__}${__ICE_SERVER_PATH__}` : `${host}:${port}`,
+			!!__ICE_USE_PREFIX__,
+		);
+		connectionDiagnostics.captureNetworkInfo();
+
+		// 向 PeerJS 信令服务器获取自己的 peerId
 		const peer = await new Promise<Peer>((resolve, reject) => {
-			const peer = new Peer(
-				__ICE_USE_PREFIX__
-					? {
-							host: __FATPAPER_HOST__,
-							path: __ICE_SERVER_PATH__,
-							secure: true,
-							config: { iceServers },
-						}
-					: { host, port }
-			);
-			peer.addListener("open", (id) => {
+			const peerOptions = __ICE_USE_PREFIX__
+				? {
+						host: __FATPAPER_HOST__,
+						path: __ICE_SERVER_PATH__,
+						secure: true,
+						config: { iceServers },
+					}
+				: { host, port, config: { iceServers } };
+
+			connectionDiagnostics.logPeerEvent("Peer.constructor", JSON.stringify({
+				mode: __ICE_USE_PREFIX__ ? "prefix" : "port",
+				host: __ICE_USE_PREFIX__ ? __FATPAPER_HOST__ : host,
+				path: __ICE_USE_PREFIX__ ? __ICE_SERVER_PATH__ : undefined,
+				port: __ICE_USE_PREFIX__ ? undefined : port,
+			}));
+
+			const peer = new Peer(peerOptions);
+
+			// 注册 PeerJS 生命周期事件
+			peer.on("open", (id) => {
 				console.log("ice服务器连接成功, ID:", id);
-				peer.removeAllListeners();
+				connectionDiagnostics.logPeerEvent("Peer.open", `peerId=${id}`);
+				connectionDiagnostics.stageEnd("SignalingConnect", { peerId: id });
 				resolve(peer);
 			});
-			peer.addListener("error", (e) => {
+
+			peer.on("error", (e) => {
+				connectionDiagnostics.logPeerEvent("Peer.error", `type=${e.type} message=${e.message}`);
+				connectionDiagnostics.stageFail("SignalingConnect", `Peer错误: ${e.type} - ${e.message}`);
 				reject(e);
 			});
+
+			peer.on("disconnected", () => {
+				connectionDiagnostics.logPeerEvent("Peer.disconnected", "信令服务器断开连接");
+				connectionDiagnostics.warn("PeerJS 信令服务器断开连接 (disconnected)");
+			});
+
+			peer.on("close", () => {
+				connectionDiagnostics.logPeerEvent("Peer.close", "Peer 连接关闭");
+			});
+
+			// 监听 ICE 候选（在 Peer 对象上拦截）
+			PeerClient.patchPeerForIceLogging(peer);
 		});
+
 		return new PeerClient(peer);
 	}
 
+	/**
+	 * 尝试拦截底层 RTCPeerConnection 来记录 ICE 候选
+	 */
+	private static patchPeerForIceLogging(peer: Peer) {
+		try {
+			// PeerJS 内部会创建 RTCPeerConnection，我们拦截它的创建
+			const origConnect = peer.connect.bind(peer);
+			// 这里只是注册一个标记，实际的 patch 在 linkToHost 后进行
+		} catch (e) {
+			// 静默失败，诊断功能不应影响主流程
+		}
+	}
+
+	/**
+	 * 监控底层 RTCPeerConnection 的 ICE 连接状态
+	 */
+	private monitorIceState() {
+		try {
+			// 尝试从 Peer 内部获取 RTCPeerConnection
+			const anyPeer = this.peer as any;
+			// PeerJS 1.x 内部结构：peer._connections 或 peer._connectionQueue
+			const connections = anyPeer._connections || anyPeer.connections || {};
+			// 轮询检查（因为 DataConnection 尚未建立）
+			let checkCount = 0;
+			const interval = setInterval(() => {
+				checkCount++;
+				if (checkCount > 50) {
+					clearInterval(interval);
+					return;
+				}
+				// 遍历所有连接，监控其 RTCPeerConnection
+				for (const key of Object.keys(connections)) {
+					const conns = connections[key];
+					if (Array.isArray(conns)) {
+						for (const dc of conns) {
+							if (dc.peerConnection) {
+								const pc = dc.peerConnection as RTCPeerConnection;
+								const state = pc.iceConnectionState;
+								connectionDiagnostics.logPeerEvent("ICE.state", state);
+								if (state === "failed" || state === "disconnected") {
+									connectionDiagnostics.error(`ICE 连接状态: ${state}`);
+								}
+								// 收集已有 ICE 候选
+								PeerClient.logExistingIceCandidates(pc);
+								clearInterval(interval);
+								return;
+							}
+						}
+					}
+				}
+			}, 200);
+		} catch (e) {
+			// 静默失败
+		}
+	}
+
+	private static logExistingIceCandidates(pc: RTCPeerConnection) {
+		try {
+			// 注册 onicecandidate 来收集后续候选
+			pc.onicecandidate = (event) => {
+				if (event.candidate) {
+					connectionDiagnostics.logIceCandidate(event.candidate);
+				}
+			};
+			pc.oniceconnectionstatechange = () => {
+				connectionDiagnostics.logPeerEvent("ICE.connectionStateChange", pc.iceConnectionState);
+				if (pc.iceConnectionState === "failed") {
+					connectionDiagnostics.error("ICE 连接失败 — 可能 TURN/STUN 不可达或 NAT 过于严格");
+				}
+			};
+			pc.onicegatheringstatechange = () => {
+				connectionDiagnostics.logPeerEvent("ICE.gatheringState", pc.iceGatheringState);
+			};
+		} catch (e) {
+			// 静默失败
+		}
+	}
+
+	/**
+	 * 为 DataConnection 打补丁以记录 ICE 日志
+	 */
+	private patchDataConnectionForIceLogging(conn: DataConnection) {
+		try {
+			const dc = conn as any;
+			if (dc.peerConnection) {
+				const pc = dc.peerConnection as RTCPeerConnection;
+				PeerClient.logExistingIceCandidates(pc);
+			}
+		} catch (e) {
+			// 静默失败
+		}
+	}
+
+	/**
+	 * 获取当前 ICE 连接状态
+	 */
+	private getIceConnectionState(): string {
+		try {
+			const anyPeer = this.peer as any;
+			const connections = anyPeer._connections || anyPeer.connections || {};
+			for (const key of Object.keys(connections)) {
+				const conns = connections[key];
+				if (Array.isArray(conns)) {
+					for (const dc of conns) {
+						if (dc.peerConnection) {
+							return (dc.peerConnection as RTCPeerConnection).iceConnectionState;
+						}
+					}
+				}
+			}
+		} catch {
+			// 静默
+		}
+		return "unknown";
+	}
+
 	public destory() {
+		connectionDiagnostics.logPeerEvent("PeerClient.destory", "PeerClient 销毁");
 		this.peer.destroy();
 		this.conn = null;
 	}
