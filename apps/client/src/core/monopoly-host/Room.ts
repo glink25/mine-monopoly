@@ -1581,7 +1581,7 @@ export class Room {
 			}
 
 			// 2. 保存到 IndexedDB
-			const mapId = this.mapInfo?.from === "server" ? this.mapInfo.data : "";
+			const mapId = this.mapInfo?.from === "server" ? this.mapInfo.data : useMapData().id;
 			const mapVersion = useMapData().info?.version ?? "0.0.0";
 			const mapName = useMapData().info?.name ?? "未知地图";
 
@@ -1771,7 +1771,7 @@ export class Room {
 							break;
 						}
 						const { snapshot } = msg.data;
-						const mapId = this.mapInfo?.from === "server" ? this.mapInfo.data : "";
+						const mapId = this.mapInfo?.from === "server" ? this.mapInfo.data : useMapData().id;
 						const mapVersion = useMapData().info?.version ?? "0.0.0";
 						const mapName = useMapData().info?.name ?? "未知地图";
 						// 获取玩家名字列表

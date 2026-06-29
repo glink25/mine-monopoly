@@ -347,6 +347,7 @@ const handleChangeMapInternal: ServerMessageHandler<SocketMsgType.ChangeMap> = a
 		}
 		FPMessage({ type: "info", message: `地图加载成功: ${mapInfo.name} v${mapInfo.version}` });
 		useRoomInfo().mapInfo = mapInfo;
+		useRoomInfo().mapId = mapInfo.id;
 		//地图加载完毕后发送信号
 		client.sendMsg({
 			type: SocketMsgType.Operation,
