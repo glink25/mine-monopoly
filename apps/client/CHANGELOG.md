@@ -1,5 +1,12 @@
 # @mine-monopoly/client
 
+## 1.1.9
+
+### Patch Changes
+
+- - 修复跨网络连接失败问题，连接更稳定可靠
+  - 修复房间页面布局显示异常，手机端适配优化
+
 ## 1.1.8
 
 ### Patch Changes
