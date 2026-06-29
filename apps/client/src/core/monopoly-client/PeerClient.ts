@@ -188,7 +188,7 @@ export class PeerClient {
 	private static logExistingIceCandidates(pc: RTCPeerConnection) {
 		try {
 			// 拦截原始的 RTCPeerConnection 来过滤 ICE 候选
-			const origOnIceCandidate = pc.onicecandidate;
+			let origOnIceCandidate = pc.onicecandidate;
 
 			// 覆盖 onicecandidate 属性以过滤候选
 			Object.defineProperty(pc, "onicecandidate", {
