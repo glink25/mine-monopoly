@@ -1,5 +1,11 @@
 # @mine-monopoly/client
 
+## 1.1.10
+
+### Patch Changes
+
+- - 修复官方地图存档后，再次选择该地图时"读取存档"按钮不显示的问题
+
 ## 1.1.9
 
 ### Patch Changes
