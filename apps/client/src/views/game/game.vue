@@ -25,7 +25,7 @@
 	import GameButtonsPanel from "./components/game-buttons-panel.vue";
 	import { useGameData, useMapData } from "@src/store/game";
 	import { useUserInfo } from "@src/store";
-	import { CustomUI, GameMap, UISchema } from "@mine-monopoly/types";
+	import { CustomUI, GameMap, UISchema, MapEventChangedData } from "@mine-monopoly/types";
 	import { compileTsToJs } from "@src/utils";
 	import { useAudioManager } from "@src/utils/audio/AudioManager";
 	import { SoundName } from "@src/utils/audio/types";
@@ -93,6 +93,45 @@
 					audioManager.playSound(SoundName.GAIN_MONEY);
 				} else if (newMoney < oldMoney) {
 					audioManager.playSound(SoundName.LOSE_MONEY);
+				}
+			});
+
+			// 监听动态地图事件变更
+			eventBus.on("map-event-changed", (data: MapEventChangedData) => {
+				if (!gameRenderer) return;
+				switch (data.action) {
+					case "link":
+						if (data.mapEvent && data.mapItemId) {
+							gameRenderer.addEventIcon(data.mapItemId, data.mapEvent);
+							gameRenderer.setMapItemEventUserData(data.mapItemId, data.mapEvent);
+						}
+						break;
+					case "add":
+						if (data.mapEvent) {
+							const linkedItem = mapDataStore.mapItems.find((m) => m.mapEventId === data.mapEvent!.id);
+							if (linkedItem) {
+								gameRenderer.addEventIcon(linkedItem.id, data.mapEvent);
+								gameRenderer.setMapItemEventUserData(linkedItem.id, data.mapEvent);
+							}
+						}
+						break;
+					case "remove":
+						if (data.mapEventId) {
+							// 移除所有关联此事件的地块上的图标
+							for (const item of mapDataStore.mapItems) {
+								if (item.mapEventId === data.mapEventId) {
+									gameRenderer.removeEventIcon(item.id);
+									gameRenderer.setMapItemEventUserData(item.id, null);
+								}
+							}
+						}
+						break;
+					case "unlink":
+						if (data.mapItemId) {
+							gameRenderer.removeEventIcon(data.mapItemId);
+							gameRenderer.setMapItemEventUserData(data.mapItemId, null);
+						}
+						break;
 				}
 			});
 		} catch (e: any) {

@@ -771,6 +771,99 @@ export class GameProcess implements IGameProcess {
 		});
 	}
 
+	// ==================== 动态地图事件管理 ====================
+
+	/**
+	 * 运行时动态添加地图事件
+	 * 编译 effectCode 并注册到 mapEvents，同时通知所有客户端
+	 * @param mapEvent 地图事件（含 effectCode TypeScript 代码）
+	 */
+	public addRuntimeMapEvent(mapEvent: MapEvent): void {
+		try {
+			const effectCode = compileTsToJs(mapEvent.effectCode, this.fullTypes);
+			const runtimeEvent: RuntimeMapEvent = {
+				...mapEvent,
+				effectCode,
+				fn: new Function(effectCode)(),
+			};
+			this.mapEvents.set(mapEvent.id, runtimeEvent);
+			this.gameBroadcast({
+				type: SocketMsgType.MapEventChanged,
+				source: SocketMsgSource.Server,
+				data: { action: "add", mapEvent },
+			});
+		} catch (e: any) {
+			console.error(`[addRuntimeMapEvent] 地图事件 "${mapEvent.name || mapEvent.id}" 添加失败:`, e);
+			reportWorkerError(e, `动态地图事件添加: ${mapEvent.name || mapEvent.id}`);
+		}
+	}
+
+	/**
+	 * 运行时动态移除地图事件
+	 * @param mapEventId 事件 ID
+	 */
+	public removeRuntimeMapEvent(mapEventId: string): void {
+		if (this.mapEvents.has(mapEventId)) {
+			this.mapEvents.delete(mapEventId);
+			// 清理所有引用此事件的地块
+			for (const [, mapItem] of this.mapItems) {
+				if (mapItem.mapEventId === mapEventId) {
+					mapItem.mapEventId = undefined;
+				}
+			}
+			this.gameBroadcast({
+				type: SocketMsgType.MapEventChanged,
+				source: SocketMsgSource.Server,
+				data: { action: "remove", mapEventId },
+			});
+		}
+	}
+
+	/**
+	 * 运行时动态关联地图事件到地块
+	 * @param mapItemId 地块 ID
+	 * @param mapEventId 事件 ID
+	 */
+	public linkMapEvent(mapItemId: string, mapEventId: string): void {
+		const mapItem = this.mapItems.get(mapItemId);
+		if (!mapItem) {
+			console.warn(`[linkMapEvent] 找不到地块: ${mapItemId}`);
+			return;
+		}
+		const mapEvent = this.mapEvents.get(mapEventId);
+		if (!mapEvent) {
+			console.warn(`[linkMapEvent] 找不到地图事件: ${mapEventId}`);
+			return;
+		}
+		mapItem.mapEventId = mapEventId;
+		// 剥离不可序列化的 fn 属性后广播
+		const { fn: _fn, ...serializableEvent } = mapEvent;
+		this.gameBroadcast({
+			type: SocketMsgType.MapEventChanged,
+			source: SocketMsgSource.Server,
+			data: { action: "link", mapEventId, mapItemId, mapEvent: serializableEvent },
+		});
+	}
+
+	/**
+	 * 运行时取消地块的事件关联
+	 * @param mapItemId 地块 ID
+	 */
+	public unlinkMapEvent(mapItemId: string): void {
+		const mapItem = this.mapItems.get(mapItemId);
+		if (!mapItem) {
+			console.warn(`[unlinkMapEvent] 找不到地块: ${mapItemId}`);
+			return;
+		}
+		const previousEventId = mapItem.mapEventId;
+		mapItem.mapEventId = undefined;
+		this.gameBroadcast({
+			type: SocketMsgType.MapEventChanged,
+			source: SocketMsgSource.Server,
+			data: { action: "unlink", mapEventId: previousEventId, mapItemId },
+		});
+	}
+
 	/**
 	 * 获取玩家的所有按钮（用于解决时序问题）
 	 * @param playerId 玩家ID

@@ -789,6 +789,17 @@ export interface SocketMessageDataType {
 		/** 服务器发送的数据（不支持） */
 		server: never;
 	};
+
+	/**
+	 * 地图事件动态变更
+	 * 服务器通知客户端地图事件发生了变化
+	 */
+	[SocketMsgType.MapEventChanged]: {
+		/** 客户端发送的数据（不支持） */
+		client: never;
+		/** 服务器发送的事件变更数据 */
+		server: MapEventChangedData;
+	};
 }
 
 /**
@@ -851,6 +862,21 @@ export interface MapChunkAckData {
 export interface MapChunkAbortData {
 	/** 中止原因 */
 	reason: string;
+}
+
+/**
+ * 地图事件动态变更数据
+ * 支持的操作：add（添加事件）、remove（移除事件）、link（关联到地块）、unlink（取消关联）
+ */
+export interface MapEventChangedData {
+	/** 操作类型 */
+	action: "add" | "remove" | "link" | "unlink";
+	/** 地图事件（add 时必填） */
+	mapEvent?: import("./item").MapEvent;
+	/** 事件 ID（remove / link / unlink 时必填） */
+	mapEventId?: string;
+	/** 地块 ID（link / unlink 时必填） */
+	mapItemId?: string;
 }
 
 /**

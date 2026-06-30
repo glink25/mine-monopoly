@@ -38,7 +38,7 @@ import { base64ToArrayBuffer } from "@mine-monopoly/utils";
 import { showTargetSelector } from "@src/components/common/target-seletor";
 import { showItemSelector } from "@src/components/utils/item-selector";
 import { FPMessageCard } from "../../components/utils/fp-message-card/index";
-import { MapChunkStartData, MapChunkData, MapChunkEndData, MapChunkAbortData, RoomMapInfo } from "@mine-monopoly/types";
+import { MapChunkStartData, MapChunkData, MapChunkEndData, MapChunkAbortData, RoomMapInfo, MapEventChangedData } from "@mine-monopoly/types";
 
 /** 地图分块接收状态 */
 interface ChunkReceiveState {
@@ -219,6 +219,9 @@ export function handleServerSocketMessage(msg: ServerSocketMessage, client: Mono
 			break;
 		case SocketMsgType.MapChunkAbort:
 			handleMapChunkAbort(msg, client);
+			break;
+		case SocketMsgType.MapEventChanged:
+			handleMapEventChanged(msg, client);
 			break;
 		default:
 			break;
@@ -775,6 +778,67 @@ const handleSafeModePanel: ServerMessageHandler<SocketMsgType.SafeModePanel> = (
 	const eventBus = useEventBus();
 	useLoading().hideLoading();
 	eventBus.emit('safe-mode:show', msg.data);
+};
+
+const handleMapEventChanged: ServerMessageHandler<SocketMsgType.MapEventChanged> = (msg) => {
+	const data = msg.data as MapEventChangedData;
+	const mapDataStore = useMapData();
+	const eventBus = useEventBus();
+
+	switch (data.action) {
+		case "add": {
+			if (data.mapEvent) {
+				// 添加到 store
+				const existing = mapDataStore.mapEvents.findIndex((e) => e.id === data.mapEvent!.id);
+				if (existing === -1) {
+					mapDataStore.mapEvents.push(data.mapEvent);
+				}
+				eventBus.emit("map-event-changed", data);
+			}
+			break;
+		}
+		case "remove": {
+			if (data.mapEventId) {
+				const idx = mapDataStore.mapEvents.findIndex((e) => e.id === data.mapEventId);
+				if (idx !== -1) {
+					mapDataStore.mapEvents.splice(idx, 1);
+				}
+				// 清理所有引用此事件的地块
+				for (const mapItem of mapDataStore.mapItems) {
+					if (mapItem.mapEventId === data.mapEventId) {
+						mapItem.mapEventId = undefined;
+					}
+				}
+				eventBus.emit("map-event-changed", data);
+			}
+			break;
+		}
+		case "link": {
+			if (data.mapItemId && data.mapEventId && data.mapEvent) {
+				// 确保事件已存在于 store（可能 link 先于 add 到达）
+				const eventIdx = mapDataStore.mapEvents.findIndex((e) => e.id === data.mapEventId);
+				if (eventIdx === -1) {
+					mapDataStore.mapEvents.push(data.mapEvent);
+				}
+				const mapItem = mapDataStore.mapItems.find((m) => m.id === data.mapItemId);
+				if (mapItem) {
+					mapItem.mapEventId = data.mapEventId;
+				}
+				eventBus.emit("map-event-changed", data);
+			}
+			break;
+		}
+		case "unlink": {
+			if (data.mapItemId) {
+				const mapItem = mapDataStore.mapItems.find((m) => m.id === data.mapItemId);
+				if (mapItem) {
+					mapItem.mapEventId = undefined;
+				}
+				eventBus.emit("map-event-changed", data);
+			}
+			break;
+		}
+	}
 };
 
 function buildDefaultFormData(fields: FormField<string, any>[]): Record<string, any> {

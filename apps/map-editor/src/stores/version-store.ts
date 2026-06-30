@@ -202,12 +202,6 @@ export const useVersionStore = defineStore("Version", {
 		 */
 		async saveCurrent(message?: string): Promise<void> {
 			if (!this.isDirFormat || !this.mapDir) return;
-
-			// 先检查是否有实际变更，没有就跳过
-			if (!(await window.gitAPI.hasChanges(this.mapDir))) {
-				return;
-			}
-
 			this.isSaving = true;
 			try {
 				const mapDataStore = useMapDataStore();
@@ -223,6 +217,11 @@ export const useVersionStore = defineStore("Version", {
 					resourceStore.images,
 					this.mapDir,
 				);
+
+				// 没有实质变更则跳过提交
+				if (!(await window.gitAPI.hasChanges(this.mapDir))) {
+					return;
+				}
 
 				// git commit
 				const msg = message || `save: ${new Date().toLocaleString()}`;

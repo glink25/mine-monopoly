@@ -4,8 +4,9 @@ import { GameMap } from "../map";
 import { PlayerOperationResult, ServerSocketMessage } from "../socket";
 import { IPlayer, IProperty, IChanceCard } from "./entities"; // 引用 entities
 import { ChanceCardInfo } from "./infos"; // 引用 infos
-import { IGameRuntimeStack, GameContext, GameEvent, GameRuntimeEvent } from "./events"; // 引用 events
+import { IGameRuntimeStack, GameContext, GameEvent, GameRuntimeEvent, RuntimeMapEvent } from "./events"; // 引用 events
 import { ButtonController } from "../button"; // 引用 button
+import { MapEvent } from "../item"; // 引用 item
 
 import {
 	ConfirmDialogOption,
@@ -399,4 +400,31 @@ export interface IGameProcess extends IGameProcessCustomFields {
 	 * 检查游戏是否结束
 	 */
 	checkGameOver(): Promise<void>;
+
+	// ===== 动态地图事件管理 =====
+
+	/**
+	 * 运行时动态添加地图事件
+	 * @param mapEvent - 地图事件（含 effectCode TypeScript 代码）
+	 */
+	addRuntimeMapEvent(mapEvent: MapEvent): void;
+
+	/**
+	 * 运行时动态移除地图事件
+	 * @param mapEventId - 事件 ID
+	 */
+	removeRuntimeMapEvent(mapEventId: string): void;
+
+	/**
+	 * 运行时动态关联地图事件到地块（支持 1:N，同一事件可关联多个地块）
+	 * @param mapItemId - 地块 ID
+	 * @param mapEventId - 事件 ID（可以是地图自带的已有事件）
+	 */
+	linkMapEvent(mapItemId: string, mapEventId: string): void;
+
+	/**
+	 * 运行时取消地块的事件关联
+	 * @param mapItemId - 地块 ID
+	 */
+	unlinkMapEvent(mapItemId: string): void;
 }

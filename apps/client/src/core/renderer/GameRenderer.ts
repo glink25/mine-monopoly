@@ -75,7 +75,7 @@ export class GameRenderer {
 		string,
 		{ group: THREE.Group; textSprite: TextSprite }
 	>();
-	private arrivedEventIcons: Map<string, THREE.Mesh> = new Map<string, THREE.Mesh>();
+	private arrivedEventIcons: Map<string, THREE.Mesh> = new Map<string, THREE.Mesh>(); // key = mapItemId
 	private playerPosition: Map<string, number> = new Map<string, number>();
 	private playerPendingWalks: Map<string, string> = new Map<string, string>(); // 防止同一玩家的走路动画并发执行
 	private requestAnimationFrameId: number = -1;
@@ -460,7 +460,7 @@ export class GameRenderer {
 				const iconPlane = new THREE.Mesh(planeGeometry, planeMaterial);
 				iconPlane.rotateX(-Math.PI / 2);
 				iconPlane.renderOrder = 1;
-				this.arrivedEventIcons.set(arrivedEvent.id, iconPlane);
+				this.arrivedEventIcons.set(mapItem.id, iconPlane);
 				this.mapContainer.add(iconPlane);
 
 				// 获取格子表面高度
@@ -1887,6 +1887,95 @@ export class GameRenderer {
 	private setItemPositionOnMap(object: THREE.Object3D, x: number, z: number, rotation = 0, y: number = 0) {
 		object.position.set(x + 0.5, y, z + 0.5);
 		object.rotation.y = (Math.PI / 2) * rotation;
+	}
+
+	/**
+	 * 动态添加地图事件图标到场景
+	 * @param mapItemId 地块 ID
+	 * @param mapEvent 地图事件（含 iconId）
+	 */
+	public async addEventIcon(mapItemId: string, mapEvent: { id: string; iconId: string }): Promise<void> {
+		// 如果该地块上已经有图标，先移除（同一地块只允许一个事件图标）
+		if (this.arrivedEventIcons.has(mapItemId)) {
+			this.removeEventIcon(mapItemId);
+		}
+
+		const mapItemModel = this.mapItemsInScene.get(mapItemId);
+		if (!mapItemModel) return;
+
+		const iconUrl = useResourceStore().getRecourceById(mapEvent.iconId)?.url;
+		if (!iconUrl) return;
+
+		// 立即设置占位，防止并发重复加载
+		const placeholder = new THREE.Mesh();
+		this.arrivedEventIcons.set(mapItemId, placeholder);
+
+		const textureLoader = new THREE.TextureLoader();
+		const texture = await textureLoader.loadAsync(iconUrl);
+		texture.colorSpace = THREE.SRGBColorSpace;
+
+		// 检查是否在加载期间被移除（unlink/remove 先于加载完成到达）
+		if (this.arrivedEventIcons.get(mapItemId) !== placeholder) {
+			placeholder.geometry?.dispose();
+			(placeholder.material as THREE.Material)?.dispose();
+			return;
+		}
+
+		const planeGeometry = new THREE.PlaneGeometry(1, 1);
+		const planeMaterial = new THREE.MeshBasicMaterial({
+			map: texture,
+			side: THREE.DoubleSide,
+			transparent: true,
+			depthTest: true,
+			depthWrite: false,
+		});
+		const iconPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+		iconPlane.rotateX(-Math.PI / 2);
+		iconPlane.renderOrder = 1;
+		// 替换占位
+		this.mapContainer.remove(placeholder);
+		this.arrivedEventIcons.set(mapItemId, iconPlane);
+		this.mapContainer.add(iconPlane);
+
+		const surfaceY = this.getMapItemSurfaceHeight(mapItemModel);
+		const mapItem = this.mapData.mapItems.find((m) => m.id === mapItemId);
+		if (mapItem) {
+			this.setItemPositionOnMap(iconPlane, mapItem.x, mapItem.y, 0, surfaceY + 0.01);
+		}
+	}
+
+	/**
+	 * 动态移除地图事件图标
+	 * @param mapEventId 事件 ID
+	 */
+	public removeEventIcon(mapItemId: string): void {
+		const icon = this.arrivedEventIcons.get(mapItemId);
+		if (icon) {
+			// 移除（可能是真实图标或加载中的占位 mesh）
+			this.mapContainer.remove(icon);
+			icon.geometry?.dispose();
+			if (Array.isArray(icon.material)) {
+				icon.material.forEach((m) => m.dispose());
+			} else {
+				(icon.material as THREE.Material)?.dispose();
+			}
+			this.arrivedEventIcons.delete(mapItemId);
+		}
+	}
+
+	/**
+	 * 更新地图块模型上的事件 userData（控制 hover 提示）
+	 * @param mapItemId 地块 ID
+	 * @param mapEvent 事件对象，传 null 清除
+	 */
+	public setMapItemEventUserData(mapItemId: string, mapEvent: { id: string; name: string; description: string } | null): void {
+		const mapItemModel = this.mapItemsInScene.get(mapItemId);
+		if (!mapItemModel) return;
+		if (mapEvent) {
+			mapItemModel.userData["mapEvent"] = clone(mapEvent);
+		} else {
+			delete mapItemModel.userData["mapEvent"];
+		}
 	}
 
 	private breakUpPlayersInSameMapItem() {

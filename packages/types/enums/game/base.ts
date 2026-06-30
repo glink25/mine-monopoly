@@ -57,6 +57,8 @@ export const enum SocketMsgType {
 	MapChunkEnd = "MapChunkEnd",    // 分块传输完成
 	MapChunkAbort = "MapChunkAbort", // 中止分块传输
 	MapChunkAck = "MapChunkAck",     // 分块接收确认
+	/** 地图事件动态变更（添加/移除/关联） */
+	MapEventChanged = "MapEventChanged",
 }
 
 export enum SocketMsgSource {

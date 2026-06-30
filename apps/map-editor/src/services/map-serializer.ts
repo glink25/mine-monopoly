@@ -212,6 +212,8 @@ export async function serializeToDir(mapData: GameMap, dirPath: string): Promise
 				);
 			}
 		}
+		// 保存顺序
+		await writeJson(`${catDir}/_order.json`, phases.map((p) => p.id));
 	}
 
 	// settings/
@@ -305,7 +307,7 @@ export async function deserializeFromDir(dirPath: string): Promise<DeserializeRe
 			if (await API().exists(catDir)) {
 				const entries = await API().readDir(catDir);
 				for (const entry of entries) {
-					if (entry.isFile && entry.name.endsWith(".json")) {
+					if (entry.isFile && entry.name.endsWith(".json") && entry.name !== "_order.json") {
 						const id = entry.name.replace(/\.json$/, "");
 						const meta = await readJson<Omit<GamePhaseInfo, "initEventCode">>(`${catDir}/${entry.name}`);
 						let initEventCode = "";
@@ -315,6 +317,13 @@ export async function deserializeFromDir(dirPath: string): Promise<DeserializeRe
 						}
 						(phases as any)[category].push({ ...meta, initEventCode, id: meta.id || id });
 					}
+				}
+				// 按 _order.json 恢复顺序
+				const orderPath = `${catDir}/_order.json`;
+				if (await API().exists(orderPath)) {
+					const order: string[] = await readJson(orderPath);
+					const arr = (phases as any)[category] as GamePhaseInfo[];
+					arr.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
 				}
 			}
 		}
