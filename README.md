@@ -21,7 +21,8 @@
 
 <div align="center">
   <a href="#特性"><b>✨ 特性</b></a> | <a href="#架构"><b>🏗️ 架构</b></a> | <a href="#文档"><b>📄 文档</b></a> | <a href="#常见问题"><b>❓ 常见问题</b></a> |
-  <a href="#支持"><b style="color:#FFD700">☕ 支持作者</b></a>
+  <a href="#支持"><b style="color:#FFD700">☕ 支持作者</b></a> | 
+  <a href="#官方地图源文件获取"><b>🗺️ 官方地图源文件获取</b></a>
 </div>
 
 ---
@@ -315,10 +316,10 @@ docker compose -f docker/docker-compose.yml up -d
 ## 常见问题
 
 **Q: 可以自行部署吗？**
-可以。推荐使用 [Docker 部署](#docker-部署)，也可以直接运行服务器连接本地 MySQL。
+不建议自行部署，要想自己创造地图可以使用地图编辑器，在房间中分享自己的地图，或者可以联系作者将自己的地图添加到官方地图中。有需要的新功能可以提交issue或者pr。
 
 **Q: 如何创建自定义地图？**
-使用地图编辑器（`pnpm dev-editor`），提供可视化拖拽编辑界面。详见 [开发指南](docs/development-guide.md)。
+使用地图编辑器（`pnpm dev-editor`），提供可视化拖拽编辑界面。详见 [开发指南](docs/development-guide.md)。可以通过支持作者的[爱发电平台](https://ifdian.net/a/fatpaper)对应页面，获取当前官方地图的源文件。
 
 **Q: P2P 架构是如何工作的？**
 主机客户端在 Web Worker 中运行游戏逻辑，其他玩家通过 WebRTC 数据通道直连主机。中央服务器负责认证和房间路由，coturn 提供 STUN/TURN 中继解决 NAT 穿透问题。
@@ -349,6 +350,10 @@ docker compose -f docker/docker-compose.yml up -d
 <img src="docs/images/reward-qr.png" alt="赞赏码" width="400"/>
 
 </div>
+
+## 官方地图源文件获取
+
+可以通过：[爱发电平台](https://ifdian.net/a/fatpaper)获取
 
 ## 致谢
 
