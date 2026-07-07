@@ -1,14 +1,25 @@
 <script setup lang="ts">
 import { useDeviceStatus } from "@src/store";
-import { exitFullScreen, requestFullScreen } from "@src/utils";
+import { exitFullScreen, requestFullScreen, requestLandscapeFullscreen } from "@src/utils";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { computed } from "vue";
+import { getPlatformType } from "@src/utils/platform";
 
 const deviceStatusStore = useDeviceStatus();
 const isFullScreen = computed(() => deviceStatusStore.isFullScreen);
 
 function handleFullScreen() {
-	isFullScreen.value ? exitFullScreen() : requestFullScreen();
+	if (isFullScreen.value) {
+		exitFullScreen();
+		return;
+	}
+
+	if (getPlatformType() === "mobile") {
+		requestLandscapeFullscreen();
+		return;
+	}
+
+	requestFullScreen();
 }
 </script>
 

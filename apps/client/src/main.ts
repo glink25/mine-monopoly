@@ -257,13 +257,17 @@ gsap.ticker.lagSmoothing(33, 16.67);
 
 function initDeviceStatusListener() {
 	const deviceStatus = useDeviceStatus();
-	deviceStatus.isFullScreen = _isFullScreen();
-	deviceStatus.isLandscape = _isLandscape();
+	const syncViewportStatus = () => {
+		deviceStatus.isFullScreen = _isFullScreen();
+		deviceStatus.isLandscape = _isLandscape();
+	};
+
+	syncViewportStatus();
 	deviceStatus.isMobile = isMobileDevice();
 	deviceStatus.isFocus = document.visibilityState === "visible";
 
 	window.addEventListener("fullscreenchange", (e) => {
-		deviceStatus.isFullScreen = _isFullScreen();
+		syncViewportStatus();
 	});
 
 	if (getPlatformType() === "electron") {
@@ -272,9 +276,12 @@ function initDeviceStatusListener() {
 		});
 	}
 
-	window.addEventListener("resize", (e) => {
-		deviceStatus.isLandscape = _isLandscape();
-	});
+	window.addEventListener("resize", syncViewportStatus);
+	window.addEventListener("orientationchange", syncViewportStatus);
+
+	if (screen.orientation && typeof screen.orientation.addEventListener === "function") {
+		screen.orientation.addEventListener("change", syncViewportStatus);
+	}
 
 	document.addEventListener("visibilitychange", () => {
 		const isNowFocus = document.visibilityState === "visible";

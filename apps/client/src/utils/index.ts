@@ -171,8 +171,19 @@ export function getScreenPosition(object3D: THREE.Object3D, camera: THREE.Camera
 	return new THREE.Vector2(tempPosition.x, -tempPosition.y);
 }
 
-export async function requestFullScreen() {
-	const element = document.documentElement;
+export type LandscapeFullscreenResult = {
+	fullscreen: boolean;
+	orientationLocked: boolean;
+	isLandscape: boolean;
+	error?: unknown;
+};
+
+type LockableScreenOrientation = ScreenOrientation & {
+	lock?: (orientation: "landscape" | "landscape-primary" | "landscape-secondary") => Promise<void>;
+	unlock?: () => void;
+};
+
+export async function requestFullScreen(element: HTMLElement = document.documentElement) {
 	if (element.requestFullscreen) {
 		await element.requestFullscreen();
 		//@ts-ignore
@@ -188,7 +199,43 @@ export async function requestFullScreen() {
 	}
 }
 
+export async function requestLandscapeFullscreen(
+	element: HTMLElement = document.documentElement,
+): Promise<LandscapeFullscreenResult> {
+	let orientationLocked = false;
+	let error: unknown;
+
+	try {
+		if (!isFullScreen()) {
+			await requestFullScreen(element);
+		}
+	} catch (err) {
+		error = err;
+	}
+
+	try {
+		const orientation = screen.orientation as LockableScreenOrientation | undefined;
+		if (orientation && typeof orientation.lock === "function") {
+			await orientation.lock("landscape");
+			orientationLocked = true;
+		}
+	} catch (err) {
+		error ??= err;
+	}
+
+	return {
+		fullscreen: isFullScreen(),
+		orientationLocked,
+		isLandscape: isLandscape(),
+		error,
+	};
+}
+
 export async function exitFullScreen() {
+	const orientation = screen.orientation as LockableScreenOrientation | undefined;
+	if (orientation && typeof orientation.unlock === "function") {
+		orientation.unlock();
+	}
 	if (isFullScreen()) {
 		if (document.exitFullscreen) {
 			await document.exitFullscreen();
