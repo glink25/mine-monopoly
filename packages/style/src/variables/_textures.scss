@@ -6,14 +6,14 @@
 // ---- 材质纹理 ----
 $fp-texture-knit: repeating-linear-gradient(45deg,
   transparent,
-  transparent 4px,
-  rgba(0, 0, 0, 0.02) 4px,
-  rgba(0, 0, 0, 0.02) 8px),
+  transparent 0.2rem,
+  rgba(0, 0, 0, 0.02) 0.2rem,
+  rgba(0, 0, 0, 0.02) 0.4rem),
 repeating-linear-gradient(-45deg,
   transparent,
-  transparent 4px,
-  rgba(0, 0, 0, 0.01) 4px,
-  rgba(0, 0, 0, 0.01) 8px);
+  transparent 0.2rem,
+  rgba(0, 0, 0, 0.01) 0.2rem,
+  rgba(0, 0, 0, 0.01) 0.4rem);
 
 $fp-texture-felt: radial-gradient(circle at 50% 50%, transparent 0%, rgba(0, 0, 0, 0.05) 100%),
 repeating-linear-gradient(0deg, transparent, transparent 0.15rem, rgba(0, 0, 0, 0.02) 0.15rem, rgba(0, 0, 0, 0.02) 0.4rem);
