@@ -186,7 +186,7 @@ export const useVersionStore = defineStore("Version", {
 		/**
 		 * 另存为新的目录格式地图
 		 */
-		async saveAsNewDir(dirPath: string, message?: string): Promise<void> {
+		async saveAsNewDir(dirPath: string, message?: string): Promise<string> {
 			this.isSaving = true;
 			try {
 				const mapDataStore = useMapDataStore();
@@ -199,7 +199,7 @@ export const useVersionStore = defineStore("Version", {
 					resourceStore.images,
 					dirPath,
 				);
-				await this.exportCurrentMapToDist(dirPath);
+				const distFpmapPath = await this.exportCurrentMapToDist(dirPath);
 
 				// 初始化版本管理
 				this.mapDir = norm(dirPath);
@@ -214,6 +214,7 @@ export const useVersionStore = defineStore("Version", {
 
 				// 更新编辑器路径
 				useEditorStore().setCurrentFilePath(dirPath);
+				return distFpmapPath;
 			} finally {
 				this.isSaving = false;
 			}
@@ -222,7 +223,7 @@ export const useVersionStore = defineStore("Version", {
 		/**
 		 * 保存当前地图并 git commit
 		 */
-		async saveCurrent(message?: string): Promise<void> {
+		async saveCurrent(message?: string): Promise<string | undefined> {
 			if (!this.isDirFormat || !this.mapDir) return;
 			this.isSaving = true;
 			try {
@@ -239,12 +240,12 @@ export const useVersionStore = defineStore("Version", {
 					resourceStore.images,
 					this.mapDir,
 				);
-				await this.exportCurrentMapToDist(this.mapDir);
+				const distFpmapPath = await this.exportCurrentMapToDist(this.mapDir);
 
 				// 没有实质变更则跳过提交
 				if (!(await window.gitAPI.hasChanges(this.mapDir))) {
 					this.lastSaveTime = Date.now();
-					return;
+					return distFpmapPath;
 				}
 
 				// git commit
@@ -252,6 +253,7 @@ export const useVersionStore = defineStore("Version", {
 				await window.gitAPI.commitAll(this.mapDir, msg);
 				this.lastSaveTime = Date.now();
 				await this.refreshHistory();
+				return distFpmapPath;
 			} finally {
 				this.isSaving = false;
 			}
@@ -369,10 +371,11 @@ export const useVersionStore = defineStore("Version", {
 		/**
 		 * 将当前内存中的旧格式地图升级为目录格式
 		 */
-		async upgradeToDir(dirPath: string): Promise<void> {
-			await this.saveAsNewDir(dirPath, "upgrade: 从 .fpmap 单文件升级");
+		async upgradeToDir(dirPath: string): Promise<string> {
+			const distFpmapPath = await this.saveAsNewDir(dirPath, "upgrade: 从 .fpmap 单文件升级");
 			this.pendingUpgrade = false;
 			this._persist();
+			return distFpmapPath;
 		},
 
 		// ─── UI ───

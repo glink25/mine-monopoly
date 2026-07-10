@@ -521,6 +521,8 @@ type EditorState = {
 	currentCameraMode: CameraMode;
 	isLinkMode: boolean;
 	isLoading: boolean;
+	loadingText: string;
+	loadingCount: number;
 	// 多选状态
 	selectedMapItemIds: string[];
 	isBoxSelectMode: boolean;
@@ -610,6 +612,8 @@ export const useEditorStore = defineStore("Editor", {
 		currentCameraMode: CameraMode.Perspective,
 		isLinkMode: false,
 		isLoading: false,
+		loadingText: "加载中...",
+		loadingCount: 0,
 		// 多选状态初始值
 		selectedMapItemIds: [],
 		isBoxSelectMode: false,
@@ -621,8 +625,28 @@ export const useEditorStore = defineStore("Editor", {
 		showIndicators: true,
 	}),
 	actions: {
-		setLoading(loading: boolean) {
-			this.isLoading = loading;
+		setLoading(loading: boolean, text = "加载中...") {
+			if (loading) {
+				this.loadingCount++;
+				this.isLoading = true;
+				this.loadingText = text;
+				return;
+			}
+
+			this.loadingCount = Math.max(0, this.loadingCount - 1);
+			this.isLoading = this.loadingCount > 0;
+
+			if (!this.isLoading) {
+				this.loadingText = "加载中...";
+			}
+		},
+		async withLoading<T>(task: () => Promise<T>, text = "加载中..."): Promise<T> {
+			this.setLoading(true, text);
+			try {
+				return await task();
+			} finally {
+				this.setLoading(false);
+			}
 		},
 		setCurrentFilePath(path: string) {
 			this.currentFilePath = path;

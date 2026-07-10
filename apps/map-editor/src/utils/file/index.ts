@@ -102,51 +102,51 @@ export async function saveGameMapToBinFile(mapId: string, filePath: string, mapD
 }
 
 export async function loadMapDataFromPath(path: string) {
-	useEditorStore().setLoading(true);
 	const editorStore = useEditorStore();
 	const mapDataStore = useMapDataStore();
 	const resourceStore = useResourceStore();
-	const data = await parseGameMapFromProtoFile(path);
-	if (data) {
-		// 补全旧地图缺少的内置游戏参数（如 turnTimeout）
-		data.mapData.gameSettingForm = ensureBuiltInGameSettings(data.mapData.gameSettingForm);
-		mapDataStore.$patch(data.mapData);
-		editorStore.setCurrentFilePath(path);
+	await editorStore.withLoading(async () => {
+		const data = await parseGameMapFromProtoFile(path);
+		if (data) {
+			// 补全旧地图缺少的内置游戏参数（如 turnTimeout）
+			data.mapData.gameSettingForm = ensureBuiltInGameSettings(data.mapData.gameSettingForm);
+			mapDataStore.$patch(data.mapData);
+			editorStore.setCurrentFilePath(path);
 
-		await window.electronAPI.clearTempDir();
+			await window.electronAPI.clearTempDir();
 
-		const modelsList: typeof resourceStore.models = [];
-		for (const model of data.models) {
-			const absolutePath = await readBufferToFile(model.buffer, `temp/${model.id}.${model.filetype}`);
-			const filePath = convertToFpUrl(absolutePath);
-			const tempModel = {
-				id: model.id,
-				name: model.name,
-				fileType: model.filetype,
-				url: filePath,
-			};
-			modelsList.push(tempModel);
+			const modelsList: typeof resourceStore.models = [];
+			for (const model of data.models) {
+				const absolutePath = await readBufferToFile(model.buffer, `temp/${model.id}.${model.filetype}`);
+				const filePath = convertToFpUrl(absolutePath);
+				const tempModel = {
+					id: model.id,
+					name: model.name,
+					fileType: model.filetype,
+					url: filePath,
+				};
+				modelsList.push(tempModel);
+			}
+			resourceStore.$patch({ models: modelsList });
+
+			const imagesList: typeof resourceStore.images = [];
+			for (const image of data.images) {
+				const absolutePath = await readBufferToFile(image.buffer, `temp/${image.id}.${image.filetype}`);
+				const filePath = convertToFpUrl(absolutePath);
+				const tempImage = {
+					id: image.id,
+					name: image.name,
+					fileType: image.filetype,
+					url: filePath,
+				};
+				imagesList.push(tempImage);
+			}
+			resourceStore.$patch({ images: imagesList });
+
+			eventBus.emit("map-loaded", data.mapData);
+			message.success("加载成功", 1);
 		}
-		resourceStore.$patch({ models: modelsList });
-
-		const imagesList: typeof resourceStore.images = [];
-		for (const image of data.images) {
-			const absolutePath = await readBufferToFile(image.buffer, `temp/${image.id}.${image.filetype}`);
-			const filePath = convertToFpUrl(absolutePath);
-			const tempImage = {
-				id: image.id,
-				name: image.name,
-				fileType: image.filetype,
-				url: filePath,
-			};
-			imagesList.push(tempImage);
-		}
-		resourceStore.$patch({ images: imagesList });
-
-		eventBus.emit("map-loaded", data.mapData);
-		message.success("加载成功", 1);
-	}
-	useEditorStore().setLoading(false);
+	}, "加载地图中...");
 }
 
 /** 内置游戏参数字段定义（不含 id，由使用处生成） */
@@ -255,12 +255,12 @@ export async function handleSaveProtoFile() {
 
 	const path = editorStore.currentFilePath;
 	if (!path) {
-		handleSaveAsOtherProtoFile();
+		await handleSaveAsOtherProtoFile();
 		return;
 	} else {
-		useEditorStore().setLoading(true);
-		await saveGameMapToBinFile(mapDataStore.id, path, mapDataStore.$state);
-		useEditorStore().setLoading(false);
+		await editorStore.withLoading(async () => {
+			await saveGameMapToBinFile(mapDataStore.id, path, mapDataStore.$state);
+		}, "保存地图中...");
 		message.success("保存地图文件成功", 1);
 	}
 }
@@ -272,15 +272,15 @@ export async function handleSaveAsOtherProtoFile() {
 		title: "另存为",
 		filters: [{ name: "地图文件", extensions: ["fpmap"] }],
 	});
-	useEditorStore().setLoading(true);
 	const path = res.filePath;
 	console.log("🚀 ~ handleSaveAsOtherProtoFile ~ path:", path);
 	if (path) {
-		await saveGameMapToBinFile(mapDataStore.id, path, mapDataStore.$state);
+		await useEditorStore().withLoading(async () => {
+			await saveGameMapToBinFile(mapDataStore.id, path, mapDataStore.$state);
+		}, "保存地图中...");
 		useEditorStore().setCurrentFilePath(path);
 		message.success("保存成功", 1);
 	}
-	useEditorStore().setLoading(false);
 }
 
 export async function readBufferToFile(buffer: Uint8Array, filePath: string) {
