@@ -90,6 +90,7 @@ export const useRoomInfo = defineStore("roomInfo", {
 			mapId: "",
 			mapInfo: null as GameMapInDb | null,
 			roomId: "",
+			isStarted: false,
 			ownerId: "",
 			ownerName: "",
 			userList: new Array<UserInRoomInfo>(),
@@ -101,6 +102,7 @@ export const useRoomInfo = defineStore("roomInfo", {
 	actions: {},
 	getters: {
 		amIRoomOwner: (state) => useUserInfo().userId === state.ownerId,
+		isReady: (state) => state.userList.find((user) => user.userId === useUserInfo().userId)?.isReady ?? false,
 	},
 });
 

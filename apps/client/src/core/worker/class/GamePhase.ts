@@ -15,7 +15,7 @@ export class GamePhase implements IGamePhase<GameContext> {
 	public name: string;
 	public description: string;
 	public mark?: GamePhaseMark | undefined;
-	public from: string;
+	public from?: string;
 	public initEventCode: string;
 	public eventKey: string | undefined;
 

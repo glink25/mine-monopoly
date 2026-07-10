@@ -75,7 +75,7 @@ export class Room {
 	private saveManager: SaveManager = new SaveManager();
 	private pendingSaveData: { snapshot: any; aiPlayerIds: string[] } | null = null;
 	/** GM 操作响应处理 Map */
-	private pendingGMResponses = new Map<string, { resolve: (value: GMActionResponseData) => void, timeout: number }>();
+	private pendingGMResponses = new Map<string, { resolve: (value: GMActionResponseData) => void, timeout: ReturnType<typeof setTimeout> }>();
 
 	// 状态管理相关属性
 	private workerState: WorkerState = WorkerState.Uninitialized;
@@ -778,11 +778,13 @@ export class Room {
 		}
 
 		// 隐藏客机端的 loading
-		this.sendToClient(
-			user?.socketClient,
-			SocketMsgType.LoadingControl,
-			{ show: false },
-		);
+		if (user) {
+			this.sendToClient(
+				user.socketClient,
+				SocketMsgType.LoadingControl,
+				{ show: false },
+			);
+		}
 	}
 
 	/**
@@ -1211,7 +1213,9 @@ export class Room {
 				category: ErrorCategory.WORKER,
 				type: data.type,
 				message: data.message,
-				stack: data.technical?.stack,
+				error: data.technical?.stack
+					? ({ message: data.technical.message, stack: data.technical.stack } as Error)
+					: undefined,
 				extraInfo: {
 					technical: data.technical,
 				},
@@ -1556,6 +1560,11 @@ export class Room {
 				});
 
 				// 等待快照响应
+				const worker = this.gameProcessWorker;
+				if (!worker) {
+					throw new Error("游戏进程不可用");
+				}
+
 				snapshot = await new Promise<SaveSnapshot | null>((resolve) => {
 					const timeout = setTimeout(() => {
 						this.isManuallyRequestingSnapshot = false;
@@ -1566,13 +1575,12 @@ export class Room {
 						const msg: WorkerCommMsg = ev.data;
 						if (msg.type === WorkerCommType.SaveSnapshot) {
 							clearTimeout(timeout);
-							const worker = this.gameProcessWorker;
-							if (worker) worker.removeEventListener("message", handler);
+							worker.removeEventListener("message", handler);
 							resolve(msg.data.snapshot);
 						}
 					};
 
-					this.gameProcessWorker.addEventListener("message", handler);
+					worker.addEventListener("message", handler);
 				});
 			}
 
