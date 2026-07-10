@@ -11,7 +11,7 @@ export type PlatformType = "electron" | "capacitor" | "mobile" | "web";
 // ========== 日志数据类型 ==========
 
 export interface LogErrorData {
-	type: "Vue" | "Promise" | "Runtime" | "Worker" | "Network" | "Console";
+	type: "Vue" | "Promise" | "Runtime" | "Worker" | "Network" | "Console" | string;
 	message: string;
 	stack?: string;
 	info?: string;

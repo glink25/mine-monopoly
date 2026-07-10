@@ -192,29 +192,6 @@ app.use(pinia).use(router).component("font-awesome-icon", FontAwesomeIcon).direc
 // 标记应用已成功启动，全局错误处理据此切换显示策略
 window.__APP_STARTED__ = true;
 
-// Capacitor 全屏：状态栏透明覆盖 + 自动收回
-if (getPlatformType() === "capacitor") {
-	Promise.all([
-		import("@capacitor/status-bar"),
-		import("@capacitor/core"),
-	]).then(([{ StatusBar }, { SystemBars }]) => {
-		// 状态栏透明覆盖到游戏内容上（消除摄像头黑边）
-		StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
-		// 初始隐藏
-		StatusBar.hide().catch(() => {});
-		SystemBars.hide().catch(() => {});
-
-		// 用户下滑唤出状态栏后，自动收回
-		StatusBar.addListener("statusBarVisibilityChanged", (info: { visible: boolean }) => {
-			if (info.visible) {
-				setTimeout(() => {
-					StatusBar.hide().catch(() => {});
-				}, 2000); // 2秒后自动隐藏
-			}
-		});
-	});
-}
-
 // 初始化 console 拦截器（在开发环境中也启用）
 interceptConsole();
 
@@ -280,18 +257,17 @@ gsap.ticker.lagSmoothing(33, 16.67);
 
 function initDeviceStatusListener() {
 	const deviceStatus = useDeviceStatus();
-	deviceStatus.isFullScreen = _isFullScreen();
-	deviceStatus.isLandscape = _isLandscape();
+	const syncViewportStatus = () => {
+		deviceStatus.isFullScreen = _isFullScreen();
+		deviceStatus.isLandscape = _isLandscape();
+	};
+
+	syncViewportStatus();
 	deviceStatus.isMobile = isMobileDevice();
 	deviceStatus.isFocus = document.visibilityState === "visible";
-	// if (isMobileDevice()) {
-	// 	document.addEventListener("touchstart", function (e) {
-	// 		e.preventDefault();
-	// 	});
-	// }
 
 	window.addEventListener("fullscreenchange", (e) => {
-		deviceStatus.isFullScreen = _isFullScreen();
+		syncViewportStatus();
 	});
 
 	if (getPlatformType() === "electron") {
@@ -300,9 +276,12 @@ function initDeviceStatusListener() {
 		});
 	}
 
-	window.addEventListener("resize", (e) => {
-		deviceStatus.isLandscape = _isLandscape();
-	});
+	window.addEventListener("resize", syncViewportStatus);
+	window.addEventListener("orientationchange", syncViewportStatus);
+
+	if (screen.orientation && typeof screen.orientation.addEventListener === "function") {
+		screen.orientation.addEventListener("change", syncViewportStatus);
+	}
 
 	document.addEventListener("visibilitychange", () => {
 		const isNowFocus = document.visibilityState === "visible";

@@ -9,6 +9,8 @@ import {
 	isDirFormatMap,
 	type DeserializeResult,
 } from "@src/services/map-serializer";
+import { getFsApi } from "@src/services/fs-api";
+import { saveGameMapToBinFile } from "@src/utils/file";
 import type { SnapshotInfo, SnapshotDiff } from "@src/services/snapshot-service";
 import { useMapDataStore, useResourceStore, useEditorStore } from "@src/stores";
 import { eventBus } from "@src/utils/event-bus";
@@ -17,6 +19,11 @@ import { message } from "ant-design-vue";
 /** 规范化路径 */
 function norm(p: string): string {
 	return p.replace(/\\/g, "/").replace(/\/+$/, "");
+}
+
+function getDistFpmapPath(dirPath: string, mapName: string): string {
+	const safeName = (mapName || "未命名地图").replace(/[\\/:*?"<>|]/g, "_");
+	return `${norm(dirPath)}/dist/${safeName}.fpmap`;
 }
 
 export const useVersionStore = defineStore("Version", {
@@ -162,10 +169,24 @@ export const useVersionStore = defineStore("Version", {
 
 		// ─── 保存 ───
 
+		async exportCurrentMapToDist(dirPath: string): Promise<string> {
+			const mapDataStore = useMapDataStore();
+			const fs = getFsApi();
+			const distDir = `${norm(dirPath)}/dist`;
+			const outputPath = getDistFpmapPath(dirPath, mapDataStore.info.name);
+
+			if (!(await fs.exists(distDir))) {
+				await fs.mkdir(distDir);
+			}
+
+			await saveGameMapToBinFile(mapDataStore.id, outputPath, mapDataStore.$state);
+			return outputPath;
+		},
+
 		/**
 		 * 另存为新的目录格式地图
 		 */
-		async saveAsNewDir(dirPath: string, message?: string): Promise<void> {
+		async saveAsNewDir(dirPath: string, message?: string): Promise<string> {
 			this.isSaving = true;
 			try {
 				const mapDataStore = useMapDataStore();
@@ -178,6 +199,7 @@ export const useVersionStore = defineStore("Version", {
 					resourceStore.images,
 					dirPath,
 				);
+				const distFpmapPath = await this.exportCurrentMapToDist(dirPath);
 
 				// 初始化版本管理
 				this.mapDir = norm(dirPath);
@@ -192,6 +214,7 @@ export const useVersionStore = defineStore("Version", {
 
 				// 更新编辑器路径
 				useEditorStore().setCurrentFilePath(dirPath);
+				return distFpmapPath;
 			} finally {
 				this.isSaving = false;
 			}
@@ -200,7 +223,7 @@ export const useVersionStore = defineStore("Version", {
 		/**
 		 * 保存当前地图并 git commit
 		 */
-		async saveCurrent(message?: string): Promise<void> {
+		async saveCurrent(message?: string): Promise<string | undefined> {
 			if (!this.isDirFormat || !this.mapDir) return;
 			this.isSaving = true;
 			try {
@@ -217,10 +240,12 @@ export const useVersionStore = defineStore("Version", {
 					resourceStore.images,
 					this.mapDir,
 				);
+				const distFpmapPath = await this.exportCurrentMapToDist(this.mapDir);
 
 				// 没有实质变更则跳过提交
 				if (!(await window.gitAPI.hasChanges(this.mapDir))) {
-					return;
+					this.lastSaveTime = Date.now();
+					return distFpmapPath;
 				}
 
 				// git commit
@@ -228,6 +253,7 @@ export const useVersionStore = defineStore("Version", {
 				await window.gitAPI.commitAll(this.mapDir, msg);
 				this.lastSaveTime = Date.now();
 				await this.refreshHistory();
+				return distFpmapPath;
 			} finally {
 				this.isSaving = false;
 			}
@@ -345,10 +371,11 @@ export const useVersionStore = defineStore("Version", {
 		/**
 		 * 将当前内存中的旧格式地图升级为目录格式
 		 */
-		async upgradeToDir(dirPath: string): Promise<void> {
-			await this.saveAsNewDir(dirPath, "upgrade: 从 .fpmap 单文件升级");
+		async upgradeToDir(dirPath: string): Promise<string> {
+			const distFpmapPath = await this.saveAsNewDir(dirPath, "upgrade: 从 .fpmap 单文件升级");
 			this.pendingUpgrade = false;
 			this._persist();
+			return distFpmapPath;
 		},
 
 		// ─── UI ───

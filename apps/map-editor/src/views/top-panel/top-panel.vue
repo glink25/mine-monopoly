@@ -34,6 +34,11 @@ const exportProgressVisible = ref(false);
 const exportProgressPercent = ref(0);
 const exportProgressStage = ref("");
 
+function getDistFpmapHint(distFpmapPath?: string) {
+	if (!distFpmapPath) return "保存成功";
+	return `保存成功，.fpmap 已同步导出到 dist 文件夹：${distFpmapPath}`;
+}
+
 // 文件下拉菜单项点击处理
 type FileMenuKey = "new" | "open-project" | "open-fpmap" | "save" | "saveas" | "export-fpmap" | "exportmmmap";
 async function handleFileMenuClick({ key }: { key: FileMenuKey }) {
@@ -99,8 +104,7 @@ async function handleOpenFpmapFile() {
 
 // ─── 统一加载 + 注入 Store ───
 async function loadAndSetup(filePath: string) {
-	editorStore.setLoading(true);
-	try {
+	await editorStore.withLoading(async () => {
 		await window.electronAPI.clearTempDir();
 
 		const { mapData, models, images } = await loadMapAuto(filePath);
@@ -111,9 +115,7 @@ async function loadAndSetup(filePath: string) {
 		await versionStore.detectAndInit(filePath);
 
 		eventBus.emit("map-loaded", mapData);
-	} finally {
-		editorStore.setLoading(false);
-	}
+	}, "加载地图中...");
 }
 
 // ─── 保存（目录格式走快照） ───
@@ -121,8 +123,8 @@ async function handleSaveMapFile() {
 	if (versionStore.isDirFormat && versionStore.mapDir) {
 		// 目录格式：序列化 + 快照
 		try {
-			await versionStore.saveCurrent();
-			message.success("保存成功", 1);
+			const distFpmapPath = await editorStore.withLoading(() => versionStore.saveCurrent(), "保存项目中...");
+			message.success(getDistFpmapHint(distFpmapPath), 2);
 		} catch (e: any) {
 			message.error(`保存失败: ${e.message}`);
 		}
@@ -135,8 +137,8 @@ async function handleSaveMapFile() {
 		if (recovered) {
 			// 恢复成功，走目录格式保存
 			try {
-				await versionStore.saveCurrent();
-				message.success("保存成功", 1);
+				const distFpmapPath = await editorStore.withLoading(() => versionStore.saveCurrent(), "保存项目中...");
+				message.success(getDistFpmapHint(distFpmapPath), 2);
 			} catch (e: any) {
 				message.error(`保存失败: ${e.message}`);
 			}
@@ -149,15 +151,15 @@ async function handleSaveMapFile() {
 	if (cp) {
 		try {
 			const s = await getFsApi().statPath(cp);
-			if (s.isDirectory) {
-				// currentFilePath 是目录但 isDirFormat 未正确恢复 → 最后一次尝试
-				const recovered = await versionStore.tryRecoverFromCurrentPath();
-				if (recovered) {
-					try {
-						await versionStore.saveCurrent();
-						message.success("保存成功", 1);
-					} catch (e2: any) {
-						message.error(`保存失败: ${e2.message}`);
+				if (s.isDirectory) {
+					// currentFilePath 是目录但 isDirFormat 未正确恢复 → 最后一次尝试
+					const recovered = await versionStore.tryRecoverFromCurrentPath();
+					if (recovered) {
+						try {
+							const distFpmapPath = await editorStore.withLoading(() => versionStore.saveCurrent(), "保存项目中...");
+							message.success(getDistFpmapHint(distFpmapPath), 2);
+						} catch (e2: any) {
+							message.error(`保存失败: ${e2.message}`);
 					}
 				} else {
 					message.error("无法保存到此目录，请使用「保存为项目」选择其他位置");
@@ -190,7 +192,7 @@ async function handleSaveMapFile() {
 	}
 
 	// 默认旧格式保存
-	handleSaveProtoFile();
+	await handleSaveProtoFile();
 }
 
 // ─── 保存为项目目录 ───
@@ -218,15 +220,12 @@ async function handleSaveAsMapFile() {
 	const mapDataStore = useMapDataStore();
 	mapDataStore.info.editorVersion = (window as any).electronAPI?.getVersion?.() || "";
 
-	useEditorStore().setLoading(true);
-	try {
-		await versionStore.saveAsNewDir(dirPath);
-		message.success(`项目已保存到: ${dirPath}`, 1);
-	} catch (e: any) {
+	await useEditorStore().withLoading(async () => {
+		const distFpmapPath = await versionStore.saveAsNewDir(dirPath);
+		message.success(`项目已保存到: ${dirPath}；.fpmap 已同步导出到 dist 文件夹：${distFpmapPath}`, 2);
+	}, "保存项目中...").catch((e: any) => {
 		message.error(`保存失败: ${e.message}`);
-	} finally {
-		useEditorStore().setLoading(false);
-	}
+	});
 }
 
 // ─── 升级旧格式为项目 ───
@@ -249,15 +248,12 @@ async function handleUpgrade() {
 		return;
 	}
 
-	useEditorStore().setLoading(true);
-	try {
-		await versionStore.upgradeToDir(dirPath);
-		message.success(`已升级为项目: ${dirPath}`, 2);
-	} catch (e: any) {
+	await useEditorStore().withLoading(async () => {
+		const distFpmapPath = await versionStore.upgradeToDir(dirPath);
+		message.success(`已升级为项目: ${dirPath}；.fpmap 已同步导出到 dist 文件夹：${distFpmapPath}`, 2);
+	}, "升级项目中...").catch((e: any) => {
 		message.error(`升级失败: ${e.message}`);
-	} finally {
-		useEditorStore().setLoading(false);
-	}
+	});
 }
 
 function openMCPPanel() {

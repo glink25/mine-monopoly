@@ -85,6 +85,17 @@ async function readText(filePath: string): Promise<string> {
 	return bufToText(buf);
 }
 
+async function ensureTextFileContainsLines(filePath: string, lines: string[]): Promise<void> {
+	const existing = (await API().exists(filePath)) ? await readText(filePath) : "";
+	const normalized = existing.replace(/\r\n/g, "\n");
+	const missingLines = lines.filter(line => !normalized.split("\n").includes(line));
+	if (missingLines.length === 0) return;
+
+	const needsTrailingNewline = normalized.length > 0 && !normalized.endsWith("\n");
+	const next = `${normalized}${needsTrailingNewline ? "\n" : ""}${missingLines.join("\n")}\n`;
+	await writeText(filePath, next);
+}
+
 async function ensureDir(dirPath: string): Promise<void> {
 	if (!(await API().exists(dirPath))) {
 		await API().mkdir(dirPath);
@@ -247,11 +258,87 @@ export async function serializeToDir(mapData: GameMap, dirPath: string): Promise
 		await writeText(`${dirPath}/libs/extra.ts`, mapData.extraLibs);
 	}
 
+	// ─── 清理孤儿文件（删除已在编辑器中移除但磁盘上仍残留的旧文件） ───
+
+	// items/
+	await cleanupByFilenames(`${dirPath}/items`,
+		new Set(mapData.mapItems.map(i => `${i.id}.json`)));
+
+	// item-types/
+	await cleanupByFilenames(`${dirPath}/item-types`,
+		new Set(mapData.mapItemTypes.map(t => `${t.id}.json`)));
+
+	// events/
+	await cleanupByFilenames(`${dirPath}/events`,
+		new Set(mapData.mapEvents.flatMap(ev => {
+			const files = [`${ev.id}.json`];
+			if (ev.effectCode) files.push(`${ev.id}.code.ts`);
+			return files;
+		})));
+
+	// roles/
+	await cleanupByFilenames(`${dirPath}/roles`,
+		new Set(mapData.roles.flatMap(r => {
+			const files = [`${r.id}.json`];
+			if (r.initCode) files.push(`${r.id}.init.ts`);
+			return files;
+		})));
+
+	// cards/
+	await cleanupByFilenames(`${dirPath}/cards`,
+		new Set(mapData.chanceCards.flatMap(c => {
+			const files = [`${c.id}.json`];
+			if (c.effectCode) files.push(`${c.id}.effect.ts`);
+			return files;
+		})));
+
+	// phases/ (每个 category 子目录)
+	for (const [category, phases] of Object.entries(mapData.phases)) {
+		const catDir = `${dirPath}/phases/${PHASE_DIRS[category] || category}`;
+		await cleanupByFilenames(catDir,
+			new Set(phases.flatMap(p => {
+				const files = [`${p.id}.json`];
+				if (p.initEventCode) files.push(`${p.id}.init.ts`);
+				return files;
+			}).concat(['_order.json'])));
+	}
+
+	// settings/
+	await cleanupByFilenames(`${dirPath}/settings`,
+		new Set(mapData.gameSettingForm.map(s => `${s.id}.json`)));
+
+	// modifiers/
+	await cleanupByFilenames(`${dirPath}/modifiers`,
+		new Set(mapData.modifierTemplates.flatMap(m => {
+			const files = [`${m.id}.json`];
+			if (m.effectCode) files.push(`${m.id}.code.ts`);
+			return files;
+		})));
+
+	// ui-templates/
+	await cleanupByFilenames(`${dirPath}/ui-templates`,
+		new Set(mapData.uiTemplates.map(t => `${t.id}.json`)));
+
+	// custom-uis/
+	await cleanupByFilenames(`${dirPath}/custom-uis`,
+		new Set(mapData.customUIs.map(c => `${c.id}.json`)));
+
+	// libs/ (extra.ts 被清空时需要删除旧文件)
+	await cleanupByFilenames(`${dirPath}/libs`,
+		new Set(mapData.extraLibs ? ['extra.ts'] : []));
+
 	// .gitignore (每次保存时确保存在)
 	const gitignorePath = `${dirPath}/.gitignore`;
-	if (!(await API().exists(gitignorePath))) {
-		await writeText(gitignorePath, "# 临时文件\n*.tmp\n*~\n.DS_Store\nThumbs.db\n");
-	}
+	await ensureTextFileContainsLines(gitignorePath, [
+		"# 临时文件",
+		"*.tmp",
+		"*~",
+		".DS_Store",
+		"Thumbs.db",
+		"",
+		"# 构建产物",
+		"dist/",
+	]);
 
 	// .gitattributes (每次保存时确保存在)
 	const gitattrsPath = `${dirPath}/.gitattributes`;
@@ -549,6 +636,26 @@ async function cleanupOrphanFiles(dir: string, currentIds: Set<string>): Promise
 				await API().unlink(`${dir}/${entry.name}`);
 			} catch {
 				console.warn(`Failed to remove orphan resource: ${entry.name}`);
+			}
+		}
+	}
+}
+
+/**
+ * 根据期望文件名集合清理目录中的孤儿文件。
+ * 与 cleanupOrphanFiles 不同，此函数通过完整文件名精确匹配，
+ * 能正确处理双扩展名文件（如 {id}.code.ts、{id}.init.ts）。
+ */
+async function cleanupByFilenames(dir: string, expectedFiles: Set<string>): Promise<void> {
+	if (!(await API().exists(dir))) return;
+	const entries = await API().readDir(dir);
+	for (const entry of entries) {
+		if (!entry.isFile) continue;
+		if (!expectedFiles.has(entry.name)) {
+			try {
+				await API().unlink(`${dir}/${entry.name}`);
+			} catch {
+				console.warn(`Failed to remove orphan file: ${entry.name} in ${dir}`);
 			}
 		}
 	}

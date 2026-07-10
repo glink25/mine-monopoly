@@ -107,6 +107,9 @@ export interface PropertyInfo {
 	/** 建筑模型 ID 列表 */
 	buildingModelIdList?: string[];
 
+	/** 自定义扩展数据 */
+	exportData?: Record<string, any>;
+
 	/** 地产所有者信息 */
 	owner?: UserInRoomInfo;
 

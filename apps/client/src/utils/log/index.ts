@@ -178,6 +178,9 @@ class LogService implements ILogService {
           render: '[渲染]',
           worker: '[Worker]',
           auth: '[认证]',
+          component_validation: '[组件验证]',
+          game_runtime: '[运行时]',
+          init_timeout: '[初始化超时]',
           unknown: '[未知]'
         }[log.category];
 

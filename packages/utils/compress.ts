@@ -1,3 +1,4 @@
+/// <reference path="./pako.d.ts" />
 import pako from "pako";
 
 /**

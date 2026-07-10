@@ -1,5 +1,4 @@
-import type { GameMap } from "@mine-monopoly/types";
-import type { GamePhaseInfo } from "@mine-monopoly/types/interfaces/game/map";
+import type { GameMap, GamePhaseInfo } from "@mine-monopoly/types";
 
 /**
  * 向后兼容：确保地图 phases 中所有已知阶段类型都存在。
