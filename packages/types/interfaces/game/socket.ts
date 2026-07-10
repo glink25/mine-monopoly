@@ -815,6 +815,7 @@ export interface SafeModePanelMessage {
 		category?: string;
 		type?: string;
 		message?: string;
+		stack?: string;
 	};
 }
 

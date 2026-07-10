@@ -93,7 +93,7 @@ export interface GamePhaseInfo {
 	mark?: GamePhaseMark;
 
 	/** 阶段来源（地图编辑器中定义） */
-	from: string;
+	from?: string;
 
 	/** 初始化事件代码（TypeScript 代码字符串） */
 	initEventCode: string;

@@ -183,7 +183,13 @@ export interface ModifierTemplate {
 		remainingTriggers: number;
 		priority: number;
 		autoConsume: boolean;
-		meta?: { name: string; description: string };
+		meta?: {
+			name: string;
+			description: string;
+			source?: string;
+			triggerTiming?: string;
+			tags?: string[];
+		};
 	};
 	/** 代码字符串，签名 (player, gameProcess, cmd, ctx) => { ... } */
 	effectCode: string;
